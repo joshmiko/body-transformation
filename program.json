@@ -1,0 +1,165 @@
+{
+  "Monday": {
+    "title": "Monday \u2022 Lower + Push",
+    "focus": "Strength + muscle \u2022 manage Monday leg fatigue",
+    "notes": "Keep the main lower-body work controlled so Wednesday yoga and Friday/Saturday training remain productive.",
+    "exercises": [
+      [
+        "Back Squat",
+        "compound",
+        3,
+        "6\u20138",
+        150,
+        "Start around a repeatable working weight; progress only when reps/RIR support it."
+      ],
+      [
+        "Barbell Bench Press",
+        "compound",
+        3,
+        "6\u201310",
+        150,
+        "Primary horizontal press. Use barbell as the main bench pattern."
+      ],
+      [
+        "Lat Pulldown",
+        "compound",
+        3,
+        "8\u201312",
+        90,
+        "Controlled eccentric; aim to build toward 135 lb again."
+      ],
+      [
+        "DB Romanian Deadlift",
+        "compound",
+        2,
+        "8\u201312",
+        120,
+        "Moderate volume; don't turn Monday into a second maximal hinge day."
+      ],
+      [
+        "DB Lateral Raise",
+        "isolation",
+        2,
+        "10\u201315",
+        60,
+        "Strict reps."
+      ]
+    ]
+  },
+  "Wednesday": {
+    "title": "Wednesday \u2022 Yoga / Recovery",
+    "focus": "Mobility + recovery",
+    "notes": "Keep it restorative/moderate. Monitor whether Monday leg DOMS interferes with yoga.",
+    "exercises": []
+  },
+  "Friday": {
+    "title": "Friday \u2022 Upper + Pull",
+    "focus": "Upper-body hypertrophy + pull-up development",
+    "notes": "Avoid unnecessary lower-body fatigue before Saturday.",
+    "exercises": [
+      [
+        "Barbell Bench Press",
+        "compound",
+        3,
+        "6\u201310",
+        150,
+        "Progress with reps first; don't chase old powerlifting numbers during the fat-loss phase."
+      ],
+      [
+        "1-Arm DB Row",
+        "compound",
+        3,
+        "8\u201312",
+        90,
+        "Stable torso; full range."
+      ],
+      [
+        "Lat Pulldown",
+        "compound",
+        3,
+        "8\u201312",
+        90,
+        "Use as the main vertical pull if pull-ups aren't ready for full volume."
+      ],
+      [
+        "Dead Hang",
+        "skill/grip",
+        2,
+        "20\u201345 sec",
+        60,
+        "Add time gradually; quality grip and shoulder position."
+      ],
+      [
+        "DB Hammer Curl",
+        "isolation",
+        2,
+        "8\u201312",
+        60,
+        "Controlled."
+      ],
+      [
+        "Cable/DB Triceps",
+        "isolation",
+        2,
+        "10\u201315",
+        60,
+        "Optional if time remains."
+      ]
+    ]
+  },
+  "Saturday": {
+    "title": "Saturday \u2022 Legs + Athletic",
+    "focus": "Leg hypertrophy + athletic capacity",
+    "notes": "This is the leg day you were logging in Strong. Keep heavy squatting here moderate if Monday is the main squat stimulus.",
+    "exercises": [
+      [
+        "Leg Press",
+        "compound",
+        3,
+        "8\u201312",
+        120,
+        "Hard, controlled sets without grinding."
+      ],
+      [
+        "Walking Lunge",
+        "compound",
+        2,
+        "8\u201312/leg",
+        90,
+        "You have used 25 lb DBs; progress based on form and RIR."
+      ],
+      [
+        "DB/Seated Shoulder Press",
+        "compound",
+        3,
+        "6\u201310",
+        120,
+        "Use a load you can control without grinding."
+      ],
+      [
+        "DB Romanian Deadlift",
+        "compound",
+        2,
+        "8\u201312",
+        120,
+        "Optional on weeks when Monday soreness/recovery is poor."
+      ],
+      [
+        "Calf Raise",
+        "isolation",
+        3,
+        "12\u201320",
+        60,
+        "Prior sessions suggest 60 lb total felt appropriate; adjust by RIR."
+      ],
+      [
+        "Dead Hang",
+        "skill/grip",
+        2,
+        "20\u201345 sec",
+        60,
+        "Short finisher if grip is fresh."
+      ]
+    ]
+  }
+}

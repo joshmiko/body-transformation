@@ -1,0 +1,422 @@
+{
+  "Squat (Barbell)": {
+    "sessions": 18,
+    "best_weight": 225.0,
+    "best_set": {
+      "weight": 225.0,
+      "reps": 5
+    },
+    "recent": [
+      {
+        "date": "2026-08-02",
+        "weight": 45.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-08-02",
+        "weight": 135.0,
+        "reps": 2
+      },
+      {
+        "date": "2026-08-02",
+        "weight": 175.0,
+        "reps": 1
+      },
+      {
+        "date": "2026-08-02",
+        "weight": 200.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-02",
+        "weight": 200.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-02",
+        "weight": 200.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 205.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 185.0,
+        "reps": 2
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 205.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 45.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 135.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 205.0,
+        "reps": 8
+      }
+    ]
+  },
+  "Deadlift (Barbell)": {
+    "sessions": 3,
+    "best_weight": 275.0,
+    "best_set": {
+      "weight": 275.0,
+      "reps": 3
+    },
+    "recent": [
+      {
+        "date": "2025-08-15",
+        "weight": 250.0,
+        "reps": 3
+      },
+      {
+        "date": "2025-08-15",
+        "weight": 250.0,
+        "reps": 3
+      },
+      {
+        "date": "2025-08-15",
+        "weight": 250.0,
+        "reps": 3
+      },
+      {
+        "date": "2025-08-15",
+        "weight": 250.0,
+        "reps": 3
+      },
+      {
+        "date": "2025-08-15",
+        "weight": 225.0,
+        "reps": 3
+      },
+      {
+        "date": "2025-08-15",
+        "weight": 135.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-01-30",
+        "weight": 135.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-01-30",
+        "weight": 225.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-01-30",
+        "weight": 250.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-01-30",
+        "weight": 250.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-01-30",
+        "weight": 250.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-01-30",
+        "weight": 250.0,
+        "reps": 5
+      }
+    ]
+  },
+  "Bench Press (Barbell)": {
+    "sessions": 23,
+    "best_weight": 185.0,
+    "best_set": {
+      "weight": 185.0,
+      "reps": 3
+    },
+    "recent": [
+      {
+        "date": "2026-05-29",
+        "weight": 150.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-05-29",
+        "weight": 150.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-05-29",
+        "weight": 150.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-05-29",
+        "weight": 150.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-05-29",
+        "weight": 150.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-06-09",
+        "weight": 155.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-06-09",
+        "weight": 155.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-06-09",
+        "weight": 155.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-06-09",
+        "weight": 135.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-06-09",
+        "weight": 45.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-06-09",
+        "weight": 155.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-06-09",
+        "weight": 155.0,
+        "reps": 5
+      }
+    ]
+  },
+  "Bench Press (Dumbbell)": {
+    "sessions": 13,
+    "best_weight": 75.0,
+    "best_set": {
+      "weight": 75.0,
+      "reps": 8
+    },
+    "recent": [
+      {
+        "date": "2026-08-04",
+        "weight": 75.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-04",
+        "weight": 75.0,
+        "reps": 6
+      },
+      {
+        "date": "2026-08-04",
+        "weight": 75.0,
+        "reps": 5
+      },
+      {
+        "date": "2026-08-10",
+        "weight": 70.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-10",
+        "weight": 70.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-10",
+        "weight": 70.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-17",
+        "weight": 75.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-17",
+        "weight": 75.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-17",
+        "weight": 75.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-24",
+        "weight": 75.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-24",
+        "weight": 75.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-08-24",
+        "weight": 75.0,
+        "reps": 8
+      }
+    ]
+  },
+  "Lat Pulldown (Cable)": {
+    "sessions": 12,
+    "best_weight": 135.0,
+    "best_set": {
+      "weight": 135.0,
+      "reps": 10
+    },
+    "recent": [
+      {
+        "date": "2026-07-12",
+        "weight": 100.0,
+        "reps": 10
+      },
+      {
+        "date": "2026-07-31",
+        "weight": 120.0,
+        "reps": 12
+      },
+      {
+        "date": "2026-07-31",
+        "weight": 120.0,
+        "reps": 12
+      },
+      {
+        "date": "2026-07-31",
+        "weight": 120.0,
+        "reps": 10
+      },
+      {
+        "date": "2026-08-13",
+        "weight": 115.0,
+        "reps": 12
+      },
+      {
+        "date": "2026-08-13",
+        "weight": 115.0,
+        "reps": 12
+      },
+      {
+        "date": "2026-08-13",
+        "weight": 115.0,
+        "reps": 12
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 120.0,
+        "reps": 12
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 120.0,
+        "reps": 12
+      },
+      {
+        "date": "2026-08-22",
+        "weight": 120.0,
+        "reps": 10
+      },
+      {
+        "date": "2026-08-28",
+        "weight": 120.0,
+        "reps": 10
+      },
+      {
+        "date": "2026-08-28",
+        "weight": 120.0,
+        "reps": 8
+      }
+    ]
+  },
+  "Pull Up (Assisted)": {
+    "sessions": 7,
+    "best_weight": 150.0,
+    "best_set": {
+      "weight": 150.0,
+      "reps": 10
+    },
+    "recent": [
+      {
+        "date": "2025-08-29",
+        "weight": 80.0,
+        "reps": 5
+      },
+      {
+        "date": "2025-08-29",
+        "weight": 80.0,
+        "reps": 5
+      },
+      {
+        "date": "2025-08-29",
+        "weight": 80.0,
+        "reps": 5
+      },
+      {
+        "date": "2025-12-19",
+        "weight": 150.0,
+        "reps": 10
+      },
+      {
+        "date": "2025-12-19",
+        "weight": 150.0,
+        "reps": 10
+      },
+      {
+        "date": "2025-12-19",
+        "weight": 150.0,
+        "reps": 10
+      },
+      {
+        "date": "2026-03-30",
+        "weight": 150.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-03-30",
+        "weight": 120.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-03-30",
+        "weight": 120.0,
+        "reps": 8
+      },
+      {
+        "date": "2026-04-06",
+        "weight": 120.0,
+        "reps": 10
+      },
+      {
+        "date": "2026-04-06",
+        "weight": 120.0,
+        "reps": 10
+      },
+      {
+        "date": "2026-04-06",
+        "weight": 120.0,
+        "reps": 10
+      }
+    ]
+  }
+}
