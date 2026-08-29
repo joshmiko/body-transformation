@@ -1,28 +1,27 @@
 {
   "Monday": {
-    "label": "MON",
-    "title": "Lower + Push",
-    "subtitle": "Squat + bench strength/hypertrophy",
+    "title": "Monday \u2014 Lower + Push",
+    "subtitle": "Strength + hypertrophy",
     "exercises": [
       {
         "name": "Back Squat",
         "type": "Compound",
         "sets": 3,
-        "min": 6,
+        "min": 5,
         "max": 8,
         "rest": 150,
-        "warm": "squat",
-        "cue": "Controlled descent. Leave 1\u20133 reps in reserve; no grinders."
+        "cue": "Brace hard, controlled descent, drive through mid-foot.",
+        "warm": "squat"
       },
       {
         "name": "Barbell Bench Press",
         "type": "Compound",
         "sets": 3,
-        "min": 6,
-        "max": 10,
+        "min": 5,
+        "max": 8,
         "rest": 150,
-        "warm": "bench",
-        "cue": "Consistent touch point and bar path. Leave 1\u20133 RIR."
+        "cue": "Retract shoulders, stable feet, controlled touch.",
+        "warm": "bench"
       },
       {
         "name": "Lat Pulldown",
@@ -31,109 +30,115 @@
         "min": 8,
         "max": 12,
         "rest": 90,
-        "warm": "cable",
-        "cue": "Full stretch, controlled eccentric, no swinging."
+        "cue": "Pull elbows down; avoid swinging.",
+        "warm": "cable"
       },
       {
-        "name": "DB Romanian Deadlift",
+        "name": "1-Arm DB Row",
         "type": "Compound",
         "sets": 2,
         "min": 8,
         "max": 12,
-        "rest": 120,
-        "warm": "db",
-        "cue": "Moderate hinge volume. Do not turn this into a max-effort deadlift."
+        "rest": 90,
+        "cue": "Brace and pull toward hip; pause briefly.",
+        "warm": "db"
       },
       {
         "name": "DB Lateral Raise",
         "type": "Isolation",
         "sets": 2,
-        "min": 10,
+        "min": 12,
         "max": 15,
         "rest": 60,
-        "warm": "db",
-        "cue": "Strict reps and controlled lowering."
-      }
-    ]
-  },
-  "Wednesday": {
-    "label": "WED",
-    "title": "Yoga / Recovery",
-    "subtitle": "Mobility + recovery",
-    "exercises": []
-  },
-  "Friday": {
-    "label": "FRI",
-    "title": "Upper + Pull",
-    "subtitle": "Upper-body hypertrophy + pull-up development",
-    "exercises": [
-      {
-        "name": "Barbell Bench Press",
-        "type": "Compound",
-        "sets": 3,
-        "min": 6,
-        "max": 10,
-        "rest": 150,
-        "warm": "bench",
-        "cue": "Second weekly exposure. Keep 1\u20133 RIR."
-      },
-      {
-        "name": "1-Arm DB Row",
-        "type": "Compound",
-        "sets": 3,
-        "min": 8,
-        "max": 12,
-        "rest": 90,
-        "warm": "db",
-        "cue": "Stable torso and full range."
-      },
-      {
-        "name": "Lat Pulldown",
-        "type": "Compound",
-        "sets": 3,
-        "min": 8,
-        "max": 12,
-        "rest": 90,
-        "warm": "cable",
-        "cue": "Controlled eccentric and full stretch."
-      },
-      {
-        "name": "Dead Hang",
-        "type": "Skill / Grip",
-        "sets": 2,
-        "min": 20,
-        "max": 45,
-        "rest": 60,
-        "warm": "none",
-        "unit": "sec",
-        "cue": "Accumulate quality time; avoid failure every set."
+        "cue": "Lead with elbows; controlled lowering.",
+        "warm": "db"
       },
       {
         "name": "DB Hammer Curl",
         "type": "Isolation",
         "sets": 2,
-        "min": 8,
-        "max": 12,
+        "min": 10,
+        "max": 15,
         "rest": 60,
-        "warm": "db",
-        "cue": "Controlled reps."
+        "cue": "Neutral grip, no torso swing.",
+        "warm": "db"
+      }
+    ]
+  },
+  "Wednesday": {
+    "title": "Wednesday \u2014 Yoga / Recovery",
+    "subtitle": "Mobility + recovery",
+    "exercises": []
+  },
+  "Friday": {
+    "title": "Friday \u2014 Pull + Push",
+    "subtitle": "Strength + athletic balance",
+    "exercises": [
+      {
+        "name": "Deadlift",
+        "type": "Compound",
+        "sets": 2,
+        "min": 5,
+        "max": 6,
+        "rest": 180,
+        "cue": "Brace before pull; push floor away; keep bar close.",
+        "warm": "deadlift"
       },
       {
-        "name": "Cable Triceps Pressdown",
+        "name": "Pull-Ups",
+        "type": "Compound",
+        "sets": 3,
+        "min": 3,
+        "max": 6,
+        "rest": 120,
+        "cue": "Start from a controlled hang; drive elbows down.",
+        "warm": "bodyweight"
+      },
+      {
+        "name": "Incline DB Bench",
+        "type": "Compound",
+        "sets": 3,
+        "min": 8,
+        "max": 12,
+        "rest": 120,
+        "cue": "Use a moderate incline; controlled stretch.",
+        "warm": "db"
+      },
+      {
+        "name": "Cable Row",
+        "type": "Compound",
+        "sets": 3,
+        "min": 8,
+        "max": 12,
+        "rest": 90,
+        "cue": "Neutral spine; pull elbows back without shrugging.",
+        "warm": "cable"
+      },
+      {
+        "name": "Walking Lunge",
+        "type": "Compound",
+        "sets": 2,
+        "min": 8,
+        "max": 10,
+        "rest": 90,
+        "cue": "Long controlled step; knee tracks over foot.",
+        "warm": "db"
+      },
+      {
+        "name": "DB Curl",
         "type": "Isolation",
         "sets": 2,
         "min": 10,
         "max": 15,
         "rest": 60,
-        "warm": "cable",
-        "cue": "Optional if time remains."
+        "cue": "Supinated grip; slow eccentric.",
+        "warm": "db"
       }
     ]
   },
   "Saturday": {
-    "label": "SAT",
-    "title": "Legs + Shoulders",
-    "subtitle": "Leg hypertrophy + athletic support",
+    "title": "Saturday \u2014 Legs",
+    "subtitle": "Lower body + core",
     "exercises": [
       {
         "name": "Leg Press",
@@ -142,59 +147,51 @@
         "min": 8,
         "max": 12,
         "rest": 120,
+        "cue": "Full controlled range; knees track with toes.",
         "warm": "legpress",
-        "cue": "Controlled depth; hard sets without grinding."
+        "machine": "Matrix",
+        "loadType": "machine"
+      },
+      {
+        "name": "DB Romanian Deadlift",
+        "type": "Compound",
+        "sets": 3,
+        "min": 8,
+        "max": 12,
+        "rest": 120,
+        "cue": "Hinge at hips; keep dumbbells close; feel hamstrings.",
+        "warm": "db"
       },
       {
         "name": "Walking Lunge",
         "type": "Compound",
         "sets": 2,
         "min": 8,
-        "max": 12,
-        "rest": 90,
-        "warm": "bodyweight",
-        "cue": "Per leg. Prioritize balance and controlled steps."
-      },
-      {
-        "name": "DB / Seated Shoulder Press",
-        "type": "Compound",
-        "sets": 3,
-        "min": 6,
         "max": 10,
-        "rest": 120,
-        "warm": "db",
-        "cue": "Controllable load; don't grind."
-      },
-      {
-        "name": "DB Romanian Deadlift",
-        "type": "Compound",
-        "sets": 2,
-        "min": 8,
-        "max": 12,
-        "rest": 120,
-        "warm": "db",
-        "cue": "Optional if Monday recovery and Saturday energy are good."
+        "rest": 90,
+        "cue": "Controlled steps; maintain balance.",
+        "warm": "db"
       },
       {
         "name": "Calf Raise",
         "type": "Isolation",
         "sets": 3,
-        "min": 12,
-        "max": 20,
+        "min": 10,
+        "max": 15,
         "rest": 60,
-        "warm": "none",
-        "cue": "Full stretch and pause."
+        "cue": "Full stretch and hard peak contraction.",
+        "warm": "machine"
       },
       {
         "name": "Dead Hang",
-        "type": "Skill / Grip",
+        "type": "Accessory",
         "sets": 2,
         "min": 20,
         "max": 45,
         "rest": 60,
-        "warm": "none",
-        "unit": "sec",
-        "cue": "Optional finisher."
+        "cue": "Relax shoulders only as much as comfortable; build grip and hang time.",
+        "warm": "bodyweight",
+        "unit": "sec"
       }
     ]
   }
