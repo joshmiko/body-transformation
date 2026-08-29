@@ -2,7 +2,7 @@
   "Monday": {
     "label": "MON",
     "title": "Lower + Push",
-    "subtitle": "Primary squat + bench",
+    "subtitle": "Squat + bench strength/hypertrophy",
     "exercises": [
       {
         "name": "Back Squat",
@@ -11,7 +11,8 @@
         "min": 6,
         "max": 8,
         "rest": 150,
-        "cue": "Controlled descent. Stop most sets with ~1\u20133 RIR."
+        "warm": "squat",
+        "cue": "Controlled descent. Leave 1\u20133 reps in reserve; no grinders."
       },
       {
         "name": "Barbell Bench Press",
@@ -20,7 +21,8 @@
         "min": 6,
         "max": 10,
         "rest": 150,
-        "cue": "Main horizontal press. Keep technique consistent and progress reps before load."
+        "warm": "bench",
+        "cue": "Consistent touch point and bar path. Leave 1\u20133 RIR."
       },
       {
         "name": "Lat Pulldown",
@@ -29,7 +31,8 @@
         "min": 8,
         "max": 12,
         "rest": 90,
-        "cue": "Full stretch and controlled pull; avoid swinging."
+        "warm": "cable",
+        "cue": "Full stretch, controlled eccentric, no swinging."
       },
       {
         "name": "DB Romanian Deadlift",
@@ -38,7 +41,8 @@
         "min": 8,
         "max": 12,
         "rest": 120,
-        "cue": "Moderate hinge volume\u2014don't turn this into a max-effort deadlift day."
+        "warm": "db",
+        "cue": "Moderate hinge volume. Do not turn this into a max-effort deadlift."
       },
       {
         "name": "DB Lateral Raise",
@@ -47,7 +51,8 @@
         "min": 10,
         "max": 15,
         "rest": 60,
-        "cue": "Strict reps; slight bend in elbow."
+        "warm": "db",
+        "cue": "Strict reps and controlled lowering."
       }
     ]
   },
@@ -69,7 +74,8 @@
         "min": 6,
         "max": 10,
         "rest": 150,
-        "cue": "Second weekly bench exposure; keep 1\u20133 RIR."
+        "warm": "bench",
+        "cue": "Second weekly exposure. Keep 1\u20133 RIR."
       },
       {
         "name": "1-Arm DB Row",
@@ -78,7 +84,8 @@
         "min": 8,
         "max": 12,
         "rest": 90,
-        "cue": "Stable torso, full range."
+        "warm": "db",
+        "cue": "Stable torso and full range."
       },
       {
         "name": "Lat Pulldown",
@@ -87,7 +94,8 @@
         "min": 8,
         "max": 12,
         "rest": 90,
-        "cue": "Controlled eccentric."
+        "warm": "cable",
+        "cue": "Controlled eccentric and full stretch."
       },
       {
         "name": "Dead Hang",
@@ -96,8 +104,9 @@
         "min": 20,
         "max": 45,
         "rest": 60,
+        "warm": "none",
         "unit": "sec",
-        "cue": "Accumulate quality time; don't train to failure every set."
+        "cue": "Accumulate quality time; avoid failure every set."
       },
       {
         "name": "DB Hammer Curl",
@@ -106,6 +115,7 @@
         "min": 8,
         "max": 12,
         "rest": 60,
+        "warm": "db",
         "cue": "Controlled reps."
       },
       {
@@ -115,6 +125,7 @@
         "min": 10,
         "max": 15,
         "rest": 60,
+        "warm": "cable",
         "cue": "Optional if time remains."
       }
     ]
@@ -131,7 +142,8 @@
         "min": 8,
         "max": 12,
         "rest": 120,
-        "cue": "Hard, controlled sets; avoid grinding."
+        "warm": "legpress",
+        "cue": "Controlled depth; hard sets without grinding."
       },
       {
         "name": "Walking Lunge",
@@ -140,7 +152,8 @@
         "min": 8,
         "max": 12,
         "rest": 90,
-        "cue": "Per leg. You have used 25-lb DBs; progress by RIR and form."
+        "warm": "bodyweight",
+        "cue": "Per leg. Prioritize balance and controlled steps."
       },
       {
         "name": "DB / Seated Shoulder Press",
@@ -149,7 +162,8 @@
         "min": 6,
         "max": 10,
         "rest": 120,
-        "cue": "Use a controllable load; no need to grind."
+        "warm": "db",
+        "cue": "Controllable load; don't grind."
       },
       {
         "name": "DB Romanian Deadlift",
@@ -158,7 +172,8 @@
         "min": 8,
         "max": 12,
         "rest": 120,
-        "cue": "Optional if Monday recovery is good."
+        "warm": "db",
+        "cue": "Optional if Monday recovery and Saturday energy are good."
       },
       {
         "name": "Calf Raise",
@@ -167,6 +182,7 @@
         "min": 12,
         "max": 20,
         "rest": 60,
+        "warm": "none",
         "cue": "Full stretch and pause."
       },
       {
@@ -176,8 +192,9 @@
         "min": 20,
         "max": 45,
         "rest": 60,
+        "warm": "none",
         "unit": "sec",
-        "cue": "Optional finisher if grip is fresh."
+        "cue": "Optional finisher."
       }
     ]
   }
