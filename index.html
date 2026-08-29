@@ -1,58 +1,173 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111827"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Body Transformation</title><link rel="manifest" href="manifest.json">
+<title>Body Transformation</title>
+<link rel="manifest" href="manifest.json">
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4f5f7;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{background:#111827;color:#fff;padding:18px 17px calc(14px + env(safe-area-inset-top));position:sticky;top:0;z-index:5}
-h1{font-size:23px;margin:0}.sub{font-size:12px;opacity:.7;margin-top:3px}
-main{max-width:720px;margin:auto;padding:15px 14px 95px}.card{background:#fff;border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:0 1px 4px #00000010}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.muted{font-size:12px;color:#6b7280}.big{font-size:28px;font-weight:800}
-button{font:inherit}button.primary{border:0;background:#111827;color:#fff;border-radius:11px;padding:11px 14px;font-weight:700}
-button.secondary{border:0;background:#eef0f3;border-radius:10px;padding:9px 11px}
-.tabs{display:flex;gap:6px;overflow:auto;margin-bottom:12px}.tabs button{border:0;background:#e7e9ed;border-radius:99px;padding:9px 12px;white-space:nowrap}.tabs .sel{background:#111827;color:#fff}
-.exercise{border-top:1px solid #eee;padding-top:14px;margin-top:14px}.exercise:first-child{border-top:0;margin-top:0;padding-top:0}
-.badge{font-size:10px;padding:4px 7px;border-radius:99px;background:#eef0f3}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.setgrid{display:grid;grid-template-columns:34px 1fr 1fr 1fr;gap:6px;align-items:center;margin-top:8px}.setgrid input{min-width:0;padding:9px;border:1px solid #d5d8dd;border-radius:8px;font-size:16px}
-label{font-size:10px;color:#6b7280}.setnum{font-weight:700;text-align:center}.timer{font-size:34px;text-align:center;font-weight:800;margin:5px}.tip{font-size:13px;line-height:1.4;background:#f7f7f8;border-radius:10px;padding:10px}
-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;display:flex;z-index:10;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;border:0;background:transparent;padding:10px 2px;font-size:11px;color:#6b7280}nav button.active{color:#111827;font-weight:800}
-hr{border:0;border-top:1px solid #eee}.success{font-size:13px;font-weight:700}
-</style></head>
+:root{
+ --bg:#f6f7f9;--surface:#fff;--ink:#111318;--muted:#737983;--line:#e7e9ed;
+ --soft:#f0f1f4;--dark:#111318;--green:#087f5b;--greenbg:#e9f8f2;
+ --radius:20px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+body{padding-bottom:calc(82px + env(safe-area-inset-bottom))}
+header{
+ background:var(--dark);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 18px 18px;
+ position:sticky;top:0;z-index:20
+}
+.headerrow{display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:22px;letter-spacing:-.5px;font-weight:800}.sub{font-size:12px;opacity:.62;margin-top:3px}
+main{max-width:720px;margin:auto;padding:14px 14px 25px}
+h2{font-size:24px;letter-spacing:-.6px;margin:2px 0 5px}h3{font-size:17px;margin:0 0 10px}
+.card{background:var(--surface);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 2px 10px #11131808}
+.hero{background:var(--dark);color:#fff;padding:19px;border-radius:22px;margin-bottom:12px}
+.hero .eyebrow{font-size:11px;opacity:.6;font-weight:750;letter-spacing:.8px;text-transform:uppercase}
+.hero h2{font-size:27px;margin-top:6px}.hero .muted{color:#b8bcc4}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.muted{color:var(--muted);font-size:12px}.small{font-size:13px;line-height:1.4}
+.big{font-size:29px;font-weight:850;letter-spacing:-1px}
+.pill{font-size:10px;font-weight:750;background:var(--soft);padding:5px 8px;border-radius:999px;color:#555b64}
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button.primary{border:0;background:var(--dark);color:#fff;border-radius:13px;padding:13px 15px;font-weight:780;width:100%}
+button.primary.light{background:#fff;color:var(--dark)}
+button.secondary{border:0;background:var(--soft);color:var(--ink);border-radius:12px;padding:10px 12px;font-weight:650}
+button.ghost{border:0;background:transparent;color:var(--muted);padding:7px}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:14px;background:var(--soft);border-radius:16px}
+.week{display:flex;justify-content:space-between;margin-top:13px}.weekday{text-align:center;font-size:10px;color:var(--muted)}.dot{width:31px;height:31px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--soft);margin:5px auto 0;font-size:12px;font-weight:750}.dot.active{background:var(--dark);color:#fff}.dot.done{background:var(--greenbg);color:var(--green)}
+.daytabs{display:flex;gap:6px;overflow:auto;margin:0 -2px 12px;padding:2px}.daytabs button{border:0;background:var(--soft);border-radius:999px;padding:9px 13px;white-space:nowrap;font-weight:650;font-size:12px}.daytabs .sel{background:var(--dark);color:#fff}
+.exercise-card{padding:0;overflow:hidden}.exercise-top{padding:15px 15px 10px}.exercise-title{font-size:17px;font-weight:780}.exercise-meta{font-size:11px;color:var(--muted);margin-top:3px}.cue{margin:0 15px 10px;background:#fafafa;border-radius:11px;padding:9px 10px;font-size:11px;line-height:1.35;color:#5d636d}
+.sets{border-top:1px solid var(--line)}.set-head,.set-row{display:grid;grid-template-columns:28px 1fr 1fr 52px 45px;gap:6px;align-items:center;padding:0 12px}.set-head{padding-top:8px}.set-head span{font-size:9px;color:var(--muted);font-weight:700}.set-row{padding-top:6px;padding-bottom:6px}.set-row input{width:100%;min-width:0;padding:10px 7px;border:1px solid #d8dbe0;border-radius:10px;font-size:16px;background:#fff}.setno{font-size:12px;font-weight:800;text-align:center}.check{height:42px;border:1px solid #d8dbe0;background:#fff;border-radius:10px;font-size:20px}.check.done{background:var(--greenbg);border-color:#9bd8c2;color:var(--green)}
+.exercise-bottom{display:flex;gap:7px;padding:7px 12px 12px}.exercise-bottom button{flex:1}
+.recommend{margin:0 12px 11px;padding:10px 11px;border-radius:11px;background:#f7f8f9;font-size:11px;line-height:1.4}
+.progressbar{height:7px;background:#e6e8eb;border-radius:99px;overflow:hidden}.progressbar i{display:block;height:100%;background:var(--dark);border-radius:99px}
+.notice{background:#f8f8f9;border:1px solid var(--line);border-radius:13px;padding:11px;font-size:12px;line-height:1.4}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.formgrid input,.formgrid textarea{width:100%;padding:11px;border:1px solid #d8dbe0;border-radius:10px;font-size:16px;background:#fff}.formgrid textarea{grid-column:1/-1;min-height:72px}label{display:block;font-size:10px;color:var(--muted);margin:0 0 5px}
+.timerbox{position:fixed;left:9%;right:9%;top:25%;z-index:50;background:#fff;border-radius:22px;padding:20px;box-shadow:0 18px 55px #0005;text-align:center}.timer{font-size:58px;font-weight:900;letter-spacing:-2px}.overlay{position:fixed;inset:0;background:#0006;z-index:49}
+.bottomnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:30;padding:7px 4px env(safe-area-inset-bottom)}.bottomnav button{flex:1;border:0;background:transparent;padding:7px 2px;font-size:10px;color:#858a93}.bottomnav button .ico{display:block;font-size:20px;line-height:20px;margin-bottom:3px}.bottomnav button.active{color:var(--ink);font-weight:800}
+.finishbar{position:sticky;bottom:84px;background:#ffffffee;backdrop-filter:blur(12px);padding:9px;border-radius:16px;margin:4px -4px 12px;box-shadow:0 -3px 14px #0000000b}
+.historyrow{padding:10px 0;border-top:1px solid var(--line)}.historyrow:first-child{border-top:0}
+</style>
+</head>
 <body>
-<header><h1>Body Transformation</h1><div class="sub">Training • nutrition • recovery • progression</div></header>
+<header><div class="headerrow"><div><h1>Body Transformation</h1><div class="sub">Train • Fuel • Recover • Progress</div></div><div style="font-size:20px">⚡</div></div></header>
 <main id="app"></main>
-<nav><button id="homeNav" onclick="home()">🏠<br>Today</button><button id="workNav" onclick="chooseWorkout()">🏋️<br>Workout</button><button id="progNav" onclick="progress()">📈<br>Progress</button><button id="coachNav" onclick="coach()">🧠<br>Coach</button></nav>
+<div id="modal"></div>
+<div class="bottomnav">
+<button id="nToday" onclick="home()">🏠<br>Today</button>
+<button id="nWorkout" onclick="chooseWorkout()">🏋️<br>Workout</button>
+<button id="nProgress" onclick="progress()">📈<br>Progress</button>
+<button id="nCoach" onclick="coach()">🧠<br>Coach</button>
+</div>
 <script>
-const P={"Monday": {"title": "Monday \u2022 Lower + Push", "focus": "Strength + muscle \u2022 manage Monday leg fatigue", "notes": "Keep the main lower-body work controlled so Wednesday yoga and Friday/Saturday training remain productive.", "exercises": [["Back Squat", "compound", 3, "6\u20138", 150, "Start around a repeatable working weight; progress only when reps/RIR support it."], ["Barbell Bench Press", "compound", 3, "6\u201310", 150, "Primary horizontal press. Use barbell as the main bench pattern."], ["Lat Pulldown", "compound", 3, "8\u201312", 90, "Controlled eccentric; aim to build toward 135 lb again."], ["DB Romanian Deadlift", "compound", 2, "8\u201312", 120, "Moderate volume; don't turn Monday into a second maximal hinge day."], ["DB Lateral Raise", "isolation", 2, "10\u201315", 60, "Strict reps."]]}, "Wednesday": {"title": "Wednesday \u2022 Yoga / Recovery", "focus": "Mobility + recovery", "notes": "Keep it restorative/moderate. Monitor whether Monday leg DOMS interferes with yoga.", "exercises": []}, "Friday": {"title": "Friday \u2022 Upper + Pull", "focus": "Upper-body hypertrophy + pull-up development", "notes": "Avoid unnecessary lower-body fatigue before Saturday.", "exercises": [["Barbell Bench Press", "compound", 3, "6\u201310", 150, "Progress with reps first; don't chase old powerlifting numbers during the fat-loss phase."], ["1-Arm DB Row", "compound", 3, "8\u201312", 90, "Stable torso; full range."], ["Lat Pulldown", "compound", 3, "8\u201312", 90, "Use as the main vertical pull if pull-ups aren't ready for full volume."], ["Dead Hang", "skill/grip", 2, "20\u201345 sec", 60, "Add time gradually; quality grip and shoulder position."], ["DB Hammer Curl", "isolation", 2, "8\u201312", 60, "Controlled."], ["Cable/DB Triceps", "isolation", 2, "10\u201315", 60, "Optional if time remains."]]}, "Saturday": {"title": "Saturday \u2022 Legs + Athletic", "focus": "Leg hypertrophy + athletic capacity", "notes": "This is the leg day you were logging in Strong. Keep heavy squatting here moderate if Monday is the main squat stimulus.", "exercises": [["Leg Press", "compound", 3, "8\u201312", 120, "Hard, controlled sets without grinding."], ["Walking Lunge", "compound", 2, "8\u201312/leg", 90, "You have used 25 lb DBs; progress based on form and RIR."], ["DB/Seated Shoulder Press", "compound", 3, "6\u201310", 120, "Use a load you can control without grinding."], ["DB Romanian Deadlift", "compound", 2, "8\u201312", 120, "Optional on weeks when Monday soreness/recovery is poor."], ["Calf Raise", "isolation", 3, "12\u201320", 60, "Prior sessions suggest 60 lb total felt appropriate; adjust by RIR."], ["Dead Hang", "skill/grip", 2, "20\u201345 sec", 60, "Short finisher if grip is fresh."]]}};
-const H={"Squat (Barbell)": {"sessions": 18, "best_weight": 225.0, "best_set": {"weight": 225.0, "reps": 5}, "recent": [{"date": "2026-08-02", "weight": 45.0, "reps": 5}, {"date": "2026-08-02", "weight": 135.0, "reps": 2}, {"date": "2026-08-02", "weight": 175.0, "reps": 1}, {"date": "2026-08-02", "weight": 200.0, "reps": 8}, {"date": "2026-08-02", "weight": 200.0, "reps": 8}, {"date": "2026-08-02", "weight": 200.0, "reps": 8}, {"date": "2026-08-22", "weight": 205.0, "reps": 8}, {"date": "2026-08-22", "weight": 185.0, "reps": 2}, {"date": "2026-08-22", "weight": 205.0, "reps": 8}, {"date": "2026-08-22", "weight": 45.0, "reps": 5}, {"date": "2026-08-22", "weight": 135.0, "reps": 5}, {"date": "2026-08-22", "weight": 205.0, "reps": 8}]}, "Deadlift (Barbell)": {"sessions": 3, "best_weight": 275.0, "best_set": {"weight": 275.0, "reps": 3}, "recent": [{"date": "2025-08-15", "weight": 250.0, "reps": 3}, {"date": "2025-08-15", "weight": 250.0, "reps": 3}, {"date": "2025-08-15", "weight": 250.0, "reps": 3}, {"date": "2025-08-15", "weight": 250.0, "reps": 3}, {"date": "2025-08-15", "weight": 225.0, "reps": 3}, {"date": "2025-08-15", "weight": 135.0, "reps": 5}, {"date": "2026-01-30", "weight": 135.0, "reps": 5}, {"date": "2026-01-30", "weight": 225.0, "reps": 5}, {"date": "2026-01-30", "weight": 250.0, "reps": 5}, {"date": "2026-01-30", "weight": 250.0, "reps": 5}, {"date": "2026-01-30", "weight": 250.0, "reps": 5}, {"date": "2026-01-30", "weight": 250.0, "reps": 5}]}, "Bench Press (Barbell)": {"sessions": 23, "best_weight": 185.0, "best_set": {"weight": 185.0, "reps": 3}, "recent": [{"date": "2026-05-29", "weight": 150.0, "reps": 5}, {"date": "2026-05-29", "weight": 150.0, "reps": 5}, {"date": "2026-05-29", "weight": 150.0, "reps": 5}, {"date": "2026-05-29", "weight": 150.0, "reps": 5}, {"date": "2026-05-29", "weight": 150.0, "reps": 5}, {"date": "2026-06-09", "weight": 155.0, "reps": 5}, {"date": "2026-06-09", "weight": 155.0, "reps": 5}, {"date": "2026-06-09", "weight": 155.0, "reps": 5}, {"date": "2026-06-09", "weight": 135.0, "reps": 5}, {"date": "2026-06-09", "weight": 45.0, "reps": 5}, {"date": "2026-06-09", "weight": 155.0, "reps": 5}, {"date": "2026-06-09", "weight": 155.0, "reps": 5}]}, "Bench Press (Dumbbell)": {"sessions": 13, "best_weight": 75.0, "best_set": {"weight": 75.0, "reps": 8}, "recent": [{"date": "2026-08-04", "weight": 75.0, "reps": 8}, {"date": "2026-08-04", "weight": 75.0, "reps": 6}, {"date": "2026-08-04", "weight": 75.0, "reps": 5}, {"date": "2026-08-10", "weight": 70.0, "reps": 8}, {"date": "2026-08-10", "weight": 70.0, "reps": 8}, {"date": "2026-08-10", "weight": 70.0, "reps": 8}, {"date": "2026-08-17", "weight": 75.0, "reps": 8}, {"date": "2026-08-17", "weight": 75.0, "reps": 8}, {"date": "2026-08-17", "weight": 75.0, "reps": 8}, {"date": "2026-08-24", "weight": 75.0, "reps": 8}, {"date": "2026-08-24", "weight": 75.0, "reps": 8}, {"date": "2026-08-24", "weight": 75.0, "reps": 8}]}, "Lat Pulldown (Cable)": {"sessions": 12, "best_weight": 135.0, "best_set": {"weight": 135.0, "reps": 10}, "recent": [{"date": "2026-07-12", "weight": 100.0, "reps": 10}, {"date": "2026-07-31", "weight": 120.0, "reps": 12}, {"date": "2026-07-31", "weight": 120.0, "reps": 12}, {"date": "2026-07-31", "weight": 120.0, "reps": 10}, {"date": "2026-08-13", "weight": 115.0, "reps": 12}, {"date": "2026-08-13", "weight": 115.0, "reps": 12}, {"date": "2026-08-13", "weight": 115.0, "reps": 12}, {"date": "2026-08-22", "weight": 120.0, "reps": 12}, {"date": "2026-08-22", "weight": 120.0, "reps": 12}, {"date": "2026-08-22", "weight": 120.0, "reps": 10}, {"date": "2026-08-28", "weight": 120.0, "reps": 10}, {"date": "2026-08-28", "weight": 120.0, "reps": 8}]}, "Pull Up (Assisted)": {"sessions": 7, "best_weight": 150.0, "best_set": {"weight": 150.0, "reps": 10}, "recent": [{"date": "2025-08-29", "weight": 80.0, "reps": 5}, {"date": "2025-08-29", "weight": 80.0, "reps": 5}, {"date": "2025-08-29", "weight": 80.0, "reps": 5}, {"date": "2025-12-19", "weight": 150.0, "reps": 10}, {"date": "2025-12-19", "weight": 150.0, "reps": 10}, {"date": "2025-12-19", "weight": 150.0, "reps": 10}, {"date": "2026-03-30", "weight": 150.0, "reps": 8}, {"date": "2026-03-30", "weight": 120.0, "reps": 8}, {"date": "2026-03-30", "weight": 120.0, "reps": 8}, {"date": "2026-04-06", "weight": 120.0, "reps": 10}, {"date": "2026-04-06", "weight": 120.0, "reps": 10}, {"date": "2026-04-06", "weight": 120.0, "reps": 10}]}};
-let logs=JSON.parse(localStorage.getItem("bt_v2_logs")||"{}");
-let checkins=JSON.parse(localStorage.getItem("bt_v2_checkins")||"[]");
+const PROGRAM={"Monday":{"label":"MON","title":"Lower + Push","subtitle":"Primary squat + bench","exercises":[{"name":"Back Squat","type":"Compound","sets":3,"min":6,"max":8,"rest":150,"cue":"Controlled descent. Stop most sets with ~1\u20133 RIR."},{"name":"Barbell Bench Press","type":"Compound","sets":3,"min":6,"max":10,"rest":150,"cue":"Main horizontal press. Keep technique consistent and progress reps before load."},{"name":"Lat Pulldown","type":"Compound","sets":3,"min":8,"max":12,"rest":90,"cue":"Full stretch and controlled pull; avoid swinging."},{"name":"DB Romanian Deadlift","type":"Compound","sets":2,"min":8,"max":12,"rest":120,"cue":"Moderate hinge volume\u2014don't turn this into a max-effort deadlift day."},{"name":"DB Lateral Raise","type":"Isolation","sets":2,"min":10,"max":15,"rest":60,"cue":"Strict reps; slight bend in elbow."}]},"Wednesday":{"label":"WED","title":"Yoga / Recovery","subtitle":"Mobility + recovery","exercises":[]},"Friday":{"label":"FRI","title":"Upper + Pull","subtitle":"Upper-body hypertrophy + pull-up development","exercises":[{"name":"Barbell Bench Press","type":"Compound","sets":3,"min":6,"max":10,"rest":150,"cue":"Second weekly bench exposure; keep 1\u20133 RIR."},{"name":"1-Arm DB Row","type":"Compound","sets":3,"min":8,"max":12,"rest":90,"cue":"Stable torso, full range."},{"name":"Lat Pulldown","type":"Compound","sets":3,"min":8,"max":12,"rest":90,"cue":"Controlled eccentric."},{"name":"Dead Hang","type":"Skill / Grip","sets":2,"min":20,"max":45,"rest":60,"unit":"sec","cue":"Accumulate quality time; don't train to failure every set."},{"name":"DB Hammer Curl","type":"Isolation","sets":2,"min":8,"max":12,"rest":60,"cue":"Controlled reps."},{"name":"Cable Triceps Pressdown","type":"Isolation","sets":2,"min":10,"max":15,"rest":60,"cue":"Optional if time remains."}]},"Saturday":{"label":"SAT","title":"Legs + Shoulders","subtitle":"Leg hypertrophy + athletic support","exercises":[{"name":"Leg Press","type":"Compound","sets":3,"min":8,"max":12,"rest":120,"cue":"Hard, controlled sets; avoid grinding."},{"name":"Walking Lunge","type":"Compound","sets":2,"min":8,"max":12,"rest":90,"cue":"Per leg. You have used 25-lb DBs; progress by RIR and form."},{"name":"DB / Seated Shoulder Press","type":"Compound","sets":3,"min":6,"max":10,"rest":120,"cue":"Use a controllable load; no need to grind."},{"name":"DB Romanian Deadlift","type":"Compound","sets":2,"min":8,"max":12,"rest":120,"cue":"Optional if Monday recovery is good."},{"name":"Calf Raise","type":"Isolation","sets":3,"min":12,"max":20,"rest":60,"cue":"Full stretch and pause."},{"name":"Dead Hang","type":"Skill / Grip","sets":2,"min":20,"max":45,"rest":60,"unit":"sec","cue":"Optional finisher if grip is fresh."}]}};
+const HISTORY={"meta":{"rows":880,"date_min":"2025-04-18","date_max":"2026-08-28"},"exercises":{"Squat":[{"date":"2025-04-18","weight":195.0,"reps":5},{"date":"2025-05-04","weight":185.0,"reps":5},{"date":"2025-05-18","weight":205.0,"reps":5},{"date":"2025-06-01","weight":215.0,"reps":5},{"date":"2025-06-07","weight":225.0,"reps":5},{"date":"2025-06-13","weight":185.0,"reps":8},{"date":"2025-06-27","weight":215.0,"reps":5},{"date":"2025-08-04","weight":205.0,"reps":5},{"date":"2025-08-25","weight":185.0,"reps":5},{"date":"2025-10-17","weight":185.0,"reps":5},{"date":"2026-05-01","weight":165.0,"reps":5},{"date":"2026-06-01","weight":135.0,"reps":6},{"date":"2026-06-12","weight":155.0,"reps":5},{"date":"2026-06-24","weight":185.0,"reps":5},{"date":"2026-07-18","weight":185.0,"reps":8},{"date":"2026-07-24","weight":195.0,"reps":8},{"date":"2026-08-02","weight":200.0,"reps":8},{"date":"2026-08-22","weight":205.0,"reps":8}],"Deadlift":[{"date":"2025-07-14","weight":275.0,"reps":3},{"date":"2025-08-15","weight":250.0,"reps":3},{"date":"2026-01-30","weight":250.0,"reps":5}],"Barbell Bench":[{"date":"2025-05-02","weight":175.0,"reps":3},{"date":"2025-05-09","weight":175.0,"reps":3},{"date":"2025-05-16","weight":180.0,"reps":3},{"date":"2025-05-30","weight":185.0,"reps":3},{"date":"2025-06-09","weight":165.0,"reps":5},{"date":"2025-06-27","weight":135.0,"reps":8},{"date":"2025-07-01","weight":135.0,"reps":10},{"date":"2025-07-07","weight":145.0,"reps":8},{"date":"2025-07-28","weight":135.0,"reps":10},{"date":"2025-08-11","weight":145.0,"reps":5},{"date":"2025-08-22","weight":150.0,"reps":5},{"date":"2025-08-29","weight":155.0,"reps":5},{"date":"2025-09-26","weight":145.0,"reps":8},{"date":"2025-11-07","weight":135.0,"reps":8},{"date":"2025-11-17","weight":135.0,"reps":10},{"date":"2025-12-19","weight":155.0,"reps":5},{"date":"2026-01-23","weight":135.0,"reps":6},{"date":"2026-02-09","weight":145.0,"reps":5},{"date":"2026-03-03","weight":145.0,"reps":5},{"date":"2026-03-27","weight":135.0,"reps":10},{"date":"2026-04-24","weight":145.0,"reps":6},{"date":"2026-05-29","weight":150.0,"reps":5},{"date":"2026-06-09","weight":155.0,"reps":5}],"DB Bench":[{"date":"2025-05-19","weight":65.0,"reps":5},{"date":"2025-10-10","weight":65.0,"reps":5},{"date":"2026-01-07","weight":65.0,"reps":6},{"date":"2026-04-06","weight":65.0,"reps":5},{"date":"2026-05-18","weight":50.0,"reps":12},{"date":"2026-06-30","weight":65.0,"reps":6},{"date":"2026-07-06","weight":65.0,"reps":6},{"date":"2026-07-20","weight":70.0,"reps":8},{"date":"2026-07-28","weight":70.0,"reps":8},{"date":"2026-08-04","weight":75.0,"reps":8},{"date":"2026-08-10","weight":70.0,"reps":8},{"date":"2026-08-17","weight":75.0,"reps":8},{"date":"2026-08-24","weight":75.0,"reps":8}],"DB Row":[],"Lat Pulldown":[{"date":"2025-05-09","weight":120.0,"reps":10},{"date":"2025-06-27","weight":120.0,"reps":10},{"date":"2025-07-07","weight":135.0,"reps":10},{"date":"2026-04-24","weight":120.0,"reps":8},{"date":"2026-06-01","weight":120.0,"reps":8},{"date":"2026-06-09","weight":120.0,"reps":8},{"date":"2026-06-23","weight":135.0,"reps":6},{"date":"2026-07-12","weight":120.0,"reps":8},{"date":"2026-07-31","weight":120.0,"reps":12},{"date":"2026-08-13","weight":115.0,"reps":12},{"date":"2026-08-22","weight":120.0,"reps":12},{"date":"2026-08-28","weight":120.0,"reps":10}],"Pull Up":[{"date":"2025-05-19","weight":100.0,"reps":5},{"date":"2025-08-11","weight":100.0,"reps":5},{"date":"2025-08-22","weight":90.0,"reps":5},{"date":"2025-08-29","weight":80.0,"reps":5},{"date":"2025-12-19","weight":150.0,"reps":10},{"date":"2026-03-30","weight":150.0,"reps":8},{"date":"2026-04-06","weight":120.0,"reps":10}]}};
+let logs=JSON.parse(localStorage.getItem("bt2_logs")||"{}");
+let checkins=JSON.parse(localStorage.getItem("bt2_checkins")||"[]");
+let completed=JSON.parse(localStorage.getItem("bt2_completed")||"{}");
 let selectedDay=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
-if(!P[selectedDay]) selectedDay="Monday";
-function save(){localStorage.setItem("bt_v2_logs",JSON.stringify(logs));localStorage.setItem("bt_v2_checkins",JSON.stringify(checkins))}
-function nav(id){document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));document.getElementById(id)?.classList.add("active")}
-function home(){nav("homeNav");let d=selectedDay,p=P[d];document.getElementById("app").innerHTML=`
-<div class="card"><div class="muted">TODAY</div><h2>${p.title}</h2><p>${p.focus}</p>${d==="Wednesday"?'<p class="tip">Recovery day. Note whether Monday leg soreness is still affecting yoga.</p>':'<button class="primary" onclick="workout(\''+d+'\')">Start today\'s workout</button>'}</div>
-<div class="grid"><div class="card"><div class="muted">SCHEDULE</div><b>Mon / Wed / Fri / Sat</b><p class="muted">3 lifting days + yoga</p></div><div class="card"><div class="muted">SESSION TARGET</div><b>45–50 min</b><p class="muted">Efficient working sets</p></div></div>
-<div class="card"><h3>Current performance</h3><p>Squat: <b>205 × 8</b><br>DB bench: <b>75 × 8</b><br>DB row: <b>65 × 10</b><br>Lat pulldown: <b>135 × 12 historical best</b><br>Pull-ups: <b>4 consecutive</b></p></div>
-<div class="card"><h3>Fat-loss phase</h3><p class="muted">Goal: aggressive fat loss while preserving/building muscle and strength. The coach should prioritize performance and recovery rather than blindly adding volume.</p></div>`}
-function chooseWorkout(){nav("workNav");document.getElementById("app").innerHTML='<div class="card"><h2>Choose workout</h2><div class="tabs">'+Object.keys(P).map(d=>`<button class="${d===selectedDay?'sel':''}" onclick="selectedDay='${d}';workout('${d}')">${d}</button>`).join("")+'</div></div>';workout(selectedDay)}
-function workout(day){selectedDay=day;nav("workNav");let p=P[day];if(day==="Wednesday"){home();return}
-document.getElementById("app").innerHTML='<div class="card"><div class="tabs">'+Object.keys(P).map(d=>`<button class="${d===day?'sel':''}" onclick="workout('${d}')">${d}</button>`).join("")+'</div><h2>'+p.title+'</h2><p class="muted">'+p.notes+'</p></div>'+
-p.exercises.map((e,i)=>exercise(day,e,i)).join("")+
-'<div class="card"><button class="primary" style="width:100%" onclick="finish(\''+day+'\')">Finish & save workout</button></div>'}
-function exercise(day,e,i){let key=day+"_"+i;let old=logs[key]||Array(3).fill(0).map(()=>({w:"",r:"",rir:""}));return `<div class="card exercise"><div class="row"><div><b>${e[0]}</b><div class="muted">${e[1]} • ${e[3]} reps • ${e[4]}s rest</div></div><span class="badge">${e[1]}</span></div><div class="tip" style="margin-top:8px">${e[5]}</div><div class="setgrid"><span></span><label>LB</label><label>REPS</label><label>RIR</label>${old.map((s,j)=>`<span class="setnum">${j+1}</span><input inputmode="decimal" placeholder="—" value="${s.w}" onchange="edit('${key}',${j},'w',this.value)"><input inputmode="numeric" placeholder="—" value="${s.r}" onchange="edit('${key}',${j},'r',this.value)"><input inputmode="numeric" placeholder="—" value="${s.rir}" onchange="edit('${key}',${j},'rir',this.value)">`).join("")}</div><button class="secondary" style="margin-top:9px" onclick="rest(${e[4]})">Rest ${e[4]}s</button></div>`}
-function edit(k,j,f,v){if(!logs[k])logs[k]=Array(3).fill(0).map(()=>({w:"",r:"",rir:""}));logs[k][j][f]=v;save()}
-function rest(sec){let n=sec,box=document.createElement("div");box.className="card";box.style.cssText="position:fixed;z-index:20;left:10%;right:10%;top:30%;box-shadow:0 8px 30px #0004";box.innerHTML=`<div class="timer">${n}</div><button class="primary" style="width:100%" onclick="this.parentNode.remove()">Close</button>`;document.body.appendChild(box);let t=setInterval(()=>{n--;box.querySelector(".timer").textContent=n<=0?"GO":n;if(n<=0)clearInterval(t)},1000)}
-function finish(day){save();alert("Saved. The next progression decision should use your reps + RIR + recovery.");home()}
-function progress(){nav("progNav");let last=checkins.at(-1);document.getElementById("app").innerHTML=`<div class="card"><h2>Weekly check-in</h2><label>Body weight (lb)</label><input id="weight" inputmode="decimal" placeholder="e.g. 223"><label style="display:block;margin-top:9px">Waist (in)</label><input id="waist" inputmode="decimal" placeholder="Optional"><label style="display:block;margin-top:9px">Recovery / soreness / hunger</label><input id="notes" placeholder="e.g. legs sore, sleep good"><button class="primary" style="margin-top:12px" onclick="checkin()">Save check-in</button></div>
-<div class="card"><h3>Check-in history</h3>${checkins.slice(-10).reverse().map(x=>`<p><b>${x.date}</b> — ${x.weight||'—'} lb ${x.waist?'• '+x.waist+' in':''}<br><span class="muted">${x.notes||''}</span></p>`).join("")||'<p class="muted">No check-ins yet.</p>'}</div>
-<div class="card"><h3>Historical Strong data</h3>${Object.entries(H).map(([e,x])=>`<p><b>${e.replaceAll(" (Barbell)","").replaceAll(" (Dumbbell)","").replaceAll(" (Cable)","")}</b><br><span class="muted">${x.sessions} sessions • best ${x.best_weight} lb × ${x.best_set.reps}</span></p>`).join("")}</div>`}
-function checkin(){checkins.push({date:new Date().toLocaleDateString(),weight:document.getElementById("weight").value,waist:document.getElementById("waist").value,notes:document.getElementById("notes").value});save();progress()}
-function coach(){nav("coachNav");document.getElementById("app").innerHTML=`<div class="card"><h2>Coach</h2><p><b>Current rules</b></p><ul><li>Most working sets: roughly 1–3 RIR.</li><li>Earn load increases with repeatable reps and good form.</li><li>If performance falls and recovery is poor, hold or reduce rather than forcing progression.</li><li>During aggressive fat loss, preserve strength and muscle; extra volume is not automatically better.</li><li>Saturday leg fatigue is monitored against Monday performance and Wednesday yoga.</li></ul></div><div class="card"><h3>Recent training signals</h3><p>Strong shows squat <b>205 × 8</b> on Aug 22 and DB bench <b>75 × 8</b> on Aug 24. Use the app's new logs to establish current RIR and recovery before making larger changes.</p></div><div class="card"><h3>Historical PRs</h3><p>Strong history contains older powerlifting-era work, including heavier barbell squat/bench/deadlift sets. Those remain historical records—not automatic current targets.</p></div>`}
+if(!PROGRAM[selectedDay]) selectedDay="Monday";
+function save(){localStorage.setItem("bt2_logs",JSON.stringify(logs));localStorage.setItem("bt2_checkins",JSON.stringify(checkins));localStorage.setItem("bt2_completed",JSON.stringify(completed))}
+function setNav(id){document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));document.getElementById(id)?.classList.add("active")}
+function dateKey(){return new Date().toISOString().slice(0,10)}
+function key(day,i){return day+"_"+i}
+function getSets(day,i,count){let k=key(day,i);if(!logs[k])logs[k]=Array.from({length:count},()=>({w:"",r:"",rir:"",done:false}));while(logs[k].length<count)logs[k].push({w:"",r:"",rir:"",done:false});return logs[k]}
+function previous(day,i,name){let arr=[];Object.keys(logs).forEach(k=>{if(k!==key(day,i)){let idx=k.lastIndexOf("_");let d=k.slice(0,idx),j=+k.slice(idx+1);if(j===i && d!==day){logs[k].forEach(s=>{if(s.w&&s.r)arr.push(s)});}}});return arr.slice(-3)}
+function home(){
+ setNav("nToday");
+ let p=PROGRAM[selectedDay], done=completed[dateKey()+"_"+selectedDay];
+ let days=["Monday","Wednesday","Friday","Saturday"], labels=["M","W","F","S"];
+ document.getElementById("app").innerHTML=`
+ <div class="hero">
+  <div class="eyebrow">Today's plan</div>
+  <h2>${p.title}</h2>
+  <div class="muted">${p.subtitle}</div>
+  <div style="margin-top:15px">
+   ${selectedDay==="Wednesday"
+    ? `<div class="notice" style="background:#ffffff12;border-color:#ffffff18;color:#fff">Yoga / recovery • keep it restorative and note any Monday leg soreness.</div>`
+    : `<button class="primary light" onclick="workout('${selectedDay}')">${done?"Review workout":"Start workout"} <span style="float:right">→</span></button>`}
+  </div>
+ </div>
+ <div class="card">
+  <div class="row"><div><h3>This week</h3><div class="muted">3 lifting days + yoga</div></div><div class="pill">45–50 min</div></div>
+  <div class="week">${days.map((d,i)=>`<div class="weekday">${labels[i]}<div class="dot ${d===selectedDay?"active":""} ${completed[dateKey()+"_"+d]?"done":""}">${completed[dateKey()+"_"+d]?"✓":labels[i]}</div></div>`).join("")}</div>
+ </div>
+ <div class="statgrid">
+  <div class="stat"><div class="muted">SQUAT</div><div class="big">205 × 8</div><div class="muted">current reference</div></div>
+  <div class="stat"><div class="muted">PULL-UPS</div><div class="big">4</div><div class="muted">consecutive</div></div>
+ </div>
+ <div class="card"><div class="row"><h3>Weekly check-in</h3><span class="pill">Body comp</span></div><p class="small">Weight, waist and recovery help decide whether training needs to change.</p><button class="secondary" onclick="progress()">Log check-in →</button></div>`;
+}
+function chooseWorkout(){
+ setNav("nWorkout");
+ document.getElementById("app").innerHTML=`
+ <div class="card"><div class="muted">TRAINING PLAN</div><h2>Choose workout</h2><p class="small">Tap a day to start. Your logs and recommendations stay on this phone.</p></div>
+ <div class="daytabs">${Object.keys(PROGRAM).map(d=>`<button class="${d===selectedDay?"sel":""}" onclick="${d==="Wednesday"?"selectedDay='Wednesday';home()":"workout('"+d+"')"}">${PROGRAM[d].label}</button>`).join("")}</div>
+ ${Object.keys(PROGRAM).map(d=>`<div class="card" onclick="${d==="Wednesday"?"selectedDay='Wednesday';home()":"workout('"+d+"')"}"><div class="row"><div><b>${PROGRAM[d].title}</b><div class="muted">${PROGRAM[d].subtitle}</div></div><b>→</b></div></div>`).join("")}`;
+}
+function workout(day){
+ selectedDay=day;setNav("nWorkout");let p=PROGRAM[day];
+ if(!p.exercises.length){home();return}
+ let total=p.exercises.reduce((a,e)=>a+e.sets,0), done=p.exercises.reduce((a,e,i)=>a+getSets(day,i,e.sets).filter(s=>s.done).length,0);
+ document.getElementById("app").innerHTML=`
+ <div class="card">
+  <div class="daytabs">${Object.keys(PROGRAM).map(d=>`<button class="${d===day?"sel":""}" onclick="${d==="Wednesday"?"selectedDay='Wednesday';home()":"workout('"+d+"')"}">${PROGRAM[d].label}</button>`).join("")}</div>
+  <div class="row"><div><h2>${p.title}</h2><div class="muted">${p.subtitle}</div></div><div style="text-align:right"><div class="big" style="font-size:21px">${done}/${total}</div><div class="muted">sets</div></div></div>
+  <div class="progressbar" style="margin-top:13px"><i style="width:${total?done/total*100:0}%"></i></div>
+ </div>
+ ${p.exercises.map((e,i)=>exerciseCard(day,e,i)).join("")}
+ <div class="finishbar"><button class="primary" onclick="finish('${day}')">Finish & save workout</button></div>`;
+}
+function exerciseCard(day,e,i){
+ let sets=getSets(day,i,e.sets), prev=previous(day,i,e.name);
+ let prevText=prev.length?`Previous: ${prev.map(s=>s.w+" × "+s.r+(s.rir!==""?" @ "+s.rir+" RIR":"")).join(" • ")}`:"No previous app log yet.";
+ return `<div class="card exercise-card">
+  <div class="exercise-top"><div class="row"><div><div class="exercise-title">${e.name}</div><div class="exercise-meta">${e.type} • ${e.min}–${e.max}${e.unit==="sec"?" sec":" reps"} • ${e.rest}s rest</div></div><span class="pill">${e.sets} sets</span></div></div>
+  <div class="cue">${e.cue}</div><div class="muted" style="padding:0 15px 9px">${prevText}</div>
+  <div class="sets"><div class="set-head"><span></span><span>LOAD</span><span>${e.unit==="sec"?"TIME":"REPS"}</span><span>RIR</span><span></span></div>
+  ${sets.map((s,j)=>`<div class="set-row"><span class="setno">${j+1}</span><input inputmode="decimal" placeholder="${e.unit==="sec"?"sec":"lb"}" value="${s.w}" onchange="edit('${day}',${i},${j},'w',this.value)"><input inputmode="numeric" placeholder="${e.unit==="sec"?"sec":"reps"}" value="${s.r}" onchange="edit('${day}',${i},${j},'r',this.value)"><input inputmode="numeric" placeholder="1–3" value="${s.rir}" onchange="edit('${day}',${i},${j},'rir',this.value)"><button class="check ${s.done?"done":""}" onclick="toggleDone('${day}',${i},${j})">${s.done?"✓":"○"}</button></div>`).join("")}</div>
+  <div class="recommend">${recommend(e,sets)}</div>
+  <div class="exercise-bottom"><button class="secondary" onclick="startRest(${e.rest})">Rest ${e.rest}s</button><button class="secondary" onclick="addSet('${day}',${i})">+ Set</button></div>
+ </div>`;
+}
+function recommend(e,sets){
+ let filled=sets.filter(s=>s.w!==""&&s.r!=="");if(!filled.length)return"Next: enter your first working set. The app will use reps + RIR to guide progression.";
+ let avg=filled.reduce((a,s)=>a+(+s.rir||0),0)/filled.length, allTop=filled.length>=e.sets&&filled.every(s=>+s.r>=e.max);
+ if(allTop&&avg>=1)return"Next session: likely <b>increase load modestly</b> (typically 2.5–5 lb upper body, 5–10 lb lower body) and return toward the low end of the rep range.";
+ if(avg<1)return"Next session: <b>hold or reduce load</b>. You're too close to failure for consistent progression.";
+ return"Next session: <b>hold the load and add reps</b> where possible. Earn the increase by reaching the top of the range with good RIR.";
+}
+function addSet(day,i){
+ let arr=getSets(day,i,PROGRAM[day].exercises[i].sets);arr.push({w:"",r:"",rir:"",done:false});save();workout(day);
+}
+function edit(day,i,j,f,v){getSets(day,i,PROGRAM[day].exercises[i].sets)[j][f]=v;save()}
+function toggleDone(day,i,j){let s=getSets(day,i,PROGRAM[day].exercises[i].sets)[j];s.done=!s.done;save();workout(day)}
+function finish(day){completed[dateKey()+"_"+day]=true;save();document.getElementById("app").innerHTML=`<div class="card" style="text-align:center"><div class="big">Workout saved ✓</div><p>Your sets are stored on this phone. Use the Coach tab for progression logic.</p><button class="primary" onclick="home()">Back to Today</button></div>`}
+function startRest(sec){
+ let overlay=document.createElement("div");overlay.className="overlay";let box=document.createElement("div");box.className="timerbox";let n=sec;
+ box.innerHTML=`<div class="muted">REST TIMER</div><div class="timer">${n}</div><button class="secondary" onclick="closeTimer()">Close</button>`;
+ document.getElementById("modal").append(overlay,box);window._timer=setInterval(()=>{n--;box.querySelector(".timer").textContent=n<=0?"GO":n;if(n<=0)clearInterval(window._timer)},1000);
+}
+function closeTimer(){clearInterval(window._timer);document.getElementById("modal").innerHTML=""}
+function progress(){
+ setNav("nProgress");let last=checkins.at(-1);
+ document.getElementById("app").innerHTML=`<div class="card"><div class="muted">BODY COMPOSITION</div><h2>Weekly check-in</h2><div class="formgrid"><div><label>Weight (lb)</label><input id="cw" inputmode="decimal" placeholder="e.g. 223" value="${last?.weight||""}"></div><div><label>Waist (in)</label><input id="cz" inputmode="decimal" placeholder="optional" value="${last?.waist||""}"></div><div style="grid-column:1/-1"><label>Recovery / soreness / hunger / hockey</label><textarea id="cn" placeholder="Anything that should influence training?">${last?.notes||""}</textarea></div></div><button class="primary" style="margin-top:10px" onclick="saveCheckin()">Save check-in</button></div>
+ <div class="card"><h3>Recent check-ins</h3>${checkins.slice(-12).reverse().map(x=>`<div class="metric"><b>${x.date}</b> — ${x.weight||"—"} lb ${x.waist?"• "+x.waist+" in":""}<div class="muted">${x.notes||""}</div></div>`).join("")||"<div class='muted'>No check-ins yet.</div>"}</div>
+ <div class="card"><h3>Strong historical record</h3><p class="small">${HISTORY.meta.rows.toLocaleString()} usable weighted set rows analyzed from ${HISTORY.meta.date_min} through ${HISTORY.meta.date_max}.</p>${Object.entries(HISTORY.exercises).map(([n,a])=>a.length?`<div class="metric"><b>${n}</b><div class="muted">${a.length} logged dates • latest ${a.at(-1).weight} × ${a.at(-1).reps}</div></div>`:"").join("")}</div>`;
+}
+function saveCheckin(){checkins.push({date:new Date().toLocaleDateString(),weight:document.getElementById("cw").value,waist:document.getElementById("cz").value,notes:document.getElementById("cn").value});save();progress()}
+function coach(){
+ setNav("nCoach");document.getElementById("app").innerHTML=`<div class="card"><div class="muted">ADAPTIVE TRAINING</div><h2>Coach</h2><div class="notice"><b>Core objective:</b> aggressive fat loss while preserving/building muscle, strength and athletic ability.</div>
+ <h3>How progression works</h3><ul class="small"><li><b>1–3 RIR:</b> default working-set target.</li><li><b>Top of range + adequate RIR:</b> increase load modestly.</li><li><b>Mid-range:</b> hold load and add reps.</li><li><b>RIR 0 / repeated grinders:</b> hold or reduce load.</li><li><b>Poor recovery:</b> don't add volume just because the spreadsheet says so.</li></ul></div>
+ <div class="card"><h3>Recovery guardrails</h3><p class="small">Monday is deliberately not a maximal lower-body day because persistent leg DOMS can interfere with Wednesday yoga. Saturday has leg volume, but the hinge work is optional when recovery is poor.</p><p class="small">Hockey can add fatigue, so the program should adapt rather than treating every week as identical.</p></div>
+ <div class="card"><h3>Historical strength ≠ current target</h3><p class="small">Your old powerlifting-era squat/deadlift/bench PRs remain useful context, but they are not the loads the app should force you toward during the current transformation phase.</p></div>
+ <div class="card"><h3>Nutrition</h3><p class="small">Use the nutrition plan as the fat-loss driver; training's job is to provide a strong muscle-retention signal. Weekly weight/waist trend and gym performance should determine whether the deficit is too aggressive.</p></div>`;
+}
 home();
-</script></body></html>
+</script>
+<div style="text-align:center;color:#9aa0a8;font-size:9px;padding:0 0 10px">Body Transformation • V2 Gym UI</div></body>
+</html>
