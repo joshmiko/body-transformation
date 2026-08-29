@@ -125,18 +125,22 @@ function workouts(){
  <div class="card"><div class="small"><b style="color:var(--text)">Tip:</b> Selecting another day only lets you preview/train that programmed day. It does not change the calendar date or overwrite today's session.</div></div>`;
 }
 function start(d){
- selected=d;nav("nWorkout");
- if(!PROGRAM[d].exercises.length)return home();
- const s=latestSessionForDay(d);
- let first=0;
- if(s&&!s.finished){
-   for(let i=0;i<PROGRAM[d].exercises.length;i++){
-     const a=s.exercises?.[String(i)]?.actual||[];
-     if(a.some(x=>!x.done)){first=i;break}
-     first=Math.min(i+1,PROGRAM[d].exercises.length-1);
-   }
- }
- render(d,first);
+  selected=d;
+  if(!PROGRAM[d] || !Array.isArray(PROGRAM[d].exercises)) { home(true); return; }
+  nav("nWorkout");
+  if(PROGRAM[d].exercises.length===0){ home(false); return; }
+  let first=0;
+  try{
+    const s=(typeof latestSessionForDay==="function")?latestSessionForDay(d):null;
+    if(s && !s.finished && s.exercises){
+      for(let i=0;i<PROGRAM[d].exercises.length;i++){
+        const a=s.exercises[String(i)]?.actual||[];
+        if(a.some(x=>!x.done)){first=i;break;}
+        first=Math.min(i+1,PROGRAM[d].exercises.length-1);
+      }
+    }
+  }catch(e){ first=0; }
+  render(d,first);
 }
 function finish(d){let s=getSession(d);s.finished=new Date().toISOString();s.stats={};completeStats(s);save();document.getElementById("app").innerHTML=`<div class="hero" style="text-align:center;padding:28px 18px"><div style="font-size:50px;color:var(--green)">✓</div><div class="ey">WORKOUT COMPLETE</div><h2>Great work.</h2><div class="muted">${s.stats.completedSets}/${s.stats.workingSets} working sets saved</div><button class="primary" style="margin-top:16px" onclick="home()">Done</button></div>`}
 function completeStats(s){s.stats.workingSets=0;s.stats.completedSets=0;Object.values(s.exercises||{}).forEach(e=>{s.stats.workingSets+=e.planned.sets;s.stats.completedSets+=(e.actual||[]).filter(x=>x.done).length})}
