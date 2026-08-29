@@ -51,6 +51,13 @@ button.ghost{border:0;background:transparent;color:var(--muted);padding:7px}
 .bottomnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:30;padding:7px 4px env(safe-area-inset-bottom)}.bottomnav button{flex:1;border:0;background:transparent;padding:7px 2px;font-size:10px;color:#858a93}.bottomnav button .ico{display:block;font-size:20px;line-height:20px;margin-bottom:3px}.bottomnav button.active{color:var(--ink);font-weight:800}
 .finishbar{position:sticky;bottom:84px;background:#ffffffee;backdrop-filter:blur(12px);padding:9px;border-radius:16px;margin:4px -4px 12px;box-shadow:0 -3px 14px #0000000b}
 .historyrow{padding:10px 0;border-top:1px solid var(--line)}.historyrow:first-child{border-top:0}
+
+/* V3 coaching flow */
+.stepbar{display:flex;gap:5px;margin-top:10px}.stepbar i{height:5px;flex:1;background:#e5e7eb;border-radius:99px}.stepbar i.on{background:#111318}
+.nextset{background:#111318;color:#fff;border-radius:18px;padding:16px;margin-bottom:12px}.nextset .ey{font-size:10px;opacity:.6;text-transform:uppercase;font-weight:800;letter-spacing:.8px}.nextset .target{font-size:31px;font-weight:900;letter-spacing:-1px;margin:4px 0}.nextset .why{font-size:11px;color:#bfc3ca}
+.rirrow{display:flex;gap:6px;margin-top:6px}.rirrow button{flex:1;border:1px solid #d8dbe0;background:#fff;border-radius:10px;padding:10px 2px;font-weight:700}.rirrow button.sel{background:#111318;color:#fff;border-color:#111318}
+.completebtn{width:100%;height:48px;border:0;border-radius:13px;background:#111318;color:#fff;font-weight:800;font-size:15px;margin-top:10px}
+.coachchip{font-size:10px;font-weight:750;background:#e9f8f2;color:#087f5b;padding:5px 8px;border-radius:99px}
 </style>
 </head>
 <body>
@@ -112,16 +119,60 @@ function chooseWorkout(){
 function workout(day){
  selectedDay=day;setNav("nWorkout");let p=PROGRAM[day];
  if(!p.exercises.length){home();return}
- let total=p.exercises.reduce((a,e)=>a+e.sets,0), done=p.exercises.reduce((a,e,i)=>a+getSets(day,i,e.sets).filter(s=>s.done).length,0);
+ renderExercise(day,0,0);
+}
+function renderExercise(day,ei,seti){
+ let p=PROGRAM[day], e=p.exercises[ei], sets=getSets(day,ei,e.sets);
+ let completedSets=sets.filter(s=>s.done).length, total=p.exercises.reduce((a,x)=>a+x.sets,0);
+ let before=p.exercises.slice(0,ei).reduce((a,x)=>a+x.sets,0)+seti;
+ let current=sets[seti]||{w:"",r:"",rir:"",done:false};
+ let prev=previous(day,ei,e.name);
+ let suggested=suggestSet(e,sets,seti);
  document.getElementById("app").innerHTML=`
  <div class="card">
-  <div class="daytabs">${Object.keys(PROGRAM).map(d=>`<button class="${d===day?"sel":""}" onclick="${d==="Wednesday"?"selectedDay='Wednesday';home()":"workout('"+d+"')"}">${PROGRAM[d].label}</button>`).join("")}</div>
-  <div class="row"><div><h2>${p.title}</h2><div class="muted">${p.subtitle}</div></div><div style="text-align:right"><div class="big" style="font-size:21px">${done}/${total}</div><div class="muted">sets</div></div></div>
-  <div class="progressbar" style="margin-top:13px"><i style="width:${total?done/total*100:0}%"></i></div>
+  <div class="row"><button class="ghost" onclick="chooseWorkout()">‹ Workouts</button><span class="coachchip">${completedSets}/${e.sets} sets</span></div>
+  <div class="muted" style="margin-top:5px">${p.title}</div>
+  <h2>${e.name}</h2>
+  <div class="muted">${e.type} • ${e.min}–${e.max}${e.unit==="sec"?" sec":" reps"} • ${e.rest}s rest</div>
+  <div class="stepbar">${sets.map((s,j)=>`<i class="${j<=seti?"on":""}"></i>`).join("")}</div>
  </div>
- ${p.exercises.map((e,i)=>exerciseCard(day,e,i)).join("")}
- <div class="finishbar"><button class="primary" onclick="finish('${day}')">Finish & save workout</button></div>`;
+ <div class="nextset"><div class="ey">Coach target • Set ${seti+1}</div><div class="target">${suggested.load} ${e.unit==="sec"?"sec":"lb"} × ${suggested.reps}${suggested.rir!==""?" @ "+suggested.rir+" RIR":""}</div><div class="why">${suggested.reason}</div></div>
+ <div class="card">
+  <div class="row"><h3>Log this set</h3><span class="pill">${before+1}/${total} total</span></div>
+  <label>Load / time</label><input id="cwload" inputmode="decimal" value="${current.w}" placeholder="${e.unit==="sec"?"seconds":"pounds"}">
+  <label style="margin-top:9px">Reps / time</label><input id="cwreps" inputmode="numeric" value="${current.r}" placeholder="${e.unit==="sec"?"seconds":"reps"}">
+  <label style="margin-top:9px">How many reps left?</label>
+  <div class="rirrow">${["0","1","2","3+"].map(x=>`<button id="rir${x.replace("+","p")}" onclick="pickRIR('${x}')">${x}</button>`).join("")}</div>
+  <button class="completebtn" onclick="completeSet('${day}',${ei},${seti})">Complete set ✓</button>
+ </div>
+ <div class="card"><div class="muted">FORM CUE</div><p class="small">${e.cue}</p>${prev.length?`<div class="prev">Previous: ${prev.map(s=>s.w+" × "+s.r+(s.rir!==""?" @ "+s.rir+" RIR":"")).join(" • ")}</div>`:""}</div>
+ <div class="row" style="padding:0 4px"><button class="secondary" onclick="previousSet('${day}',${ei},${seti})">← Previous</button><button class="secondary" onclick="startRest(${e.rest})">Rest timer</button></div>`;
+ window._selectedRIR=current.rir||"";
 }
+function pickRIR(v){window._selectedRIR=v;document.querySelectorAll(".rirrow button").forEach(b=>b.classList.remove("sel"));let id="rir"+v.replace("+","p");document.getElementById(id)?.classList.add("sel")}
+function suggestSet(e,sets,seti){
+ let filled=sets.filter(s=>s.w!==""&&s.r!=="");
+ if(!filled.length){
+   let base=(e.name==="Back Squat"?205:e.name==="Barbell Bench Press"?135:e.name==="Lat Pulldown"?135:e.name==="1-Arm DB Row"?65:e.name.includes("Walking Lunge")?25:e.name==="Calf Raise"?60:"");
+   return {load:base||"—",reps:e.min,rir:"2",reason:"Start conservatively. Your first logged set establishes today's baseline."};
+ }
+ let last=filled[filled.length-1], rir=last.rir===""?2:+last.rir;
+ let reps=+last.r;
+ if(reps>=e.max && rir>=1) return {load:last.w, reps:e.min, rir:"2", reason:"You reached the top of the range with adequate RIR. Increase load next session rather than chasing extra reps today."};
+ if(rir<=0) return {load:last.w, reps:e.min, rir:"2", reason:"That set was at failure. Hold or reduce the load and leave more reps in reserve."};
+ return {load:last.w, reps:Math.min(e.max,reps+1), rir:"1–3", reason:"Build reps at the same load. Earn the weight increase after reaching the top of the range."};
+}
+function completeSet(day,ei,seti){
+ let e=PROGRAM[day].exercises[ei], sets=getSets(day,ei,e.sets);
+ let w=document.getElementById("cwload").value,r=document.getElementById("cwreps").value,rir=window._selectedRIR||"";
+ if(!w||!r){alert("Enter load and reps/time first.");return}
+ sets[seti]={w,r,rir,done:true};save();
+ if(seti+1<sets.length){startRest(e.rest);setTimeout(()=>renderExercise(day,ei,seti+1),350)}
+ else if(ei+1<PROGRAM[day].exercises.length){startRest(e.rest);setTimeout(()=>renderExercise(day,ei+1,0),350)}
+ else {finish(day)}
+}
+function previousSet(day,ei,seti){if(seti>0)renderExercise(day,ei,seti-1);else if(ei>0){let p=PROGRAM[day].exercises[ei-1];renderExercise(day,ei-1,p.sets-1)}}
+
 function exerciseCard(day,e,i){
  let sets=getSets(day,i,e.sets), prev=previous(day,i,e.name);
  let prevText=prev.length?`Previous: ${prev.map(s=>s.w+" × "+s.r+(s.rir!==""?" @ "+s.rir+" RIR":"")).join(" • ")}`:"No previous app log yet.";
