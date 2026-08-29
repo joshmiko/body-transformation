@@ -58,6 +58,20 @@ button.ghost{border:0;background:transparent;color:var(--muted);padding:7px}
 .rirrow{display:flex;gap:6px;margin-top:6px}.rirrow button{flex:1;border:1px solid #d8dbe0;background:#fff;border-radius:10px;padding:10px 2px;font-weight:700}.rirrow button.sel{background:#111318;color:#fff;border-color:#111318}
 .completebtn{width:100%;height:48px;border:0;border-radius:13px;background:#111318;color:#fff;font-weight:800;font-size:15px;margin-top:10px}
 .coachchip{font-size:10px;font-weight:750;background:#e9f8f2;color:#087f5b;padding:5px 8px;border-radius:99px}
+
+/* V4: Strong-inspired workout table */
+.exercise-titlebar{padding:15px 15px 9px}
+.warmup-row{background:#fafafa}
+.set-row{grid-template-columns:32px minmax(92px,1.2fr) minmax(88px,1fr) 54px 48px;gap:7px;padding:7px 12px}
+.set-row input{height:48px;font-size:19px;font-weight:650;text-align:center;padding:8px 5px;border-radius:11px}
+.set-head{grid-template-columns:32px minmax(92px,1.2fr) minmax(88px,1fr) 54px 48px;padding:8px 12px 3px}
+.set-head span{font-size:9px;text-align:center}
+.set-type{font-size:9px;color:#8a9099;font-weight:750;text-align:center}
+.warmup-label{font-size:10px;color:#8a9099;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.set-row .check{height:48px;font-size:21px}
+.copybtn{border:0;background:transparent;color:#777e88;font-size:11px;padding:4px 0}
+.history-line{font-size:11px;color:#6d737c;padding:4px 15px 9px}
+@media(min-width:520px){.set-row input{font-size:17px}}
 </style>
 </head>
 <body>
@@ -82,7 +96,7 @@ function save(){localStorage.setItem("bt2_logs",JSON.stringify(logs));localStora
 function setNav(id){document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));document.getElementById(id)?.classList.add("active")}
 function dateKey(){return new Date().toISOString().slice(0,10)}
 function key(day,i){return day+"_"+i}
-function getSets(day,i,count){let k=key(day,i);if(!logs[k])logs[k]=Array.from({length:count},()=>({w:"",r:"",rir:"",done:false}));while(logs[k].length<count)logs[k].push({w:"",r:"",rir:"",done:false});return logs[k]}
+function getSets(day,i,count){let k=key(day,i);if(!logs[k])logs[k]=Array.from({length:count},()=>({w:"",r:"",rir:"",done:false}));while(logs[k].length<count){let p=logs[k].length?logs[k][logs[k].length-1]:null;logs[k].push({w:p?.w||"",r:"",rir:"",done:false});}return logs[k]}
 function previous(day,i,name){let arr=[];Object.keys(logs).forEach(k=>{if(k!==key(day,i)){let idx=k.lastIndexOf("_");let d=k.slice(0,idx),j=+k.slice(idx+1);if(j===i && d!==day){logs[k].forEach(s=>{if(s.w&&s.r)arr.push(s)});}}});return arr.slice(-3)}
 function home(){
  setNav("nToday");
@@ -126,29 +140,44 @@ function renderExercise(day,ei,seti){
  let completedSets=sets.filter(s=>s.done).length, total=p.exercises.reduce((a,x)=>a+x.sets,0);
  let before=p.exercises.slice(0,ei).reduce((a,x)=>a+x.sets,0)+seti;
  let current=sets[seti]||{w:"",r:"",rir:"",done:false};
- let prev=previous(day,ei,e.name);
- let suggested=suggestSet(e,sets,seti);
+ let prev=previous(day,ei,e.name), suggested=suggestSet(e,sets,seti);
+ let warm=WARMUPS[e.name]||[];
  document.getElementById("app").innerHTML=`
- <div class="card">
-  <div class="row"><button class="ghost" onclick="chooseWorkout()">‹ Workouts</button><span class="coachchip">${completedSets}/${e.sets} sets</span></div>
-  <div class="muted" style="margin-top:5px">${p.title}</div>
-  <h2>${e.name}</h2>
-  <div class="muted">${e.type} • ${e.min}–${e.max}${e.unit==="sec"?" sec":" reps"} • ${e.rest}s rest</div>
-  <div class="stepbar">${sets.map((s,j)=>`<i class="${j<=seti?"on":""}"></i>`).join("")}</div>
+ <div class="card" style="padding:0;overflow:hidden">
+  <div class="row exercise-titlebar"><div><div class="muted">${p.title}</div><div class="exercise-title">${e.name}</div><div class="exercise-meta">${e.type} • ${e.min}–${e.max}${e.unit==="sec"?" sec":" reps"}</div></div><span class="coachchip">${completedSets}/${e.sets}</span></div>
+  ${prev.length?`<div class="history-line">Last time: ${prev.map(s=>s.w+" × "+s.r+(s.rir!==""?" @ "+s.rir+" RIR":"")).join(" • ")}</div>`:""}
+  ${warm.length?`<div style="padding:8px 15px 2px"><span class="warmup-label">Warm-up sets</span></div>
+   <div class="sets warmups">${warm.map((w,j)=>`<div class="set-row warmup-row"><span class="set-type">WU</span><input id="wu${j}" inputmode="decimal" value="${warmValue(w,e,sets,j)}" placeholder="${w[1]}"><input inputmode="numeric" value="${w[2]}" placeholder="reps" onchange="saveWarm('${day}',${ei},${j},this.value)"><span></span><button class="check ${warmDone(day,ei,j)?"done":""}" onclick="toggleWarm('${day}',${ei},${j})">${warmDone(day,ei,j)?"✓":"○"}</button></div>`).join("")}</div>`:""}
+  <div style="padding:12px 15px 2px"><div class="row"><span class="warmup-label">Working sets</span><span class="pill">${e.min}–${e.max} reps</span></div></div>
+  <div class="sets">
+   <div class="set-head"><span>#</span><span>WEIGHT</span><span>REPS</span><span>RIR</span><span></span></div>
+   ${sets.map((s,j)=>`<div class="set-row"><span class="setno">${j+1}</span><input id="sw${j}" inputmode="decimal" value="${j===seti&&s.w===""?suggested.load:s.w}" placeholder="lb" onchange="edit('${day}',${ei},${j},'w',this.value)"><input id="sr${j}" inputmode="numeric" value="${j===seti&&s.r===""?suggested.reps:s.r}" placeholder="reps" onchange="edit('${day}',${ei},${j},'r',this.value)"><input id="si${j}" inputmode="numeric" value="${s.rir}" placeholder="—" onchange="edit('${day}',${ei},${j},'rir',this.value)"><button class="check ${s.done?"done":""}" onclick="toggleDone('${day}',${ei},${j})">${s.done?"✓":"○"}</button></div>`).join("")}
+  </div>
+  <div class="recommend" style="margin-top:11px"><b>Coach:</b> ${suggested.reason}</div>
+  <div class="exercise-bottom"><button class="secondary" onclick="startRest(${e.rest})">Rest ${e.rest}s</button><button class="secondary" onclick="copyPrevious('${day}',${ei})">Copy last</button></div>
  </div>
- <div class="nextset"><div class="ey">Coach target • Set ${seti+1}</div><div class="target">${suggested.load} ${e.unit==="sec"?"sec":"lb"} × ${suggested.reps}${suggested.rir!==""?" @ "+suggested.rir+" RIR":""}</div><div class="why">${suggested.reason}</div></div>
- <div class="card">
-  <div class="row"><h3>Log this set</h3><span class="pill">${before+1}/${total} total</span></div>
-  <label>Load / time</label><input id="cwload" inputmode="decimal" value="${current.w}" placeholder="${e.unit==="sec"?"seconds":"pounds"}">
-  <label style="margin-top:9px">Reps / time</label><input id="cwreps" inputmode="numeric" value="${current.r}" placeholder="${e.unit==="sec"?"seconds":"reps"}">
-  <label style="margin-top:9px">How many reps left?</label>
-  <div class="rirrow">${["0","1","2","3+"].map(x=>`<button id="rir${x.replace("+","p")}" onclick="pickRIR('${x}')">${x}</button>`).join("")}</div>
-  <button class="completebtn" onclick="completeSet('${day}',${ei},${seti})">Complete set ✓</button>
- </div>
- <div class="card"><div class="muted">FORM CUE</div><p class="small">${e.cue}</p>${prev.length?`<div class="prev">Previous: ${prev.map(s=>s.w+" × "+s.r+(s.rir!==""?" @ "+s.rir+" RIR":"")).join(" • ")}</div>`:""}</div>
- <div class="row" style="padding:0 4px"><button class="secondary" onclick="previousSet('${day}',${ei},${seti})">← Previous</button><button class="secondary" onclick="startRest(${e.rest})">Rest timer</button></div>`;
- window._selectedRIR=current.rir||"";
+ <div class="row" style="margin:0 4px 12px"><button class="ghost" onclick="previousSet('${day}',${ei},${seti})">← Previous</button><span class="muted">Set ${seti+1} of ${e.sets}</span><button class="ghost" onclick="nextSet('${day}',${ei},${seti})">Next →</button></div>
+ <div class="card"><div class="notice"><b>Form cue:</b> ${e.cue}</div></div>`;
 }
+function warmKey(day,ei,j){return "warm_"+day+"_"+ei+"_"+j}
+function warmDone(day,ei,j){return !!(logs[warmKey(day,ei,j)]&&logs[warmKey(day,ei,j)].done)}
+function warmValue(w,e,sets,j){
+ let k=warmKey(selectedDay,0,j); let v=logs[warmKey(selectedDay,0,j)]?.w;
+ if(v)return v;
+ if(w[1].startsWith("~")){
+   let working=sets.find(s=>s.w)?.w; if(working && +working>0)return Math.round(+working*parseFloat(w[1].replace("~",""))/100);
+ }
+ return w[1].toLowerCase().includes("bar")?"45":w[1].match(/\d+/)?.[0]||"";
+}
+function saveWarm(day,ei,j,v){logs[warmKey(day,ei,j)]={w:v,done:warmDone(day,ei,j)};save()}
+function toggleWarm(day,ei,j){let k=warmKey(day,ei,j);logs[k]=logs[k]||{w:"",done:false};logs[k].done=!logs[k].done;save();renderExercise(day,ei,0)}
+function copyPrevious(day,ei){
+ let prev=previous(day,ei,PROGRAM[day].exercises[ei].name); if(!prev.length)return;
+ let sets=getSets(day,ei,PROGRAM[day].exercises[ei].sets);
+ prev.slice(0,sets.length).forEach((s,j)=>{sets[j].w=s.w;sets[j].r=s.r;sets[j].rir=""});
+ save();renderExercise(day,ei,0);
+}
+function nextSet(day,ei,seti){let sets=getSets(day,ei,PROGRAM[day].exercises[ei].sets);if(seti<sets.length-1)renderExercise(day,ei,seti+1);else if(ei<PROGRAM[day].exercises.length-1)renderExercise(day,ei+1,0)}
 function pickRIR(v){window._selectedRIR=v;document.querySelectorAll(".rirrow button").forEach(b=>b.classList.remove("sel"));let id="rir"+v.replace("+","p");document.getElementById(id)?.classList.add("sel")}
 function suggestSet(e,sets,seti){
  let filled=sets.filter(s=>s.w!==""&&s.r!=="");
@@ -197,7 +226,7 @@ function addSet(day,i){
 }
 function edit(day,i,j,f,v){getSets(day,i,PROGRAM[day].exercises[i].sets)[j][f]=v;save()}
 function toggleDone(day,i,j){let s=getSets(day,i,PROGRAM[day].exercises[i].sets)[j];s.done=!s.done;save();workout(day)}
-function finish(day){completed[dateKey()+"_"+day]=true;save();document.getElementById("app").innerHTML=`<div class="card" style="text-align:center"><div class="big">Workout saved ✓</div><p>Your sets are stored on this phone. Use the Coach tab for progression logic.</p><button class="primary" onclick="home()">Back to Today</button></div>`}
+function finish(day){completed[dateKey()+"_"+day]=true;save();document.getElementById("app").innerHTML=`<div class="card" style="text-align:center"><div class="big">Workout complete ✓</div><p>Your sets are stored on this phone. Use the Coach tab for progression logic.</p><button class="primary" onclick="home()">Back to Today</button></div>`}
 function startRest(sec){
  let overlay=document.createElement("div");overlay.className="overlay";let box=document.createElement("div");box.className="timerbox";let n=sec;
  box.innerHTML=`<div class="muted">REST TIMER</div><div class="timer">${n}</div><button class="secondary" onclick="closeTimer()">Close</button>`;
