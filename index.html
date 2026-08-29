@@ -67,6 +67,13 @@ button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;cursor
 .daydesc{font-size:10px;color:var(--muted);margin-top:3px}
 .inprogress{font-size:8px;font-weight:800;color:var(--blue);background:rgba(23,105,170,.1);padding:5px 7px;border-radius:999px}
 .todaytag{font-size:8px;font-weight:800;color:var(--green);background:var(--green2);padding:5px 7px;border-radius:999px}
+
+/* V12 gym readability — additive only */
+.hero h2{font-size:26px;letter-spacing:-.6px}
+.srow{min-height:62px}
+.srow input{min-width:74px;height:46px;font-size:18px}
+.srow .check{min-width:46px;min-height:46px;font-size:20px}
+.current-label{font-size:10px;font-weight:800;letter-spacing:.5px}
 </style></head><body><header><div class="head"><div><div class="brand">Body Transformation</div><div class="sub">Train • Fuel • Recover • Progress</div></div><div class="bolt">⚡</div></div></header><main id="app"></main><div class="nav"><button id="nToday" onclick="home(true)"><span class="ico">⌂</span>Today</button><button id="nWorkout" onclick="workouts()"><span class="ico">◉</span>Workout</button><button id="nProgress" onclick="progress()"><span class="ico">▥</span>Progress</button><button id="nCoach" onclick="coach()"><span class="ico">✦</span>Coach</button></div><script>
 const PROGRAM={"Monday":{"title":"Monday \u2014 Lower + Push","subtitle":"Strength + hypertrophy","exercises":[{"name":"Back Squat","type":"Compound","sets":3,"min":5,"max":8,"rest":150,"cue":"Brace hard, controlled descent, drive through mid-foot.","warm":"squat"},{"name":"Barbell Bench Press","type":"Compound","sets":3,"min":5,"max":8,"rest":150,"cue":"Retract shoulders, stable feet, controlled touch.","warm":"bench"},{"name":"Lat Pulldown","type":"Compound","sets":3,"min":8,"max":12,"rest":90,"cue":"Pull elbows down; avoid swinging.","warm":"cable"},{"name":"1-Arm DB Row","type":"Compound","sets":2,"min":8,"max":12,"rest":90,"cue":"Brace and pull toward hip; pause briefly.","warm":"db"},{"name":"DB Lateral Raise","type":"Isolation","sets":2,"min":12,"max":15,"rest":60,"cue":"Lead with elbows; controlled lowering.","warm":"db"},{"name":"DB Hammer Curl","type":"Isolation","sets":2,"min":10,"max":15,"rest":60,"cue":"Neutral grip, no torso swing.","warm":"db"}]},"Wednesday":{"title":"Wednesday \u2014 Yoga / Recovery","subtitle":"Mobility + recovery","exercises":[]},"Friday":{"title":"Friday \u2014 Pull + Push","subtitle":"Strength + athletic balance","exercises":[{"name":"Deadlift","type":"Compound","sets":2,"min":5,"max":6,"rest":180,"cue":"Brace before pull; push floor away; keep bar close.","warm":"deadlift"},{"name":"Pull-Ups","type":"Compound","sets":3,"min":3,"max":6,"rest":120,"cue":"Start from a controlled hang; drive elbows down.","warm":"bodyweight"},{"name":"Incline DB Bench","type":"Compound","sets":3,"min":8,"max":12,"rest":120,"cue":"Use a moderate incline; controlled stretch.","warm":"db"},{"name":"Cable Row","type":"Compound","sets":3,"min":8,"max":12,"rest":90,"cue":"Neutral spine; pull elbows back without shrugging.","warm":"cable"},{"name":"Walking Lunge","type":"Compound","sets":2,"min":8,"max":10,"rest":90,"cue":"Long controlled step; knee tracks over foot.","warm":"db"},{"name":"DB Curl","type":"Isolation","sets":2,"min":10,"max":15,"rest":60,"cue":"Supinated grip; slow eccentric.","warm":"db"}]},"Saturday":{"title":"Saturday \u2014 Legs","subtitle":"Lower body + core","exercises":[{"name":"Leg Press","type":"Compound","sets":3,"min":8,"max":12,"rest":120,"cue":"Full controlled range; knees track with toes.","warm":"legpress","machine":"Matrix","loadType":"machine"},{"name":"DB Romanian Deadlift","type":"Compound","sets":3,"min":8,"max":12,"rest":120,"cue":"Hinge at hips; keep dumbbells close; feel hamstrings.","warm":"db"},{"name":"Walking Lunge","type":"Compound","sets":2,"min":8,"max":10,"rest":90,"cue":"Controlled steps; maintain balance.","warm":"db"},{"name":"Calf Raise","type":"Isolation","sets":3,"min":10,"max":15,"rest":60,"cue":"Full stretch and hard peak contraction.","warm":"machine"},{"name":"Dead Hang","type":"Accessory","sets":2,"min":20,"max":45,"rest":60,"cue":"Relax shoulders only as much as comfortable; build grip and hang time.","warm":"bodyweight","unit":"sec"}]}},PROGRAM_VERSION="12.0";
 const defaults={"Back Squat":205,"Barbell Bench Press":155,"Incline DB Bench":55,"Deadlift":275,"1-Arm DB Row":65,"Lat Pulldown":120,"Pull-Ups":"","Walking Lunge":25,"DB Lateral Raise":15,"DB Hammer Curl":30,"DB Curl":30,"DB Romanian Deadlift":70,"Calf Raise":60,"Leg Press":367,"Dead Hang":30};
@@ -116,7 +123,7 @@ function workouts(){
  const names=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
  const todayName=names[new Date().getDay()];
  const order=["Monday","Friday","Saturday"];
- document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">TRAINING PLAN</div><h2>Workouts</h2><div class="muted">Your programmed week. Tap any day to preview or train.</div></div>
+ document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">TRAINING PLAN • V12</div><h2>Workouts</h2><div class="daylabel" style="margin-top:10px">MONDAY • FRIDAY • SATURDAY</div><div class="muted">Your programmed week. Tap any day to preview or train.</div></div>
  ${order.map(d=>{
    const p=PROGRAM[d],s=latestSessionForDay(d),inprog=s&&!s.finished,done=s&&s.finished;
    return `<div class="card daycard" onclick="start('${d}')"><div class="row"><div><div class="daylabel">${d.toUpperCase()} ${d===todayName?"• TODAY":""}</div><div class="daytitle">${p.title}</div><div class="daydesc">${p.subtitle}</div></div><div>${inprog?'<span class="inprogress">IN PROGRESS</span>':done?'<span class="todaytag">COMPLETED</span>':'<span class="muted">›</span>'}</div></div></div>`;
@@ -125,22 +132,18 @@ function workouts(){
  <div class="card"><div class="small"><b style="color:var(--text)">Tip:</b> Selecting another day only lets you preview/train that programmed day. It does not change the calendar date or overwrite today's session.</div></div>`;
 }
 function start(d){
-  selected=d;
-  if(!PROGRAM[d] || !Array.isArray(PROGRAM[d].exercises)) { home(true); return; }
-  nav("nWorkout");
-  if(PROGRAM[d].exercises.length===0){ home(false); return; }
-  let first=0;
-  try{
-    const s=(typeof latestSessionForDay==="function")?latestSessionForDay(d):null;
-    if(s && !s.finished && s.exercises){
-      for(let i=0;i<PROGRAM[d].exercises.length;i++){
-        const a=s.exercises[String(i)]?.actual||[];
-        if(a.some(x=>!x.done)){first=i;break;}
-        first=Math.min(i+1,PROGRAM[d].exercises.length-1);
-      }
-    }
-  }catch(e){ first=0; }
-  render(d,first);
+ selected=d;nav("nWorkout");
+ if(!PROGRAM[d].exercises.length)return home();
+ const s=latestSessionForDay(d);
+ let first=0;
+ if(s&&!s.finished){
+   for(let i=0;i<PROGRAM[d].exercises.length;i++){
+     const a=s.exercises?.[String(i)]?.actual||[];
+     if(a.some(x=>!x.done)){first=i;break}
+     first=Math.min(i+1,PROGRAM[d].exercises.length-1);
+   }
+ }
+ render(d,first);
 }
 function finish(d){let s=getSession(d);s.finished=new Date().toISOString();s.stats={};completeStats(s);save();document.getElementById("app").innerHTML=`<div class="hero" style="text-align:center;padding:28px 18px"><div style="font-size:50px;color:var(--green)">✓</div><div class="ey">WORKOUT COMPLETE</div><h2>Great work.</h2><div class="muted">${s.stats.completedSets}/${s.stats.workingSets} working sets saved</div><button class="primary" style="margin-top:16px" onclick="home()">Done</button></div>`}
 function completeStats(s){s.stats.workingSets=0;s.stats.completedSets=0;Object.values(s.exercises||{}).forEach(e=>{s.stats.workingSets+=e.planned.sets;s.stats.completedSets+=(e.actual||[]).filter(x=>x.done).length})}
