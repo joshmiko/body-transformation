@@ -44,7 +44,7 @@ select
   to_timestamp("Date", 'YYYY-MM-DD HH24:MI:SS')::date,
   to_timestamp("Date", 'YYYY-MM-DD HH24:MI:SS'),
   to_timestamp("Date", 'YYYY-MM-DD HH24:MI:SS')
-    + max(make_interval(mins => coalesce(nullif(regexp_replace(coalesce("Duration",''), '[^0-9]', '', 'g'), '')::integer, 0))),
+    + max(make_interval(mins => coalesce(public.bt_safe_numeric(regexp_replace(coalesce("Duration",''), '[^0-9]', '', 'g'))::integer, 0))),
   'completed',
   max(nullif("Workout Notes",''))
 from public.strong_import_rows
@@ -64,7 +64,7 @@ select
   s.id,
   c.id,
   trim(r."Exercise Name"),
-  row_number() over (partition by s.id order by min(coalesce(nullif(trim(r."Set Order"),''),'0')::numeric), trim(r."Exercise Name")),
+  row_number() over (partition by s.id order by min(coalesce(public.bt_safe_numeric(r."Set Order"), 0)), trim(r."Exercise Name")),
   max(nullif(r."Notes",''))
 from public.strong_import_rows r
 join public.workout_sessions s
@@ -85,16 +85,16 @@ select
   e.id,
   coalesce(nullif(trim(r."Set Order"),''),'0')::integer,
   'working',
-  nullif(trim(r."Weight"),'')::numeric,
+  public.bt_safe_numeric(r."Weight"),
   case
-    when coalesce(nullif(trim(r."Seconds"),''),'0')::numeric > 0
+    when coalesce(public.bt_safe_numeric(r."Seconds"), 0) > 0
      and coalesce(nullif(trim(r."Weight"),''),'0')::numeric = 0
     then 'seconds' else 'lb' end,
   case
-    when coalesce(nullif(trim(r."Seconds"),''),'0')::numeric > 0
+    when coalesce(public.bt_safe_numeric(r."Seconds"), 0) > 0
      and coalesce(nullif(trim(r."Weight"),''),'0')::numeric = 0
     then nullif(trim(r."Seconds"),'')::numeric
-    else nullif(trim(r."Reps"),'')::numeric end,
+    else public.bt_safe_numeric(r."Reps") end,
   s.finished_at
 from public.strong_import_rows r
 join public.workout_sessions s
@@ -108,7 +108,7 @@ where nullif(trim(r."Set Order"),'') is not null
   and not exists (
     select 1 from public.workout_sets ws
     where ws.workout_exercise_id = e.id
-      and ws.position = nullif(trim(r."Set Order"),'')::integer
+      and ws.position = public.bt_safe_numeric(r."Set Order")::integer
       and ws.kind = 'working'
   );
 
