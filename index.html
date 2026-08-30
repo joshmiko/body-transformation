@@ -333,5 +333,5 @@ window.btStaticPasskey=btStaticPasskey;
 document.getElementById("bt-static-passkey").addEventListener("click",btStaticPasskey);
 if(localStorage.getItem("bt_supabase_session"))btHideLogin();
 try{home()}catch(error){const target=document.getElementById("app");if(target)target.innerHTML=`<div class="card"><h2>Unable to load the app</h2><p class="small">${error?.message||"Please refresh and try again."}</p></div>`;console.error(error)}
-Object.assign(window,{refreshForCalendarDay,nav,sessionKey,latestSessionForDay,getSession,sets,hist,previousActual,startWeight,target,warmups,wuk,wud,wuDone,wuEdit,edit,mark,feel,setupNote,addChip,saveNote,render,workouts,previewDay,beginWorkout,finish,completeStats,exportPayload,sync,copyPayload,fallbackCopy,importInstructions,home,selectDay,progress,saveCheck,coach,rest,profile,btSignOut,weekStart,dateLabel,weeklyProgress,btStaticSignIn,btStaticPasskey});home();
+Object.assign(window,{nav,home,workouts,previewDay,beginWorkout,render,mark,feel,setupNote,addChip,saveNote,finish,rest,progress,saveCheck,coach,profile,btSignOut,deleteWorkout,deleteProgressPhoto,selectDay,sync,copyPayload,fallbackCopy,importInstructions,btStaticSignIn,btStaticPasskey});home();
 </script></body></html>
