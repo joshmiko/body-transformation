@@ -113,7 +113,7 @@ join public.workout_sessions s
 join public.workout_exercises e
   on e.session_id = s.id
  and e.exercise_name_snapshot = trim(r."Exercise Name")
-where nullif(trim(r."Set Order"),'') is not null
+where public.bt_safe_numeric(r."Set Order") > 0
   and not exists (
     select 1 from public.workout_sets ws
     where ws.workout_exercise_id = e.id
