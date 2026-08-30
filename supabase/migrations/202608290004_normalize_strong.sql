@@ -92,7 +92,7 @@ insert into public.workout_sets
   (workout_exercise_id, position, kind, weight, weight_unit, reps, completed_at)
 select
   e.id,
-  coalesce(public.bt_safe_numeric(r."Set Order"), 0)::integer,
+  public.bt_safe_numeric(r."Set Order")::integer,
   'working',
   public.bt_safe_numeric(r."Weight"),
   case
