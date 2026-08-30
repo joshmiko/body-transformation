@@ -68,3 +68,85 @@ export function currentUser() {
 export function sessionActive() {
   return Boolean(JSON.parse(localStorage.getItem(sessionKey) || "null")?.access_token);
 }
+
+
+export async function syncLocalDb(localDb) {
+  if (!sessionActive()) return { skipped: true, sessions: 0, checkins: 0 };
+  const user = currentUser();
+  if (!user?.id) return { skipped: true, sessions: 0, checkins: 0 };
+  let sessions = 0, checkins = 0;
+  for (const checkin of localDb.checkins || []) {
+    if (checkin.syncedAt) continue;
+    await request("body_checkins", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        user_id: user.id,
+        recorded_at: checkin.createdAt || new Date().toISOString(),
+        weight: Number(checkin.weight) || null,
+        weight_unit: "lb",
+        waist: Number(checkin.waist) || null,
+        waist_unit: "in",
+        notes: checkin.notes || null
+      })
+    });
+    checkin.syncedAt = new Date().toISOString();
+    checkins++;
+  }
+  for (const session of Object.values(localDb.sessions || {})) {
+    if (!session.finished || session.cloudSyncedAt) continue;
+    const sourceId = `${session.date || ""}_${session.day || ""}`;
+    const [created] = await request("workout_sessions", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        user_id: user.id,
+        source: "manual",
+        source_record_id: sourceId,
+        occurred_on: session.date,
+        started_at: session.started || null,
+        finished_at: session.finished,
+        status: "completed"
+      })
+    });
+    const sessionId = created?.id;
+    if (sessionId) {
+      for (const exercise of Object.values(session.exercises || {})) {
+        const [remoteExercise] = await request("workout_exercises", {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            exercise_name_snapshot: exercise.name,
+            position: 1,
+            planned_sets: exercise.planned?.sets || null,
+            min_reps: exercise.planned?.min || null,
+            max_reps: exercise.planned?.max || null
+          })
+        });
+        if (!remoteExercise?.id) continue;
+        for (const [index, set] of (exercise.actual || []).entries()) {
+          if (!set.done) continue;
+          await request("workout_sets", {
+            method: "POST",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({
+              workout_exercise_id: remoteExercise.id,
+              position: index + 1,
+              kind: "working",
+              weight: Number(set.weight) || null,
+              weight_unit: "lb",
+              reps: Number(set.reps) || null,
+              feel: String(set.feel || "").toLowerCase() || null,
+              completed_at: session.finished
+            })
+          });
+        }
+      }
+    }
+    session.cloudSyncedAt = new Date().toISOString();
+    sessions++;
+  }
+  localStorage.setItem("bt10_db", JSON.stringify(localDb));
+  return { skipped: false, sessions, checkins };
+}
