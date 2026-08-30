@@ -5,7 +5,7 @@ create table if not exists public.strong_import_rows (
   id uuid primary key default gen_random_uuid(),
   import_run_id uuid references public.import_runs(id) on delete cascade,
   user_id uuid references public.profiles(id) on delete cascade,
-  source_row_number integer not null,
+  source_row_number bigint generated always as identity,
   date_text text not null,
   workout_name text,
   duration_text text,
