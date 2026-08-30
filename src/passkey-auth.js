@@ -41,6 +41,9 @@ export function mountAuthControls() {
   if (document.getElementById("bt-auth-controls")) return;
   const panel = document.createElement("section");
   panel.id = "bt-auth-controls";
+  const responsiveStyle = document.createElement("style");
+  responsiveStyle.textContent = "@media (max-width: 600px) { #bt-auth-controls { top: auto !important; left: 12px !important; right: 12px !important; bottom: 88px !important; max-width: none !important; } }";
+  document.head.append(responsiveStyle);
   panel.style.cssText = "position:fixed;top:12px;right:12px;z-index:100;background:var(--card,#fff);color:var(--text,#111);border:1px solid var(--line,#ddd);border-radius:14px;padding:10px;max-width:250px;box-shadow:0 8px 30px rgba(0,0,0,.16);font:12px system-ui";
   panel.innerHTML = `
     <button id="bt-passkey" style="width:100%;padding:9px;border:0;border-radius:9px;background:var(--green,#248a3d);color:#fff;font-weight:700">Sign in with Face ID / passkey</button>
