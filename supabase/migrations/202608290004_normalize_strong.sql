@@ -50,7 +50,13 @@ select
 from public.strong_import_rows
 where user_id is not null and trim(coalesce("Date",'')) <> ''
 group by user_id, "Date", "Workout Name"
-on conflict (user_id, source, source_record_id) do nothing;
+having not exists (
+  select 1
+  from public.workout_sessions existing
+  where existing.user_id = user_id
+    and existing.source = 'strong_csv'
+    and existing.source_record_id = md5(coalesce("Date",'') || '|' || coalesce("Workout Name",''))
+);
 
 insert into public.workout_exercises
   (session_id, exercise_id, exercise_name_snapshot, position, notes)
