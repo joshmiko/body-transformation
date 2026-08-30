@@ -252,7 +252,8 @@ function previewDay(d){
  selected=d; nav("nWorkout");
  const p=PROGRAM[d];
  if(!p || !p.exercises?.length){
-   document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">RECOVERY DAY</div><h2>Wednesday — Yoga / Recovery</h2><div class="muted">Mobility, recovery and DOMS tracking.</div></div><div class="card"><h3>Preview</h3><div class="history">Light yoga, mobility work, breathing, and an optional recovery note.</div><button class="primary" style="margin-top:12px" onclick="home(false)">Back to Today</button></div>`;
+   const guidance={Tuesday:{title:"Tuesday — Active Recovery",detail:"Easy walk, light mobility, and recovery-focused movement.",steps:"8,000–10,000"},Thursday:{title:"Thursday — Steps + Mobility",detail:"Low-intensity movement, stretching, and a relaxed walk.",steps:"8,000–10,000"},Sunday:{title:"Sunday — Rest + Reset",detail:"Full rest, gentle mobility, and prepare for the week ahead.",steps:"6,000–8,000"}}[d]||{title:d+" — Recovery day",detail:"Light movement and recovery work.",steps:"8,000–10,000"};
+   document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">OFF DAY</div><h2>${guidance.title}</h2><div class="muted">No lifting session scheduled.</div></div><div class="card"><h3>Suggested plan</h3><div class="history">${guidance.detail}<br><b>Aim for ${guidance.steps} steps.</b></div><button class="primary" style="margin-top:12px" onclick="home(false)">Back to Today</button></div>`;
    return;
  }
  const rows=p.exercises.map((e,i)=>`<div class="history row"><div><b>${i+1}. ${e.name}</b><div class="muted">${e.sets} sets • ${e.min}–${e.max} reps • ${e.rest}s rest</div></div></div>`).join("");
