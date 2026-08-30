@@ -174,24 +174,24 @@ function workouts(){
  const names=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
  const todayName=names[new Date().getDay()];
  const order=["Monday","Friday","Saturday"];
- document.getElementById("app").innerHTML=\`<div class="hero"><div class="ey">TRAINING PLAN • V12</div><h2>Workouts</h2><div class="daylabel" style="margin-top:10px">MONDAY • FRIDAY • SATURDAY</div><div class="muted">Tap a day to preview the workout before starting.</div></div>
- \${order.map(d=>{
+ document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">TRAINING PLAN • V12</div><h2>Workouts</h2><div class="daylabel" style="margin-top:10px">MONDAY • FRIDAY • SATURDAY</div><div class="muted">Tap a day to preview the workout before starting.</div></div>
+ ${order.map(d=>{
    const p=PROGRAM[d],s=latestSessionForDay(d),inprog=s&&!s.finished,done=s&&s.finished;
-   return \`<div class="card daycard" onclick="previewDay('\${d}')"><div class="row"><div><div class="daylabel">\${d.toUpperCase()} \${d===todayName?"• TODAY":""}</div><div class="daytitle">\${p.title}</div><div class="daydesc">\${p.subtitle}</div></div><div>\${inprog?'<span class="inprogress">IN PROGRESS</span>':done?'<span class="todaytag">COMPLETED</span>':'<span class="muted">›</span>'}</div></div></div>\`;
+   return `<div class="card daycard" onclick="previewDay('${d}')"><div class="row"><div><div class="daylabel">${d.toUpperCase()} ${d===todayName?"• TODAY":""}</div><div class="daytitle">${p.title}</div><div class="daydesc">${p.subtitle}</div></div><div>${inprog?'<span class="inprogress">IN PROGRESS</span>':done?'<span class="todaytag">COMPLETED</span>':'<span class="muted">›</span>'}</div></div></div>`;
  }).join("")}
- <div class="card daycard" onclick="previewDay('Wednesday')"><div class="row"><div><div class="daylabel">WEDNESDAY \${todayName==="Wednesday"?"• TODAY":""}</div><div class="daytitle">Yoga / Recovery</div><div class="daydesc">Mobility, recovery and DOMS tracking</div></div><span class="muted">›</span></div></div>
- <div class="card"><div class="small"><b style="color:var(--text)">Tip:</b> Selecting another day only lets you preview/train that programmed day. It does not change the calendar date or overwrite today's session.</div></div>\`;
+ <div class="card daycard" onclick="previewDay('Wednesday')"><div class="row"><div><div class="daylabel">WEDNESDAY ${todayName==="Wednesday"?"• TODAY":""}</div><div class="daytitle">Yoga / Recovery</div><div class="daydesc">Mobility, recovery and DOMS tracking</div></div><span class="muted">›</span></div></div>
+ <div class="card"><div class="small"><b style="color:var(--text)">Tip:</b> Selecting another day only lets you preview/train that programmed day. It does not change the calendar date or overwrite today's session.</div></div>`;
 }
 function previewDay(d){
  selected=d; nav("nWorkout");
  const p=PROGRAM[d];
  if(!p || !p.exercises?.length){
-   document.getElementById("app").innerHTML=\`<div class="hero"><div class="ey">RECOVERY DAY</div><h2>Wednesday — Yoga / Recovery</h2><div class="muted">Mobility, recovery and DOMS tracking.</div></div><div class="card"><h3>Preview</h3><div class="history">Light yoga, mobility work, breathing, and an optional recovery note.</div><button class="primary" style="margin-top:12px" onclick="home(false)">Back to Today</button></div>\`;
+   document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">RECOVERY DAY</div><h2>Wednesday — Yoga / Recovery</h2><div class="muted">Mobility, recovery and DOMS tracking.</div></div><div class="card"><h3>Preview</h3><div class="history">Light yoga, mobility work, breathing, and an optional recovery note.</div><button class="primary" style="margin-top:12px" onclick="home(false)">Back to Today</button></div>`;
    return;
  }
- const rows=p.exercises.map((e,i)=>\`<div class="history row"><div><b>\${i+1}. \${e.name}</b><div class="muted">\${e.sets} sets • \${e.min}–\${e.max} reps • \${e.rest}s rest</div></div></div>\`).join("");
+ const rows=p.exercises.map((e,i)=>`<div class="history row"><div><b>${i+1}. ${e.name}</b><div class="muted">${e.sets} sets • ${e.min}–${e.max} reps • ${e.rest}s rest</div></div></div>`).join("");
  const s=latestSessionForDay(d),label=s&&!s.finished?"Resume workout":s&&s.finished?"Review workout":"Start workout";
- document.getElementById("app").innerHTML=\`<div class="hero"><div class="ey">\${d.toUpperCase()} • WORKOUT PREVIEW</div><h2>\${p.title}</h2><div class="muted">\${p.subtitle} • \${p.exercises.length} exercises</div></div><div class="card"><h3>Exercises</h3>\${rows}<button class="primary" style="margin-top:12px" onclick="beginWorkout('\${d}')">\${label} →</button></div><button class="secondary" style="width:100%;margin-top:2px" onclick="workouts()">Choose another day</button>\`;
+ document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">${d.toUpperCase()} • WORKOUT PREVIEW</div><h2>${p.title}</h2><div class="muted">${p.subtitle} • ${p.exercises.length} exercises</div></div><div class="card"><h3>Exercises</h3>${rows}<button class="primary" style="margin-top:12px" onclick="beginWorkout('${d}')">${label} →</button></div><button class="secondary" style="width:100%;margin-top:2px" onclick="workouts()">Choose another day</button>`;
 }
 function beginWorkout(d){
  selected=d;nav("nWorkout");
