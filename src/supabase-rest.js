@@ -1,5 +1,7 @@
 const config = globalThis.__BT_CONFIG__ || {
-  supabaseUrl: "https://ncvtnlrogpngaelqgvvt.supabase.co",\n  supabaseAnonKey: "sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW"\n};
+  supabaseUrl: "https://ncvtnlrogpngaelqgvvt.supabase.co",
+  supabaseAnonKey: "sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW"
+};
 const projectUrl = String(config.supabaseUrl || "").replace(/\/$/, "");
 const publishableKey = String(config.supabaseAnonKey || "");
 const sessionKey = "bt_supabase_session";
