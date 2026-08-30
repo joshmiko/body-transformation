@@ -309,8 +309,10 @@ function btStaticSignIn(){
  const status=document.getElementById("bt-static-status");
  fetch("https://ncvtnlrogpngaelqgvvt.supabase.co/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:"sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW","Content-Type":"application/json"},body:JSON.stringify({email:document.getElementById("bt-static-email").value.trim(),password:document.getElementById("bt-static-password").value})}).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error_description||data.msg||"Sign-in failed");localStorage.setItem("bt_supabase_session",JSON.stringify(data));status.textContent="Signed in successfully.";btHideLogin();}).catch(error=>{status.textContent=error.message||"Sign-in failed";});
 }
+window.btStaticSignIn=btStaticSignIn;
 async function btStaticPasskey(){const status=document.getElementById("bt-static-status");try{const p=window.btPasskeys||await import("./src/passkey-auth.js");const data=await p.signInWithPasskey();localStorage.setItem("bt_supabase_session",JSON.stringify(data));status.textContent="Signed in successfully.";btHideLogin();}catch(error){status.textContent=error?.message||"Face ID/passkey is not available on this device yet.";}}
 document.getElementById("bt-static-login").addEventListener("click",btStaticSignIn);
+window.btStaticPasskey=btStaticPasskey;
 document.getElementById("bt-static-passkey").addEventListener("click",btStaticPasskey);
 if(localStorage.getItem("bt_supabase_session"))btHideLogin();
 Object.assign(window,{refreshForCalendarDay,nav,sessionKey,latestSessionForDay,getSession,sets,hist,previousActual,startWeight,target,warmups,wuk,wud,wuDone,wuEdit,edit,mark,feel,setupNote,addChip,saveNote,render,workouts,previewDay,beginWorkout,finish,completeStats,exportPayload,sync,copyPayload,fallbackCopy,importInstructions,home,selectDay,progress,saveCheck,coach,rest,profile,btSignOut,weekStart,dateLabel,weeklyProgress,btStaticSignIn,btStaticPasskey});
