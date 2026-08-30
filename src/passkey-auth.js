@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.105.0";
 let client;
 function getClient() {
   if (client) return client;
-  const config = globalThis.__BT_CONFIG__ || {};
+  const config = globalThis.__BT_CONFIG__ || {\n    supabaseUrl: "https://ncvtnlrogpngaelqgvvt.supabase.co",\n    supabaseAnonKey: "sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW"\n  };
   if (!config.supabaseUrl || !config.supabaseAnonKey) {
     throw new Error("Supabase runtime configuration is missing");
   }
@@ -72,9 +72,9 @@ export function mountAuthControls() {
     try {
       const email = document.getElementById("bt-email").value.trim();
       const password = document.getElementById("bt-password").value;
-      const response = await fetch(`${globalThis.__BT_CONFIG__?.supabaseUrl}/auth/v1/token?grant_type=password`, {
+      const response = await fetch(`${(globalThis.__BT_CONFIG__?.supabaseUrl || "https://ncvtnlrogpngaelqgvvt.supabase.co")}/auth/v1/token?grant_type=password`, {
         method: "POST",
-        headers: { apikey: globalThis.__BT_CONFIG__?.supabaseAnonKey, "Content-Type": "application/json" },
+        headers: { apikey: globalThis.__BT_CONFIG__?.supabaseAnonKey || "sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW", "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
       const data = await response.json();
