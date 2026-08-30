@@ -44,7 +44,7 @@ select
   to_timestamp("Date", 'YYYY-MM-DD HH24:MI:SS')::date,
   to_timestamp("Date", 'YYYY-MM-DD HH24:MI:SS'),
   to_timestamp("Date", 'YYYY-MM-DD HH24:MI:SS')
-    + make_interval(mins => coalesce(nullif(regexp_replace(coalesce("Duration",''), '[^0-9]', '', 'g'), '')::integer, 0)),
+    + max(make_interval(mins => coalesce(nullif(regexp_replace(coalesce("Duration",''), '[^0-9]', '', 'g'), '')::integer, 0))),
   'completed',
   max(nullif("Workout Notes",''))
 from public.strong_import_rows
