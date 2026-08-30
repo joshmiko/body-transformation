@@ -3,7 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.105.0";
 let client;
 function getClient() {
   if (client) return client;
-  const config = globalThis.__BT_CONFIG__ || {\n    supabaseUrl: "https://ncvtnlrogpngaelqgvvt.supabase.co",\n    supabaseAnonKey: "sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW"\n  };
+  const config = globalThis.__BT_CONFIG__ || {
+    supabaseUrl: "https://ncvtnlrogpngaelqgvvt.supabase.co",
+    supabaseAnonKey: "sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW"
+  };
   if (!config.supabaseUrl || !config.supabaseAnonKey) {
     throw new Error("Supabase runtime configuration is missing");
   }
