@@ -74,6 +74,43 @@ button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;cursor
 .srow input{min-width:74px;height:46px;font-size:18px}
 .srow .check{min-width:46px;min-height:46px;font-size:20px}
 .current-label{font-size:10px;font-weight:800;letter-spacing:.5px}
+
+/* iPhone-first layout and liquid-glass surfaces */
+@media (max-width: 600px) {
+  html { font-size: 16px; overscroll-behavior-y: none; }
+  body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  main { padding: 16px 14px; }
+  .brand { font-size: 21px; }
+  .sub { font-size: 12px; }
+  .hero { padding: 20px 17px; }
+  .hero h2, h2 { font-size: 30px; line-height: 1.12; }
+  h3 { font-size: 18px; }
+  .muted { font-size: 13px; }
+  .small { font-size: 14px; line-height: 1.55; }
+  .daylabel, .ey { font-size: 11px; }
+  .daytitle { font-size: 19px; }
+  .daydesc { font-size: 12px; }
+  .ename { font-size: 21px; }
+  .meta { font-size: 12px; }
+  .nav {
+    height: calc(76px + env(safe-area-inset-bottom));
+    padding: 8px 5px calc(8px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--card) 72%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+    box-shadow: 0 -8px 30px rgba(0,0,0,.12);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    transform: translateZ(0);
+  }
+  .nav button { min-height: 54px; font-size: 11px; }
+  .nav .ico { font-size: 22px; line-height: 24px; }
+  .card, .hero { backdrop-filter: saturate(150%) blur(18px); -webkit-backdrop-filter: saturate(150%) blur(18px); }
+  .srow { min-height: 64px; }
+  .srow input { min-width: 70px; height: 48px; font-size: 19px; }
+  .srow .check { min-width: 48px; min-height: 48px; }
+  button { min-height: 44px; }
+  .bottomactions { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
 </style></head><body><header><div class="head"><div><div class="brand">Body Transformation</div><div class="sub">Train • Fuel • Recover • Progress</div></div><div class="bolt">⚡</div></div></header><main id="app"></main><div class="nav"><button id="nToday" onclick="home(true)"><span class="ico">⌂</span>Today</button><button id="nWorkout" onclick="workouts()"><span class="ico">◉</span>Workout</button><button id="nProgress" onclick="progress()"><span class="ico">▥</span>Progress</button><button id="nCoach" onclick="coach()"><span class="ico">✦</span>Coach</button></div><script src="env.js"></script><script type="module">import * as btSupabase from "./src/supabase-rest.js"; import * as btPasskeys from "./src/passkey-auth.js"; window.btSupabase = btSupabase; window.btPasskeys = btPasskeys; btPasskeys.mountAuthControls();</script><script>
 const PROGRAM={"Monday":{"title":"Monday \u2014 Lower + Push","subtitle":"Strength + hypertrophy","exercises":[{"name":"Back Squat","type":"Compound","sets":3,"min":5,"max":8,"rest":150,"cue":"Brace hard, controlled descent, drive through mid-foot.","warm":"squat"},{"name":"Barbell Bench Press","type":"Compound","sets":3,"min":5,"max":8,"rest":150,"cue":"Retract shoulders, stable feet, controlled touch.","warm":"bench"},{"name":"Lat Pulldown","type":"Compound","sets":3,"min":8,"max":12,"rest":90,"cue":"Pull elbows down; avoid swinging.","warm":"cable"},{"name":"1-Arm DB Row","type":"Compound","sets":2,"min":8,"max":12,"rest":90,"cue":"Brace and pull toward hip; pause briefly.","warm":"db"},{"name":"DB Lateral Raise","type":"Isolation","sets":2,"min":12,"max":15,"rest":60,"cue":"Lead with elbows; controlled lowering.","warm":"db"},{"name":"DB Hammer Curl","type":"Isolation","sets":2,"min":10,"max":15,"rest":60,"cue":"Neutral grip, no torso swing.","warm":"db"}]},"Wednesday":{"title":"Wednesday \u2014 Yoga / Recovery","subtitle":"Mobility + recovery","exercises":[]},"Friday":{"title":"Friday \u2014 Pull + Push","subtitle":"Strength + athletic balance","exercises":[{"name":"Deadlift","type":"Compound","sets":2,"min":5,"max":6,"rest":180,"cue":"Brace before pull; push floor away; keep bar close.","warm":"deadlift"},{"name":"Pull-Ups","type":"Compound","sets":3,"min":3,"max":6,"rest":120,"cue":"Start from a controlled hang; drive elbows down.","warm":"bodyweight"},{"name":"Incline DB Bench","type":"Compound","sets":3,"min":8,"max":12,"rest":120,"cue":"Use a moderate incline; controlled stretch.","warm":"db"},{"name":"Cable Row","type":"Compound","sets":3,"min":8,"max":12,"rest":90,"cue":"Neutral spine; pull elbows back without shrugging.","warm":"cable"},{"name":"Walking Lunge","type":"Compound","sets":2,"min":8,"max":10,"rest":90,"cue":"Long controlled step; knee tracks over foot.","warm":"db"},{"name":"DB Curl","type":"Isolation","sets":2,"min":10,"max":15,"rest":60,"cue":"Supinated grip; slow eccentric.","warm":"db"}]},"Saturday":{"title":"Saturday \u2014 Legs","subtitle":"Lower body + core","exercises":[{"name":"Leg Press","type":"Compound","sets":3,"min":8,"max":12,"rest":120,"cue":"Full controlled range; knees track with toes.","warm":"legpress","machine":"Matrix","loadType":"machine"},{"name":"DB Romanian Deadlift","type":"Compound","sets":3,"min":8,"max":12,"rest":120,"cue":"Hinge at hips; keep dumbbells close; feel hamstrings.","warm":"db"},{"name":"Walking Lunge","type":"Compound","sets":2,"min":8,"max":10,"rest":90,"cue":"Controlled steps; maintain balance.","warm":"db"},{"name":"Calf Raise","type":"Isolation","sets":3,"min":10,"max":15,"rest":60,"cue":"Full stretch and hard peak contraction.","warm":"machine"},{"name":"Dead Hang","type":"Accessory","sets":2,"min":20,"max":45,"rest":60,"cue":"Relax shoulders only as much as comfortable; build grip and hang time.","warm":"bodyweight","unit":"sec"}]}},PROGRAM_VERSION="12.0";
 const defaults={"Back Squat":205,"Barbell Bench Press":155,"Incline DB Bench":55,"Deadlift":275,"1-Arm DB Row":65,"Lat Pulldown":120,"Pull-Ups":"","Walking Lunge":25,"DB Lateral Raise":15,"DB Hammer Curl":30,"DB Curl":30,"DB Romanian Deadlift":70,"Calf Raise":60,"Leg Press":367,"Dead Hang":30};
