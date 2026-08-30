@@ -70,7 +70,7 @@ export function sessionActive() {
 }
 
 
-export async function syncLocalDb(localDb) {
+async function syncLocalDbInternal(localDb) {
   if (!sessionActive()) return { skipped: true, sessions: 0, checkins: 0 };
   const user = currentUser();
   if (!user?.id) return { skipped: true, sessions: 0, checkins: 0 };
@@ -149,4 +149,11 @@ export async function syncLocalDb(localDb) {
   }
   localStorage.setItem("bt10_db", JSON.stringify(localDb));
   return { skipped: false, sessions, checkins };
+}
+
+
+export function syncLocalDb(localDb) {
+  if (syncInFlight) return syncInFlight;
+  syncInFlight = syncLocalDbInternal(localDb).finally(() => { syncInFlight = null; });
+  return syncInFlight;
 }
