@@ -42,7 +42,7 @@ export function mountAuthControls() {
   const panel = document.createElement("section");
   panel.id = "bt-auth-controls";
   panel.style.cssText = "position:fixed;top:12px;right:12px;z-index:100;background:var(--card,#fff);color:var(--text,#111);border:1px solid var(--line,#ddd);border-radius:14px;padding:10px;max-width:250px;box-shadow:0 8px 30px rgba(0,0,0,.16);font:12px system-ui";
-  panel.innerHTML = \`
+  panel.innerHTML = `
     <button id="bt-passkey" style="width:100%;padding:9px;border:0;border-radius:9px;background:var(--green,#248a3d);color:#fff;font-weight:700">Sign in with Face ID / passkey</button>
     <button id="bt-register" style="width:100%;margin-top:6px;padding:7px;border:1px solid var(--line,#ddd);border-radius:9px;background:transparent;color:inherit">Register this device</button>
     <details style="margin-top:7px"><summary>Email/password fallback</summary>
@@ -51,7 +51,7 @@ export function mountAuthControls() {
       <button id="bt-password-login" style="width:100%;margin-top:6px;padding:7px">Sign in</button>
     </details>
     <div id="bt-auth-status" style="margin-top:7px;color:var(--muted,#666)">Cloud sign-in is optional until enabled.</div>
-  \`;
+  `;
   document.body.append(panel);
   const status = (message, ok=false) => {
     const el = document.getElementById("bt-auth-status");
@@ -69,7 +69,7 @@ export function mountAuthControls() {
     try {
       const email = document.getElementById("bt-email").value.trim();
       const password = document.getElementById("bt-password").value;
-      const response = await fetch(\`${globalThis.__BT_CONFIG__?.supabaseUrl}/auth/v1/token?grant_type=password\`, {
+      const response = await fetch(`${globalThis.__BT_CONFIG__?.supabaseUrl}/auth/v1/token?grant_type=password`, {
         method: "POST",
         headers: { apikey: globalThis.__BT_CONFIG__?.supabaseAnonKey, "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
