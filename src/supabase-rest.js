@@ -5,6 +5,7 @@ const config = globalThis.__BT_CONFIG__ || {
 const projectUrl = String(config.supabaseUrl || "").replace(/\/$/, "");
 const publishableKey = String(config.supabaseAnonKey || "");
 const sessionKey = "bt_supabase_session";
+let syncInFlight = null;
 
 export const supabaseConfigured = Boolean(projectUrl && publishableKey);
 
