@@ -153,6 +153,7 @@ function latestSessionForDay(d){
 }
 function getSession(d){let k=sessionKey(d);if(!db.sessions[k])db.sessions[k]={date:today(),day:d,started:new Date().toISOString(),exercises:{},finished:null};return db.sessions[k]}
 function sets(d,i,n){let s=getSession(d),k=String(i);if(!s.exercises[k])s.exercises[k]={name:PROGRAM[d].exercises[i].name,planned:{sets:n,min:PROGRAM[d].exercises[i].min,max:PROGRAM[d].exercises[i].max},actual:Array.from({length:n},()=>({weight:"",reps:"",feel:"",done:false}))};return s.exercises[k].actual}
+const HISTORY=window.__BT_HISTORY__||{exercises:{},meta:{rows:0,date_min:null,date_max:null}};
 function hist(name){let a=HISTORY.exercises[name]||[];return a.length?a.at(-1):null}
 function previousActual(name){let out=[];Object.values(db.sessions).forEach(s=>Object.values(s.exercises||{}).forEach(e=>{if(e.name===name)(e.actual||[]).forEach(x=>{if(x.done&&x.weight&&x.reps)out.push({date:s.date,w:+x.weight,r:+x.reps,feel:x.feel||""})})}));return out.sort((a,b)=>a.date.localeCompare(b.date)).slice(-10)}
 function startWeight(e,s){let x=s.find(z=>z.weight);return x?+x.weight:(previousActual(e.name).at(-1)?.w??hist(e.name)?.weight??defaults[e.name]??"")}
