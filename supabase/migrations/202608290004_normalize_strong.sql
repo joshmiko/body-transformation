@@ -92,7 +92,7 @@ insert into public.workout_sets
   (workout_exercise_id, position, kind, weight, weight_unit, reps, completed_at)
 select
   e.id,
-  public.bt_safe_numeric(r."Set Order")::integer,
+  row_number() over (partition by e.id order by r.source_row_number)::integer,
   'working',
   public.bt_safe_numeric(r."Weight"),
   case
@@ -113,12 +113,7 @@ join public.workout_sessions s
 join public.workout_exercises e
   on e.session_id = s.id
  and e.exercise_name_snapshot = trim(r."Exercise Name")
-where public.bt_safe_numeric(r."Set Order") > 0
-  and not exists (
-    select 1 from public.workout_sets ws
-    where ws.workout_exercise_id = e.id
-      and ws.position = public.bt_safe_numeric(r."Set Order")::integer
-      and ws.kind = 'working'
-  );
+where trim(coalesce(r."Exercise Name",'')) <> ''
+on conflict (workout_exercise_id, position, kind) do nothing;
 
 commit;
