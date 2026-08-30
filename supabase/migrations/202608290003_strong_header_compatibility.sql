@@ -2,6 +2,10 @@
 -- The normalization step will read these source columns and validate their values.
 
 alter table public.strong_import_rows
+  alter column date_text drop not null,
+  alter column exercise_name drop not null;
+
+alter table public.strong_import_rows
   add column if not exists "Date" text,
   add column if not exists "Workout Name" text,
   add column if not exists "Duration" text,
