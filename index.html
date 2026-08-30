@@ -186,7 +186,7 @@ document.getElementById("bt-static-passkey")?.addEventListener("click", () => wi
 try {
   const btPasskeys = await import("./src/passkey-auth.js?v=authfix1");
   window.btPasskeys = btPasskeys;
-  btPasskeys.mountAuthControls();
+  // Static auth page provides the only sign-in UI; passkey actions use its button.
 } catch (error) {
   // The static auth page is the single sign-in surface. Passkey support is optional.
 }
