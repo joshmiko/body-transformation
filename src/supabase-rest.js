@@ -11,7 +11,7 @@ async function request(path, options = {}) {
     ...options,
     headers: {
       apikey: publishableKey,
-      Authorization: `Bearer ${JSON.parse(sessionStorage.getItem(sessionKey) || "null")?.access_token || publishableKey}`,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem(sessionKey) || "null")?.access_token || publishableKey}`,
       "Content-Type": "application/json",
       ...(options.headers || {})
     }
@@ -53,20 +53,20 @@ export async function signIn(email, password) {
   });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error_description || payload.msg || "Sign-in failed");
-  sessionStorage.setItem(sessionKey, JSON.stringify(payload));
+  localStorage.setItem(sessionKey, JSON.stringify(payload));
   return payload.user;
 }
 
 export function signOut() {
-  sessionStorage.removeItem(sessionKey);
+  localStorage.removeItem(sessionKey);
 }
 
 export function currentUser() {
-  return JSON.parse(sessionStorage.getItem(sessionKey) || "null")?.user || null;
+  return JSON.parse(localStorage.getItem(sessionKey) || "null")?.user || null;
 }
 
 export function sessionActive() {
-  return Boolean(JSON.parse(sessionStorage.getItem(sessionKey) || "null")?.access_token);
+  return Boolean(JSON.parse(localStorage.getItem(sessionKey) || "null")?.access_token);
 }
 
 
