@@ -3,6 +3,15 @@
 
 begin;
 
+create or replace function public.bt_safe_numeric(value text)
+returns numeric language plpgsql immutable as $fn$
+begin
+  return nullif(trim(value), '')::numeric;
+exception when others then
+  return null;
+end;
+$fn$;
+
 do $$
 declare
   uid uuid;
