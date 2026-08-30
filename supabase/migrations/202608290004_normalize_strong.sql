@@ -36,8 +36,8 @@ select distinct trim("Exercise Name"),
     when lower(trim("Exercise Name")) in ('bike','cycling','cycling (indoor)','walking','running (treadmill)','incline treadmill','rowing (machine)') then 'activity'
     else 'strength'
   end,
-  case when max(coalesce(nullif(trim("Seconds"), ''), '0')::numeric) > 0
-            and max(coalesce(nullif(trim("Weight"), ''), '0')::numeric) = 0
+  case when max(coalesce(public.bt_safe_numeric("Seconds"), 0)) > 0
+            and max(coalesce(public.bt_safe_numeric("Weight"), 0)) = 0
        then 'seconds' else 'lb' end
 from public.strong_import_rows
 where trim(coalesce("Exercise Name", '')) <> ''
@@ -92,17 +92,17 @@ insert into public.workout_sets
   (workout_exercise_id, position, kind, weight, weight_unit, reps, completed_at)
 select
   e.id,
-  coalesce(nullif(trim(r."Set Order"),''),'0')::integer,
+  coalesce(public.bt_safe_numeric(r."Set Order"), 0)::integer,
   'working',
   public.bt_safe_numeric(r."Weight"),
   case
     when coalesce(public.bt_safe_numeric(r."Seconds"), 0) > 0
-     and coalesce(nullif(trim(r."Weight"),''),'0')::numeric = 0
+     and coalesce(public.bt_safe_numeric(r."Weight"), 0) = 0
     then 'seconds' else 'lb' end,
   case
     when coalesce(public.bt_safe_numeric(r."Seconds"), 0) > 0
-     and coalesce(nullif(trim(r."Weight"),''),'0')::numeric = 0
-    then nullif(trim(r."Seconds"),'')::numeric
+     and coalesce(public.bt_safe_numeric(r."Weight"), 0) = 0
+    then public.bt_safe_numeric(r."Seconds")
     else public.bt_safe_numeric(r."Reps") end,
   s.finished_at
 from public.strong_import_rows r
