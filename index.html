@@ -80,7 +80,7 @@ const defaults={"Back Squat":205,"Barbell Bench Press":155,"Incline DB Bench":55
 const inc={"Back Squat":5,"Barbell Bench Press":2.5,"Deadlift":5,"DB Bench Press":5,"1-Arm DB Row":5,"Lat Pulldown":5,"Walking Lunge":5,"Leg Press":10,"DB / Seated Shoulder Press":5,"DB Romanian Deadlift":5,"Calf Raise":5,"DB Hammer Curl":5,"Cable Triceps Pressdown":5,"DB Lateral Raise":2.5};
 let db=JSON.parse(localStorage.getItem("bt10_db")||'{"sessions":{},"notes":{},"checkins":[],"programOverrides":{},"lastSync":null,"syncLog":[]}');
 let selected=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];if(!PROGRAM[selected])selected=["Monday","Wednesday","Friday","Saturday"].find(d=>["Monday","Wednesday","Friday","Saturday"].indexOf(d)>=new Date().getDay())||"Monday";
-const today=()=>new Date().toISOString().slice(0,10),save=()=>localStorage.setItem("bt10_db",JSON.stringify(db));
+const today=()=>new Date().toISOString().slice(0,10),save=()=>{localStorage.setItem("bt10_db",JSON.stringify(db));window.btSupabase?.syncLocalDb(db).catch(()=>{});};
 let btCalendarDate=new Date().toDateString();
 function refreshForCalendarDay(){
   const now=new Date(), key=now.toDateString();
