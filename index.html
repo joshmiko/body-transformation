@@ -204,7 +204,7 @@ function refreshForCalendarDay(){
     btCalendarDate=key;
     const names=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     const todayName=names[now.getDay()];
-    selected=PROGRAM[todayName]?todayName:(["Monday","Wednesday","Friday","Saturday"].find(d=>names.indexOf(d)>=now.getDay())||"Monday");
+    selected=todayName;
     home();
   }
 }
