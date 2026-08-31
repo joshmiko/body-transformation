@@ -256,7 +256,7 @@ function previewDay(d){
    document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">OFF DAY</div><h2>${guidance.title}</h2><div class="muted">No lifting session scheduled.</div></div><div class="card"><h3>Suggested plan</h3><div class="history">${guidance.detail}<br><b>Aim for ${guidance.steps} steps.</b></div><button class="primary" style="margin-top:12px" onclick="home(false)">Back to Today</button></div>`;
    return;
  }
- const rows=p.exercises.map((e,i)=>`<div class="history row"><div><b>${i+1}. ${e.name}</b><div class="muted">${e.sets} sets • ${e.min}–${e.max} reps • ${e.rest}s rest</div></div></div>`).join("");
+ const rows=p.exercises.map((e,i)=>`<div class="history row"><div><b>${i+1}. ${e.name}</b><div class="muted">${e.sets} sets • ${e.unit==="sec"?"20–45 sec":e.min+"–"+e.max+" reps"} • ${e.rest}s rest</div></div></div>`).join("");
  const s=latestSessionForDay(d),label=s&&!s.finished?"Resume workout":s&&s.finished?"Review workout":"Start workout";
  document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">${d.toUpperCase()} • WORKOUT PREVIEW</div><h2>${p.title}</h2><div class="muted">${p.subtitle} • ${p.exercises.length} exercises</div></div><div class="card"><h3>Exercises</h3>${rows}<button class="primary" style="margin-top:12px" id="bt-preview-start">${label} →</button></div><button class="secondary" style="width:100%;margin-top:2px" onclick="workouts()">Choose another day</button>`;
  document.getElementById("bt-preview-start").addEventListener("click",()=>{try{beginWorkout(d)}catch(error){document.getElementById("bt-preview-start").textContent=error?.message||"Could not start workout";}});
