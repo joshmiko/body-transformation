@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-const [html, manifest] = await Promise.all([
+const [html, manifest, program] = await Promise.all([
   readFile(new URL("../index.html", import.meta.url), "utf8"),
   readFile(new URL("../manifest.json", import.meta.url), "utf8"),
   readFile(new URL("../program.json", import.meta.url), "utf8"),
