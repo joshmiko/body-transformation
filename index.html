@@ -188,6 +188,67 @@ body > .nav { position: fixed !important; left: 0 !important; right: 0 !importan
 .pause-head{min-height:36px!important;padding:7px 10px!important;font-size:12px!important;color:var(--blue);border-color:color-mix(in srgb,var(--blue) 35%,var(--line));background:color-mix(in srgb,var(--blue) 8%,var(--card2))}
 .bottomactions{grid-template-columns:1fr 1fr 1.25fr!important}
 @media(max-width:600px){.pause-head{min-height:40px!important;font-size:13px!important;padding:8px 10px!important}.bottomactions{grid-template-columns:1fr 1fr 1.25fr!important}}
+
+/* Apple spacing system — presentation only */
+main{padding-left:16px;padding-right:16px}
+.workout-mode main{padding-bottom:calc(180px + env(safe-area-inset-bottom))}
+.workout-mode .exercise-top{padding:8px 0 16px;margin:0}
+.workout-mode .card.exercise{padding:16px;margin:0 0 16px}
+.workout-mode .exercise>.history,
+.workout-mode .exercise>.setup,
+.workout-mode .exercise>.target,
+.workout-mode .exercise>.section,
+.workout-mode .exercise>.table,
+.workout-mode .exercise>.bottomactions,
+.workout-mode .exercise>.formcue{margin-left:0;margin-right:0}
+.workout-mode .exercise>.history{padding:8px 0 12px}
+.workout-mode .exercise>.setup{margin-top:0;margin-bottom:16px}
+.workout-mode .exercise>.target{margin-bottom:16px}
+.workout-mode .exercise>.section{padding:8px 0;min-height:40px}
+.workout-mode .exercise>.table{margin:0 0 16px;width:100%}
+.workout-mode .exercise>.table .thead,.workout-mode .exercise>.table .srow{padding-left:10px;padding-right:10px}
+.workout-mode .exercise>.bottomactions{margin:16px 0 0;padding:0;gap:8px}
+.workout-mode .exercise>.formcue{margin:16px 0 0!important;padding:12px 0 0;border:0;border-top:1px solid var(--line);background:transparent;box-shadow:none}
+.workout-mode .exercise>.formcue .small{font-size:13px;line-height:1.45}
+.workout-mode .exercise .target .label{font-size:12px}
+.workout-mode .exercise .target .why{font-size:12px}
+.workout-mode .exercise .section .sectitle{font-size:13px}
+.workout-mode .exercise .section>.muted{font-size:12px}
+.workout-mode .exercise .thead{font-size:12px}
+.workout-mode .exercise .history{font-size:13px}
+.workout-mode .exercise .feel{padding:8px 0 0;gap:8px;justify-content:flex-start;background:transparent}
+.workout-mode .exercise .feel button{min-height:44px;padding:8px 12px;font-size:13px}
+.workout-mode .exercise .feel .ghost{min-height:44px;padding:8px 12px;margin-left:8px}
+.workout-mode .pause-head{min-height:44px}
+@media (max-width:600px){
+  main{padding-left:16px;padding-right:16px}
+  .workout-mode main{padding-bottom:calc(196px + env(safe-area-inset-bottom))}
+  .workout-mode .exercise-top{padding-top:8px;padding-bottom:16px}
+  .workout-mode .exercise-top .ename{font-size:24px}
+  .workout-mode .exercise-top .meta{font-size:14px;line-height:1.35}
+  .workout-mode .exercise-top .muted{font-size:13px}
+  .workout-mode .card.exercise{padding:16px}
+  .workout-mode .exercise>.section{padding:8px 0;min-height:44px}
+  .workout-mode .exercise .section .sectitle{font-size:13px}
+  .workout-mode .exercise .section>.muted{font-size:13px}
+  .workout-mode .exercise>.table{margin-bottom:16px}
+  .workout-mode .exercise>.table .thead,.workout-mode .exercise>.table .srow{grid-template-columns:36px minmax(0,1.25fr) minmax(0,1fr) 54px;gap:6px;padding-left:8px;padding-right:8px}
+  .workout-mode .exercise>.table .thead{min-height:36px;font-size:12px;padding-top:8px;padding-bottom:8px}
+  .workout-mode .exercise>.table .srow{min-height:72px}
+  .workout-mode .exercise>.table .srow input{min-width:0;width:100%;height:54px;font-size:22px;font-weight:700}
+  .workout-mode .exercise>.table .srow .check{width:54px;min-width:54px;height:54px;min-height:54px;font-size:22px}
+  .workout-mode .exercise>.table .srow.currentset{min-height:72px;padding-top:9px;padding-bottom:9px}
+  .workout-mode .exercise>.table .srow.currentset input{height:54px;font-size:23px}
+  .workout-mode .exercise>.table .srow.currentset .check{width:54px;height:54px}
+  .workout-mode .exercise .num,.workout-mode .exercise .wbadge{font-size:14px}
+  .workout-mode .exercise .target .label{font-size:13px}
+  .workout-mode .exercise .target .why{font-size:13px;line-height:1.35}
+  .workout-mode .exercise .history{font-size:14px;line-height:1.4}
+  .workout-mode .exercise>.formcue .small{font-size:14px;line-height:1.5}
+  .workout-mode .exercise>.bottomactions{grid-template-columns:1fr 1fr 1.15fr!important;gap:8px;margin-top:16px}
+  .workout-mode .exercise>.bottomactions button{min-height:54px;font-size:15px;padding:10px 6px}
+  .workout-mode .pause-head,.workout-mode .feel button,.workout-mode .feel .ghost{min-height:44px}
+}
 </style></head><body><header><div class="head"><div><div class="brand">Body Transformation</div><div class="sub">Train • Fuel • Recover • Progress</div></div><div style="display:flex;align-items:center;gap:10px"><button id="bt-profile-link" class="profile-icon" aria-label="Profile" onclick="profile()">👤</button><div class="bolt">⚡</div></div></div></header><main id="app"></main><div class="nav"><button id="nToday" onclick="home(true)"><span class="ico">⌂</span>Today</button><button id="nWorkout" onclick="workouts()"><span class="ico">◉</span>Workout</button><button id="nProgress" onclick="progress()"><span class="ico">▥</span>Progress</button><button id="nCoach" onclick="coach()"><span class="ico">✦</span>Coach</button></div><section id="bt-static-auth" aria-label="Sign in"><div class="bt-login-card"><div class="bt-login-title">Sign in to Body Transformation</div><button id="bt-static-passkey" type="button" class="bt-passkey-button" onclick="btStaticPasskey()">Use Face ID / passkey</button><div class="bt-login-divider">or use email</div><input id="bt-static-email" type="email" placeholder="Email" autocomplete="email"><input id="bt-static-password" type="password" placeholder="Password" autocomplete="current-password"><button id="bt-static-login" type="button" onclick="btStaticSignIn()">Sign in</button><small id="bt-static-status">You will stay signed in until you sign out.</small></div></section><script>
 document.getElementById("bt-static-login")?.addEventListener("click",async(e)=>{
  e.preventDefault();
