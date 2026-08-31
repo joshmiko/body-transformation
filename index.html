@@ -249,6 +249,13 @@ main{padding-left:16px;padding-right:16px}
   .workout-mode .exercise>.bottomactions button{min-height:54px;font-size:15px;padding:10px 6px}
   .workout-mode .pause-head,.workout-mode .feel button,.workout-mode .feel .ghost{min-height:44px}
 }
+
+/* Keep active set visible after warm-ups on compact phone screens */
+@media (max-width:600px){
+  .workout-mode .exercise>.table .srow.warmrow{min-height:58px;padding-top:3px;padding-bottom:3px}
+  .workout-mode .exercise>.table .srow.warmrow input{height:52px;font-size:20px}
+  .workout-mode .exercise>.table .srow.warmrow .check{width:52px;min-width:52px;height:52px;min-height:52px}
+}
 </style></head><body><header><div class="head"><div><div class="brand">Body Transformation</div><div class="sub">Train • Fuel • Recover • Progress</div></div><div style="display:flex;align-items:center;gap:10px"><button id="bt-profile-link" class="profile-icon" aria-label="Profile" onclick="profile()">👤</button><div class="bolt">⚡</div></div></div></header><main id="app"></main><div class="nav"><button id="nToday" onclick="home(true)"><span class="ico">⌂</span>Today</button><button id="nWorkout" onclick="workouts()"><span class="ico">◉</span>Workout</button><button id="nProgress" onclick="progress()"><span class="ico">▥</span>Progress</button><button id="nCoach" onclick="coach()"><span class="ico">✦</span>Coach</button></div><section id="bt-static-auth" aria-label="Sign in"><div class="bt-login-card"><div class="bt-login-title">Sign in to Body Transformation</div><button id="bt-static-passkey" type="button" class="bt-passkey-button" onclick="btStaticPasskey()">Use Face ID / passkey</button><div class="bt-login-divider">or use email</div><input id="bt-static-email" type="email" placeholder="Email" autocomplete="email"><input id="bt-static-password" type="password" placeholder="Password" autocomplete="current-password"><button id="bt-static-login" type="button" onclick="btStaticSignIn()">Sign in</button><small id="bt-static-status">You will stay signed in until you sign out.</small></div></section><script>
 document.getElementById("bt-static-login")?.addEventListener("click",async(e)=>{
  e.preventDefault();
