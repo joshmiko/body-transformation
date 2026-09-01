@@ -1,6 +1,6 @@
 {
   "Monday": {
-    "title": "Monday \u2014 Lower + Push",
+    "title": "Monday — Lower + Push",
     "subtitle": "Strength + hypertrophy",
     "exercises": [
       {
@@ -44,14 +44,18 @@
         "warm": "db"
       },
       {
-        "name": "DB Lateral Raise",
+        "name": "Single-Arm Cable Lateral Raise",
         "type": "Isolation",
         "sets": 2,
         "min": 12,
-        "max": 15,
+        "max": 20,
         "rest": 60,
-        "cue": "Lead with elbows; controlled lowering.",
-        "warm": "db"
+        "cue": "Perform right and left arm with controlled tension; rest after both arms.",
+        "warm": "cable",
+        "unilateral": true,
+        "sides": 2,
+        "analyticsSets": 2,
+        "substitution": "DB Lateral Raise"
       },
       {
         "name": "DB Hammer Curl",
@@ -66,12 +70,12 @@
     ]
   },
   "Wednesday": {
-    "title": "Wednesday \u2014 Yoga / Recovery",
+    "title": "Wednesday — Yoga / Recovery",
     "subtitle": "Mobility + recovery",
     "exercises": []
   },
   "Friday": {
-    "title": "Friday \u2014 Pull + Push",
+    "title": "Friday — Pull + Push",
     "subtitle": "Strength + athletic balance",
     "exercises": [
       {
@@ -137,7 +141,7 @@
     ]
   },
   "Saturday": {
-    "title": "Saturday \u2014 Legs",
+    "title": "Saturday — Legs",
     "subtitle": "Lower body + core",
     "exercises": [
       {
