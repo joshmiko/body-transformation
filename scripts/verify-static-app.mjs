@@ -38,7 +38,7 @@ if (!cableLateral?.unilateral || cableLateral.sides !== 2 || cableLateral.analyt
 }
 
 if (html.includes("review-rir") || html.includes('placeholder="RIR"') || html.includes('rir:""')) throw new Error("RIR must not be rendered or written by new workout flows");
-for (const marker of ["function toggleWarmupSkip", "Restore warm-ups", "function cancelActiveWorkout", "Cancel this workout?", "Your unsaved sets will be discarded.", "review-duration"]) {
+for (const marker of ["function rowAction", "data-swipe-row", "function bindSwipeRows", "function cancelActiveWorkout", "Cancel this workout?", "Your unsaved sets will be discarded.", "review-duration", "workout-header", "session-duration", "form-cue-callout"]) {
   if (!html.includes(marker)) throw new Error(`Missing approved refinement: ${marker}`);
 }
 
