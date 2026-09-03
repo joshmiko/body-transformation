@@ -4,6 +4,11 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ## Unreleased
 
+### Nutrition
+
+- Replaced empty quick-add placeholders with six verified meal and snack presets from the Nutrition Plan.
+- Added a safe, repeatable migration that upgrades untouched placeholders without overwriting customized presets.
+
 ### Foundation
 
 - Added the protected branch and pull-request workflow documentation.
