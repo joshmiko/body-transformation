@@ -24,7 +24,7 @@ test("review remains the gate before a workout is saved", () => {
 });
 
 test("warm-ups remain separate from working-set completion", () => {
-  assert.match(html, /warmups:Array\.isArray/);
+  assert.match(html, /ex\.warmups=Array\.isArray/);
   assert.match(html, /type:"warmup"/);
   assert.match(html, /type:"working"/);
   assert.match(html, /actual\.filter\(x=>x\.status!=="skipped"\)/);
@@ -32,7 +32,8 @@ test("warm-ups remain separate from working-set completion", () => {
 
 test("coach sync keeps historical and current program context", () => {
   for (const marker of [
-    "body-transformation-coaching-package-v1",
+    "body-transformation-coaching-package-v2",
+    "body-transformation-coach-update-v1",
     "programSnapshot",
     "currentProgram",
     "includedDataCutoff",
