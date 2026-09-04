@@ -4,11 +4,11 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-const start = html.indexOf("function normalizeNutritionImportNumber");
+const start = html.indexOf("function nutritionStore");
 const end = html.indexOf("function nutritionImportSheet", start);
 assert.ok(start >= 0 && end > start, "nutrition import validator must exist");
 
-const context = { nutritionStore: () => ({ entries: [] }) };
+const context = { db: { nutrition: { targets: {}, presets: [], entries: [], dailySummaries: [], imports: [] } }, defaultNutritionPresets: () => [], numericOrNull: (value) => { const n = Number(value); return Number.isFinite(n) ? n : null; }, today: () => "2026-09-04", weekStart: (value) => new Date(value + "T00:00:00Z"), parseDateValue: (value) => new Date(value + "T00:00:00Z"), localDateKey: (value) => value.toISOString().slice(0, 10), nutritionStore: () => ({ entries: [], dailySummaries: [] }) };
 vm.createContext(context);
 vm.runInContext(html.slice(start, end), context);
 
@@ -52,7 +52,7 @@ test("malformed, wrong-schema, negative, invalid-meal, and duplicate packages re
 
 test("estimated values and duplicate source IDs are preserved and identified", () => {
   const pkg = context.validateNutritionImportPackage(JSON.stringify(validPackage()));
-  context.nutritionStore = () => ({ entries: [{ sourcePackageId: "package-test", sourceEntryId: "a" }] });
+  context.nutritionStore = () => ({ entries: [{ sourcePackageId: "package-test", sourceEntryId: "a" }], dailySummaries: [] });
   const preview = context.nutritionImportPreview(pkg);
   assert.equal(preview.duplicates.length, 1);
   assert.equal(pkg.entries[0].estimated, true);
@@ -63,11 +63,11 @@ test("import storage and mobile handoff hooks are present", () => {
   assert.match(html, /sourceEntryId/);
   assert.match(html, /out\.nutrition\.imports/);
   assert.match(html, /Import from ChatGPT/);
-  assert.match(html, /Import entries/);
+  assert.match(html, /Import nutrition/);
 });
 
 
-test("nutrition package v1 with dailyLogs converts only exact itemized meals", () => {
+test("nutrition package v1 converts daily ranges and itemized ranges without inventing precision", () => {
   const packageV1 = {
     schema: "body-transformation-nutrition-package-v1",
     packageId: "nutrition_2026-09-03",
@@ -90,10 +90,15 @@ test("nutrition package v1 with dailyLogs converts only exact itemized meals", (
   };
   const pkg = context.validateNutritionImportPackage(JSON.stringify(packageV1));
   assert.equal(pkg.entries.length, 2);
-  assert.equal(pkg.days.length, 1);
+  assert.equal(pkg.summaries.length, 1);
+  assert.equal(pkg.days.length, 2);
+  assert.equal(pkg.summaries[0].date, "2026-09-02");
+  assert.deepEqual(JSON.parse(JSON.stringify(pkg.summaries[0].calories)), { min: 2000, max: 2400 });
   assert.equal(pkg.entries[0].date, "2026-09-03");
   assert.equal(pkg.entries[1].meal, "Shake");
   assert.equal(pkg.entries[0].estimated, true);
   assert.equal(pkg.entries[0].note, "Some values estimated");
   assert.equal(pkg.schema, "body-transformation-nutrition-import-v1");
+  const rangeEntry = context.validateNutritionImportPackage(JSON.stringify({ ...validPackage(), days: [{ date: "2026-09-04", entries: [{ sourceEntryId: "range", name: "Dinner", calories: { min: 700, max: 900 }, protein: { min: 40, max: 55 } }] }] }));
+  assert.deepEqual(JSON.parse(JSON.stringify(rangeEntry.entries[0].protein)), { min: 40, max: 55 });
 });
