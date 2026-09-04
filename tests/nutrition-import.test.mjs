@@ -38,7 +38,7 @@ test("malformed, wrong-schema, negative, invalid-meal, and duplicate packages re
   assert.throws(() => context.validateNutritionImportPackage("{"), /valid JSON/);
   const base = validPackage();
   base.schema = "wrong";
-  assert.throws(() => context.validateNutritionImportPackage(JSON.stringify(base)), /not a Nutrition Import/);
+  assert.throws(() => context.validateNutritionImportPackage(JSON.stringify(base)), /not a supported Nutrition Import/);
   const negative = validPackage();
   negative.days[0].entries[0].calories = -1;
   assert.throws(() => context.validateNutritionImportPackage(JSON.stringify(negative)), /finite non-negative/);
