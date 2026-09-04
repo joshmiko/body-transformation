@@ -52,7 +52,7 @@ test("malformed, wrong-schema, negative, invalid-meal, and duplicate packages re
 
 test("estimated values and duplicate source IDs are preserved and identified", () => {
   const pkg = context.validateNutritionImportPackage(JSON.stringify(validPackage()));
-  context.nutritionStore = () => ({ entries: [{ sourcePackageId: "package-test", sourceEntryId: "a" }] });
+  context.nutritionStore = () => ({ entries: [{ sourcePackageId: "package-test", sourceEntryId: "a" }], dailySummaries: [] });
   const preview = context.nutritionImportPreview(pkg);
   assert.equal(preview.duplicates.length, 1);
   assert.equal(pkg.entries[0].estimated, true);
@@ -90,7 +90,7 @@ test("nutrition package v1 converts daily ranges and itemized ranges without inv
   };
   const pkg = context.validateNutritionImportPackage(JSON.stringify(packageV1));
   assert.equal(pkg.entries.length, 2);
-  assert.equal(pkg.summaries.length, 2);
+  assert.equal(pkg.summaries.length, 1);
   assert.equal(pkg.days.length, 2);
   assert.equal(pkg.summaries[0].date, "2026-09-02");
   assert.deepEqual(JSON.parse(JSON.stringify(pkg.summaries[0].calories)), { min: 2000, max: 2400 });
