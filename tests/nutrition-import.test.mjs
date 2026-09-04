@@ -65,3 +65,35 @@ test("import storage and mobile handoff hooks are present", () => {
   assert.match(html, /Import from ChatGPT/);
   assert.match(html, /Import entries/);
 });
+
+
+test("nutrition package v1 with dailyLogs converts only exact itemized meals", () => {
+  const packageV1 = {
+    schema: "body-transformation-nutrition-package-v1",
+    packageId: "nutrition_2026-09-03",
+    timezone: "America/New_York",
+    dailyLogs: [
+      {
+        date: "2026-09-02",
+        totals: { calories: { min: 2000, max: 2400 }, protein_g: { min: 150, max: 200 } },
+        dataQuality: { estimated: true, notes: "Range-only summary" },
+      },
+      {
+        date: "2026-09-03",
+        meals: [
+          { name: "Breakfast", calories: 465, protein_g: 29 },
+          { name: "Protein shake", calories: 120, protein_g: 24 },
+        ],
+        dataQuality: { estimated: true, notes: "Some values estimated" },
+      },
+    ],
+  };
+  const pkg = context.validateNutritionImportPackage(JSON.stringify(packageV1));
+  assert.equal(pkg.entries.length, 2);
+  assert.equal(pkg.days.length, 1);
+  assert.equal(pkg.entries[0].date, "2026-09-03");
+  assert.equal(pkg.entries[1].meal, "Shake");
+  assert.equal(pkg.entries[0].estimated, true);
+  assert.equal(pkg.entries[0].note, "Some values estimated");
+  assert.equal(pkg.schema, "body-transformation-nutrition-import-v1");
+});
