@@ -8,7 +8,7 @@ const start = html.indexOf("function nutritionStore");
 const end = html.indexOf("function nutritionImportSheet", start);
 assert.ok(start >= 0 && end > start, "nutrition import validator must exist");
 
-const context = { db: { nutrition: { targets: {}, presets: [], entries: [], dailySummaries: [], imports: [] } }, defaultNutritionPresets: () => [], numericOrNull: (value) => { const n = Number(value); return Number.isFinite(n) ? n : null; }, today: () => "2026-09-04", weekStart: (value) => new Date(value + "T00:00:00Z"), parseDateValue: (value) => new Date(value + "T00:00:00Z"), localDateKey: (value) => value.toISOString().slice(0, 10), nutritionStore: () => ({ entries: [], dailySummaries: [] }) };
+const context = { db: { nutrition: { targets: {}, presets: [], entries: [], dailySummaries: [], imports: [] } }, defaultNutritionPresets: () => [], numericOrNull: (value) => { if (value === null || value === undefined || value === "") return null; const n = Number(value); return Number.isFinite(n) ? n : null; }, today: () => "2026-09-04", weekStart: (value) => new Date(value + "T00:00:00Z"), parseDateValue: (value) => new Date(value + "T00:00:00Z"), localDateKey: (value) => value.toISOString().slice(0, 10), nutritionStore: () => ({ entries: [], dailySummaries: [] }) };
 vm.createContext(context);
 vm.runInContext(html.slice(start, end), context);
 
