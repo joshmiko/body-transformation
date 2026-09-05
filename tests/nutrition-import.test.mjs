@@ -58,6 +58,17 @@ test("estimated values and duplicate source IDs are preserved and identified", (
   assert.equal(pkg.entries[0].estimated, true);
 });
 
+
+test("daily progress uses actual range totals and prompts when targets are missing", () => {
+  context.nutritionStore = () => ({ targets: { calories: 2500, protein: 200 }, entries: [{ date: "2026-09-04", calories: { min: 2000, max: 2200 }, protein: { min: 170, max: 190 } }], dailySummaries: [] });
+  const totals = context.nutritionTotals("2026-09-04");
+  assert.deepEqual(JSON.parse(JSON.stringify(totals.calories)), { min: 2000, max: 2200 });
+  assert.match(context.nutritionProgressRow("Calories", totals.calories, 2500, "cal", "calories"), /2,000–2,200 cal/);
+  context.nutritionStore = () => ({ targets: { calories: null, protein: null }, entries: [], dailySummaries: [] });
+  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /Set daily targets/);
+  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /2,350 calories and 200g protein/);
+});
+
 test("import storage and mobile handoff hooks are present", () => {
   assert.match(html, /sourcePackageId/);
   assert.match(html, /sourceEntryId/);
