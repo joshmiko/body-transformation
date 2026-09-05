@@ -8,7 +8,7 @@ const start = html.indexOf("function nutritionStore");
 const end = html.indexOf("function nutritionImportSheet", start);
 assert.ok(start >= 0 && end > start, "nutrition import validator must exist");
 
-const context = { db: { nutrition: { targets: {}, presets: [], entries: [], dailySummaries: [], imports: [] } }, defaultNutritionPresets: () => [], numericOrNull: (value) => { const n = Number(value); return Number.isFinite(n) ? n : null; }, today: () => "2026-09-04", weekStart: (value) => new Date(value + "T00:00:00Z"), parseDateValue: (value) => new Date(value + "T00:00:00Z"), localDateKey: (value) => value.toISOString().slice(0, 10), nutritionStore: () => ({ entries: [], dailySummaries: [] }) };
+const context = { db: { nutrition: { targets: {}, presets: [], entries: [], dailySummaries: [], imports: [] } }, defaultNutritionPresets: () => [], numericOrNull: (value) => { if (value === null || value === undefined || value === "") return null; const n = Number(value); return Number.isFinite(n) ? n : null; }, today: () => "2026-09-04", weekStart: (value) => new Date(value + "T00:00:00Z"), parseDateValue: (value) => new Date(value + "T00:00:00Z"), localDateKey: (value) => value.toISOString().slice(0, 10), nutritionStore: () => ({ entries: [], dailySummaries: [] }) };
 vm.createContext(context);
 vm.runInContext(html.slice(start, end), context);
 
@@ -56,6 +56,17 @@ test("estimated values and duplicate source IDs are preserved and identified", (
   const preview = context.nutritionImportPreview(pkg);
   assert.equal(preview.duplicates.length, 1);
   assert.equal(pkg.entries[0].estimated, true);
+});
+
+
+test("daily progress uses actual range totals and prompts when targets are missing", () => {
+  context.nutritionStore = () => ({ targets: { calories: 2500, protein: 200 }, entries: [{ date: "2026-09-04", calories: { min: 2000, max: 2200 }, protein: { min: 170, max: 190 } }], dailySummaries: [] });
+  const totals = context.nutritionTotals("2026-09-04");
+  assert.deepEqual(JSON.parse(JSON.stringify(totals.calories)), { min: 2000, max: 2200 });
+  assert.match(context.nutritionProgressRow("Calories", totals.calories, 2500, "cal", "calories"), /2,000–2,200 cal/);
+  context.nutritionStore = () => ({ targets: { calories: null, protein: null }, entries: [], dailySummaries: [] });
+  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /Set daily targets/);
+  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /2,350 calories and 200g protein/);
 });
 
 test("import storage and mobile handoff hooks are present", () => {
