@@ -95,7 +95,8 @@ test("calorie and protein target ranges survive v1 import and drive adherence", 
   assert.equal(week.calorieTargetDays, 1);
   assert.equal(week.proteinTargetDays, 1);
 });
-\ntest("import storage and mobile handoff hooks are present", () => {
+
+test("import storage and mobile handoff hooks are present", () => {
   assert.match(html, /sourcePackageId/);
   assert.match(html, /sourceEntryId/);
   assert.match(html, /out\.nutrition\.imports/);
