@@ -78,7 +78,24 @@ test("daily summaries are authoritative and do not double-count itemized meals",
   assert.equal(totals.entries, 1);
 });
 
-test("import storage and mobile handoff hooks are present", () => {
+
+test("calorie and protein target ranges survive v1 import and drive adherence", () => {
+  const packageV1 = {
+    schema: "body-transformation-nutrition-package-v1",
+    packageId: "targets-range-test",
+    timezone: "America/New_York",
+    targets: { calories: { min: 2300, max: 2400, bullseye: 2350 }, protein_g: { min: 190, max: 210 } },
+    dailyLogs: [{ date: "2026-09-04", totals: { calories: { min: 2320, max: 2340 }, protein_g: { min: 200, max: 205 } } }],
+  };
+  const pkg = context.validateNutritionImportPackage(JSON.stringify(packageV1));
+  assert.deepEqual(JSON.parse(JSON.stringify(pkg.targets)), { calories: { min: 2300, max: 2400 }, protein: { min: 190, max: 210 } });
+  context.nutritionStore = () => ({ targets: pkg.targets, entries: [], dailySummaries: [{ date: "2026-09-04", calories: { min: 2320, max: 2340 }, protein: { min: 200, max: 205 } }] });
+  assert.match(context.nutritionProgressRow("Calories", { min: 2320, max: 2340 }, pkg.targets.calories, "cal"), /2,320–2,340 cal \/ 2,300–2,400 cal/);
+  const week = context.nutritionWeekSummary("2026-09-04");
+  assert.equal(week.calorieTargetDays, 1);
+  assert.equal(week.proteinTargetDays, 1);
+});
+\ntest("import storage and mobile handoff hooks are present", () => {
   assert.match(html, /sourcePackageId/);
   assert.match(html, /sourceEntryId/);
   assert.match(html, /out\.nutrition\.imports/);
