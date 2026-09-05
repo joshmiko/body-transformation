@@ -69,6 +69,15 @@ test("daily progress uses actual range totals and prompts when targets are missi
   assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /2,350 calories and 200g protein/);
 });
 
+
+test("daily summaries are authoritative and do not double-count itemized meals", () => {
+  context.nutritionStore = () => ({ targets: { calories: 2500, protein: 200 }, entries: [{ date: "2026-09-04", calories: 300, protein: 20 }], dailySummaries: [{ date: "2026-09-04", calories: { min: 2000, max: 2200 }, protein: { min: 170, max: 190 } }] });
+  const totals = context.nutritionTotals("2026-09-04");
+  assert.deepEqual(JSON.parse(JSON.stringify(totals.calories)), { min: 2000, max: 2200 });
+  assert.deepEqual(JSON.parse(JSON.stringify(totals.protein)), { min: 170, max: 190 });
+  assert.equal(totals.entries, 1);
+});
+
 test("import storage and mobile handoff hooks are present", () => {
   assert.match(html, /sourcePackageId/);
   assert.match(html, /sourceEntryId/);
