@@ -27,7 +27,7 @@ test("metadata maps user, week, angle, and private storage path",()=>{
 
 test("Storage client exposes upload, signed URL, and delete operations",()=>{
   assert.match(client,/export function uploadProgressPhoto/);
-  assert.match(client,/export function createProgressPhotoSignedUrl/);
+  assert.match(client,/export (?:async )?function createProgressPhotoSignedUrl/);
   assert.match(client,/export function deleteProgressPhotoObject/);
   assert.match(client,/storage\/v1/);
   assert.match(client,/progress-photos/);
