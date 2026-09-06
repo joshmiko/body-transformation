@@ -193,12 +193,16 @@ export function uploadProgressPhoto(path, blob) {
   });
 }
 
-export function createProgressPhotoSignedUrl(path, expiresIn = 3600) {
-  return storageRequest("object/sign/progress-photos", {
+export async function createProgressPhotoSignedUrl(path, expiresIn = 3600) {
+  const payload = await storageRequest("object/sign/progress-photos", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ expiresIn, paths: [path] })
   });
+  const normalize = value => typeof value === "string" && value.startsWith("/") ? projectUrl + value : value;
+  if (payload && typeof payload === "object" && !Array.isArray(payload) && payload.signedURL) return { ...payload, signedURL: normalize(payload.signedURL) };
+  if (Array.isArray(payload)) return payload.map(item => item?.signedURL ? { ...item, signedURL: normalize(item.signedURL) } : item);
+  return payload;
 }
 
 export function deleteProgressPhotoObject(path) {
