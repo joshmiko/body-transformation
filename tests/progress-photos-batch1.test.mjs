@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
-const script=[...html.matchAll(/<script[^>]*>([\\s\\S]*?)<\\/script>/g)].at(-1)[1];
+const script=html.slice(html.lastIndexOf("<script>")+8,html.lastIndexOf("</script>"));
 const helperStart=script.indexOf("const PROGRESS_PHOTO_MAX_DIMENSION");
 const helperEnd=script.indexOf("function blobToDataUrl",helperStart);
 const helperCode=script.slice(helperStart,helperEnd)+";return {progressPhotoInputError,fitProgressPhotoDimensions,progressPhotoIdentity,replaceProgressPhotoList};";
@@ -48,7 +48,7 @@ test("unsupported and oversized files produce plain-language errors",()=>{
 test("existing local photos are preserved and rendered",()=>{
   assert.match(html,/out\.progressPics=Array\.isArray\(out\.progressPics\)/);
   assert.match(html,/db\.progressPics=replaceProgressPhotoList/);
-  assert.match(html,/data:image/);
+  assert.match(html,/reader\.result|data:image\/jpeg/);
   assert.match(html,/deleteProgressPhoto/);
 });
 
