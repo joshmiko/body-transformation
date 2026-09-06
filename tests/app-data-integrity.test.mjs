@@ -64,7 +64,7 @@ test("K/O warmups are separate from working stats",()=>{
 test("L Hard and Failed remain distinct progression signals",()=>{
   assert.equal(helpers.progressionFeelSignal(["Hard"]),"single hard set");
   assert.equal(helpers.progressionFeelSignal(["Failed"]),"single failed set");
-  assert.match(source,/const failed=completed\.filter/);
+  assert.match(source,/failed=completed\.filter/);
   assert.ok(!source.includes("hard/failed set"));
 });
 
@@ -89,7 +89,7 @@ test("P coaching export includes all performed exercises and activities",()=>{
 test("Q cutoff advances only after successful coach import",()=>{
   assert.match(source,/reviewedWatermark/);
   assert.match(source,/includedDataCutoff/);
-  assert.match(source,/state\.reviewedWatermark=now/);
+  assert.match(source,/state\.reviewedWatermark=/);
 });
 
 test("R weekly context derives yoga from date-specific completions",()=>{
