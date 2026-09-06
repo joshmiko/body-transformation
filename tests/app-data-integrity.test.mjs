@@ -65,7 +65,7 @@ test("L Hard and Failed remain distinct progression signals",()=>{
   assert.equal(helpers.progressionFeelSignal(["Hard"]),"single hard set");
   assert.equal(helpers.progressionFeelSignal(["Failed"]),"single failed set");
   assert.match(source,/const failed=completed\.filter/);
-  assert.doesNotMatch(source,/hard\\/failed set/);
+  assert.ok(!source.includes("hard/failed set"));
 });
 
 test("M RIR remains independent on working sets and absent from warmups",()=>{
