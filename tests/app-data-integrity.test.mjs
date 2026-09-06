@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const source=fs.readFileSync(path.join(root,"index.html"),"utf8");
-const script=[...source.matchAll(/<script[^>]*>([\\s\\S]*?)<\\/script>/g)].at(-1)[1];
+const script=[...source.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].at(-1)[1];
 const helperStart=script.indexOf("function restRemainingAt");
 const helperEnd=script.indexOf("function formatDuration",helperStart);
 assert.ok(helperStart>=0&&helperEnd>helperStart,"integrity helpers present");
