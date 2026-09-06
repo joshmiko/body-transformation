@@ -161,3 +161,46 @@ export function syncLocalDb(localDb) {
   syncInFlight = syncLocalDbInternal(localDb).finally(() => { syncInFlight = null; });
   return syncInFlight;
 }
+
+
+function storagePath(path) {
+  return String(path || "").split("/").filter(Boolean).map(encodeURIComponent).join("/");
+}
+
+async function storageRequest(path, options = {}) {
+  if (!supabaseConfigured) throw new Error("Supabase is not configured");
+  const response = await fetch(`${projectUrl}/storage/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: publishableKey,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem(sessionKey) || "null")?.access_token || publishableKey}`,
+      ...(options.body instanceof Blob ? { "Content-Type": options.body.type || "application/octet-stream" } : {}),
+      ...(options.headers || {})
+    }
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Supabase storage request failed (${response.status}): ${detail}`);
+  }
+  return response.status === 204 ? null : response.json().catch(() => null);
+}
+
+export function uploadProgressPhoto(path, blob) {
+  return storageRequest(`object/progress-photos/${storagePath(path)}`, {
+    method: "POST",
+    headers: { "x-upsert": "false" },
+    body: blob
+  });
+}
+
+export function createProgressPhotoSignedUrl(path, expiresIn = 3600) {
+  return storageRequest("object/sign/progress-photos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn, paths: [path] })
+  });
+}
+
+export function deleteProgressPhotoObject(path) {
+  return storageRequest(`object/progress-photos/${storagePath(path)}`, { method: "DELETE" });
+}
