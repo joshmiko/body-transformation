@@ -37,7 +37,7 @@ if (!cableLateral?.unilateral || cableLateral.sides !== 2 || cableLateral.analyt
   throw new Error("Single-arm cable lateral raise semantics are incomplete");
 }
 
-if (html.includes("review-rir") || html.includes('placeholder="RIR"') || html.includes('rir:""')) throw new Error("RIR must not be rendered or written by new workout flows");
+if (html.includes('placeholder="RIR"') || html.includes('rir:""')) throw new Error("RIR must not use placeholder or empty-string writes");\nif (!html.includes("review-rir")) throw new Error("RIR review editing control is required");
 for (const marker of ["function rowAction", "data-swipe-row", "function bindSwipeRows", "function cancelActiveWorkout", "Cancel this workout?", "Your unsaved sets will be discarded.", "review-duration", "workout-header", "session-duration", "form-cue-callout"]) {
   if (!html.includes(marker)) throw new Error(`Missing approved refinement: ${marker}`);
 }
