@@ -211,7 +211,7 @@ export function listProgressPhotoMetadata(query = "select=*&order=week_start.des
 }
 
 export function upsertProgressPhotoMetadata(metadata) {
-  return request("progress_photos", {
+  return request("progress_photos?on_conflict=user_id%2Cweek_start%2Cangle", {
     method: "POST",
     headers: { Prefer: "return=representation,resolution=merge-duplicates" },
     body: JSON.stringify(metadata)
