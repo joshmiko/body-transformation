@@ -551,8 +551,61 @@ function copyPayload(id){const t=document.getElementById("payload"),done=()=>{co
 function fallbackCopy(t){t.focus();t.select();try{document.execCommand("copy");document.getElementById("copy-package").textContent="Copied ✓"}catch(e){alert("Copy failed. Your package remains safely available here; select it and copy manually.")}}
 function importInstructions(){sync()}
 function importCoachUpdate(){document.getElementById("app").innerHTML='<div class="hero"><div class="ey">COACHING UPDATE</div><h2>Import coach update</h2><p class="small">Paste the JSON response from ChatGPT. Nothing changes until you review and apply it.</p><textarea id="coach-import" class="noteinput" style="min-height:260px" placeholder="Paste the coaching update JSON"></textarea><div id="coach-import-error" class="small" style="color:var(--red)"></div><button class="primary" style="margin-top:10px" onclick="validateCoachImport()">Preview update</button><button class="secondary" style="margin-top:8px;width:100%" onclick="sync()">Back</button></div>'}
-function validProgram(p){if(!p||typeof p!=="object"||Array.isArray(p))return false;const entries=Object.entries(p);return entries.length>0&&entries.every(([key,day])=>PROGRAM[key]&&day&&typeof day==="object"&&Array.isArray(day.exercises)&&day.exercises.every(e=>e&&typeof e.name==="string"&&Number.isFinite(Number(e.sets))&&Number(e.sets)>0&&Number.isFinite(Number(e.rest))&&Number(e.rest)>=0&&Number.isFinite(Number(e.min))&&Number.isFinite(Number(e.max))))}
-function validateCoachImport(){let raw=document.getElementById("coach-import").value,data,err=document.getElementById("coach-import-error");try{data=JSON.parse(raw)}catch(e){err.textContent="That is not valid JSON.";return}const allowed=["schema","sourcePackageId","coachSummary","nextWeekProgram","targetGuidance"];if(!data||typeof data!=="object"||Array.isArray(data)||Object.keys(data).some(k=>!allowed.includes(k))||data.schema!=="body-transformation-coach-update-v1"||typeof data.sourcePackageId!=="string"||typeof data.coachSummary!=="string"||!data.coachSummary.trim()||data.coachSummary.length>4000||(data.targetGuidance!==undefined&&typeof data.targetGuidance!=="string")){err.textContent="Use the Coach Update v1 JSON schema with a source package id and coach summary.";return}const state=coachSyncState(),pkg=state.pendingPackages.find(x=>x.id===data.sourcePackageId&&!x.reviewed);if(!pkg){err.textContent="This response does not match an unreviewed coaching package.";return}if(data.nextWeekProgram&&!validProgram(data.nextWeekProgram)){err.textContent="The next-week program is incomplete or unsafe. No changes were applied.";return}state.imports.push({id:"import_"+Date.now(),packageId:pkg.id,receivedAt:new Date().toISOString(),data:cloneValue(data)});save();previewCoachImport(state.imports.at(-1))}
+const COACH_PROGRAM_STRING_FIELDS=["title","subtitle","type","substitution","unit","machine","loadType","warm"];
+const COACH_GUIDANCE_NUMERIC_FIELDS=["calories","protein","stepsAverageTarget","zone2SessionsPerWeek","zone2DurationMin","zone2DurationMax"];
+function coachValidationError(path,message){throw new Error(path+" "+message)}
+function coachFiniteNumber(value,path,min=0){const n=typeof value==="number"?value:(typeof value==="string"&&value.trim()!==""?Number(value):NaN);if(!Number.isFinite(n)||n<min)coachValidationError(path,"must be a finite number >= "+min+".");return n}
+function coachRangeOrNumber(value,path){if(value&&typeof value==="object"&&!Array.isArray(value)&&value.min!==undefined&&value.max!==undefined){const min=coachFiniteNumber(value.min,path+".min"),max=coachFiniteNumber(value.max,path+".max");if(max<min)coachValidationError(path+".max","must be greater than or equal to "+path+".min.");return value}return coachFiniteNumber(value,path)}
+function coachNonEmptyString(value,path){if(typeof value!=="string"||!value.trim())coachValidationError(path,"must be a non-empty string.");return value}
+function validateCoachTargetGuidance(value){
+ if(value===undefined)return value;
+ if(typeof value==="string"){if(!value.trim())coachValidationError("targetGuidance","must be a non-empty string or object.");return value}
+ if(!value||typeof value!=="object"||Array.isArray(value))coachValidationError("targetGuidance","must be a non-empty string or object.");
+ for(const key of COACH_GUIDANCE_NUMERIC_FIELDS)if(value[key]!==undefined)coachRangeOrNumber(value[key],"targetGuidance."+key);
+ if(value.preferredZone2Day!==undefined)coachNonEmptyString(value.preferredZone2Day,"targetGuidance.preferredZone2Day");
+ return value
+}
+function validateCoachProgram(p){
+ if(!p||typeof p!=="object"||Array.isArray(p)||!Object.keys(p).length)coachValidationError("nextWeekProgram","must be an object with workout-day keys.");
+ for(const [day,plan] of Object.entries(p)){
+  const base="nextWeekProgram."+day;
+  if(!PROGRAM[day])coachValidationError(base,"is not a supported workout day.");
+  if(!plan||typeof plan!=="object"||Array.isArray(plan))coachValidationError(base,"must be an object.");
+  for(const key of ["title","subtitle"])if(plan[key]!==undefined)coachNonEmptyString(plan[key],base+"."+key);
+  if(!Array.isArray(plan.exercises))coachValidationError(base+".exercises","must be an array.");
+  plan.exercises.forEach((exercise,index)=>{
+   const path=base+".exercises["+index+"]";
+   if(!exercise||typeof exercise!=="object"||Array.isArray(exercise))coachValidationError(path,"must be an object.");
+   coachNonEmptyString(exercise.name,path+".name");
+   const sets=coachFiniteNumber(exercise.sets,path+".sets",1);if(!Number.isInteger(sets))coachValidationError(path+".sets","must be a whole number.");
+   coachFiniteNumber(exercise.min,path+".min");const max=coachFiniteNumber(exercise.max,path+".max");if(max<Number(exercise.min))coachValidationError(path+".max","must be greater than or equal to "+path+".min.");
+   coachFiniteNumber(exercise.rest,path+".rest");
+   for(const key of COACH_PROGRAM_STRING_FIELDS)if(exercise[key]!==undefined&&exercise[key]!==null&&typeof exercise[key]!=="string")coachValidationError(path+"."+key,"must be a string when provided.");
+   if(exercise.unilateral!==undefined&&typeof exercise.unilateral!=="boolean")coachValidationError(path+".unilateral","must be true or false.");
+  });
+ }
+ return p
+}
+function validProgram(p){try{validateCoachProgram(p);return true}catch(e){return false}}
+function validateCoachUpdatePayload(data){
+ if(!data||typeof data!=="object"||Array.isArray(data))coachValidationError("payload","must be a JSON object.");
+ if(data.schema===undefined)coachValidationError("schema","is required.");
+ if(data.schema!=="body-transformation-coach-update-v1")coachValidationError("schema",'must equal "body-transformation-coach-update-v1".');
+ coachNonEmptyString(data.sourcePackageId,"sourcePackageId");
+ coachNonEmptyString(data.coachSummary,"coachSummary");
+ if(data.coachSummary.length>4000)coachValidationError("coachSummary","must be 4,000 characters or fewer.");
+ if(data.nextWeekProgram!==undefined)validateCoachProgram(data.nextWeekProgram);
+ validateCoachTargetGuidance(data.targetGuidance);
+ return data
+}
+function validateCoachImport(){
+ let raw=document.getElementById("coach-import").value,data,err=document.getElementById("coach-import-error");
+ try{data=JSON.parse(raw)}catch(e){err.textContent="That is not valid JSON.";return}
+ try{validateCoachUpdatePayload(data)}catch(e){err.textContent=e.message;return}
+ const state=coachSyncState(),pkg=state.pendingPackages.find(x=>x.id===data.sourcePackageId&&!x.reviewed);
+ if(!pkg){err.textContent="This response does not match an unreviewed coaching package.";return}
+ state.imports.push({id:"import_"+Date.now(),packageId:pkg.id,receivedAt:new Date().toISOString(),data:cloneValue(data)});save();previewCoachImport(state.imports.at(-1))
+}
 function escapeHtml(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function programDiff(next){return Object.keys(next||{}).flatMap(d=>(next[d].exercises||[]).map((e,i)=>{const old=PROGRAM[d]?.exercises?.[i]||{};return old.name===e.name&&old.sets===e.sets&&old.min===e.min&&old.max===e.max&&old.rest===e.rest?null:`<div class="history"><b>${escapeHtml(d)} • ${escapeHtml(e.name)}</b><div class="muted">${escapeHtml(old.name||"New")}: ${old.sets||"—"}×${old.min||"—"}–${old.max||"—"} • ${old.rest||"—"}s → ${e.sets}×${e.min}–${e.max} • ${e.rest}s${e.targetGuidance?" • "+escapeHtml(e.targetGuidance):""}</div></div>`}).filter(Boolean)).join("")}
 function previewCoachImport(imp){const d=imp.data,diff=d.nextWeekProgram?programDiff(d.nextWeekProgram):"";document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">COACHING UPDATE</div><h2>Review coach update</h2><p class="small">${escapeHtml(d.coachSummary)}</p></div>${d.targetGuidance?`<div class="card"><h3>Target guidance</h3><p class="small">${escapeHtml(d.targetGuidance)}</p></div>`:""}${d.nextWeekProgram?`<div class="card"><h3>Proposed next-week plan</h3>${diff||"<p class=small>No measurable changes.</p>"}<button class="secondary" style="width:100%;margin-top:10px" onclick="keepCoachPlan('${imp.id}')">Keep current plan</button><button class="primary" style="width:100%;margin-top:8px" onclick="applyCoachPlan('${imp.id}')">Apply next week’s plan</button></div>`:`<div class="card"><h3>No program change proposed</h3><button class="primary" style="width:100%" onclick="completeCoachReview('${imp.id}')">Mark coaching review complete</button></div>`}` }
