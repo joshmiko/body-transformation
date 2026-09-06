@@ -204,3 +204,23 @@ export function createProgressPhotoSignedUrl(path, expiresIn = 3600) {
 export function deleteProgressPhotoObject(path) {
   return storageRequest(`object/progress-photos/${storagePath(path)}`, { method: "DELETE" });
 }
+
+
+export function listProgressPhotoMetadata(query = "select=*&order=week_start.desc") {
+  return request(`progress_photos?${query}`);
+}
+
+export function upsertProgressPhotoMetadata(metadata) {
+  return request("progress_photos", {
+    method: "POST",
+    headers: { Prefer: "return=representation,resolution=merge-duplicates" },
+    body: JSON.stringify(metadata)
+  });
+}
+
+export function deleteProgressPhotoMetadata(id) {
+  return request(`progress_photos?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" }
+  });
+}
