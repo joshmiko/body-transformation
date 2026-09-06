@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-const start = html.indexOf("function coachValidationError");
+const start = html.indexOf("const COACH_PROGRAM_STRING_FIELDS");
 const end = html.indexOf("function escapeHtml", start);
 assert.ok(start >= 0 && end > start, "coach update validator must exist");
 const context = {
