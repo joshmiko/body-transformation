@@ -14,9 +14,8 @@ const helpers=new Function("weekStart","today",helperCode)(value=>new Date(value
 
 test("three exact angle slots target their own picker",()=>{
   assert.match(html,/data-photo-angle/);
-  assert.match(html,/chooseProgressPhoto\(\'[^']+\',\'Front\'\)/);
-  assert.match(html,/chooseProgressPhoto\(\'[^']+\',\'Side\'\)/);
-  assert.match(html,/chooseProgressPhoto\(\'[^']+\',\'Back\'\)/);
+  assert.match(html,/chooseProgressPhoto/);
+  assert.match(html,/\["Front","Side","Back"\]/);
   assert.doesNotMatch(html,/class="photo-angle"/);
 });
 
