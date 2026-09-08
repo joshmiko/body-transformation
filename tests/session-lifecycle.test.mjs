@@ -19,13 +19,14 @@ test("program templates and dated session instances are separate", () => {
     "currentExerciseIndex:0",
     "currentSetIndex:0"
   ]) assert.ok(html.includes(marker), marker);
-  assert.match(html, /function beginWorkout\(d\)[\s\S]*?createWorkoutSession\(d,today\(\)\)/);
+  assert.match(html, /function beginWorkout\(d\)[\s\S]*?createWorkoutSession\(d,today\(\)/);
 });
 
 test("startup validates active pointer and never resumes saved sessions", () => {
   assert.match(html, /function validateActiveSessionOnStartup\(\)[\s\S]*?\["draft","review"\]/);
-  assert.match(html, /function activeSessionForDay\(d\)[\s\S]*?clearActiveSessionPointer/);
+  assert.match(html, /function currentActiveSession\(\)[\s\S]*?clearActiveSessionPointer/);
   assert.match(html, /function saveReviewedWorkout\(d\)[\s\S]*?clearActiveSessionPointer\(\);save\(\)/);
+  assert.match(html, /function beginWorkout\(d\)[\s\S]*?currentActiveSession\(\)/);
 });
 
 test("cancel clears only the active session and preserves saved history", () => {
