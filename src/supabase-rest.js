@@ -161,3 +161,70 @@ export function syncLocalDb(localDb) {
   syncInFlight = syncLocalDbInternal(localDb).finally(() => { syncInFlight = null; });
   return syncInFlight;
 }
+
+
+function storagePath(path) {
+  return String(path || "").split("/").filter(Boolean).map(encodeURIComponent).join("/");
+}
+
+async function storageRequest(path, options = {}) {
+  if (!supabaseConfigured) throw new Error("Supabase is not configured");
+  const response = await fetch(`${projectUrl}/storage/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: publishableKey,
+      Authorization: `Bearer ${JSON.parse(localStorage.getItem(sessionKey) || "null")?.access_token || publishableKey}`,
+      ...(options.body instanceof Blob ? { "Content-Type": options.body.type || "application/octet-stream" } : {}),
+      ...(options.headers || {})
+    }
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Supabase storage request failed (${response.status}): ${detail}`);
+  }
+  return response.status === 204 ? null : response.json().catch(() => null);
+}
+
+export function uploadProgressPhoto(path, blob) {
+  return storageRequest(`object/progress-photos/${storagePath(path)}`, {
+    method: "POST",
+    headers: { "x-upsert": "false" },
+    body: blob
+  });
+}
+
+export async function createProgressPhotoSignedUrl(path, expiresIn = 3600) {
+  const payload = await storageRequest("object/sign/progress-photos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn, paths: [path] })
+  });
+  const normalize = value => typeof value === "string" && value.startsWith("/") ? projectUrl + value : value;
+  if (payload && typeof payload === "object" && !Array.isArray(payload) && payload.signedURL) return { ...payload, signedURL: normalize(payload.signedURL) };
+  if (Array.isArray(payload)) return payload.map(item => item?.signedURL ? { ...item, signedURL: normalize(item.signedURL) } : item);
+  return payload;
+}
+
+export function deleteProgressPhotoObject(path) {
+  return storageRequest(`object/progress-photos/${storagePath(path)}`, { method: "DELETE" });
+}
+
+
+export function listProgressPhotoMetadata(query = "select=*&order=week_start.desc") {
+  return request(`progress_photos?${query}`);
+}
+
+export function upsertProgressPhotoMetadata(metadata) {
+  return request("progress_photos?on_conflict=user_id%2Cweek_start%2Cangle", {
+    method: "POST",
+    headers: { Prefer: "return=representation,resolution=merge-duplicates" },
+    body: JSON.stringify(metadata)
+  });
+}
+
+export function deleteProgressPhotoMetadata(id) {
+  return request(`progress_photos?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" }
+  });
+}

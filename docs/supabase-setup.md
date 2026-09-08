@@ -7,7 +7,7 @@ After creation, provide the project URL and **anon/publishable key** only. Never
 ## Required dashboard actions
 
 1. In Authentication, enable email sign-in (or another chosen sign-in method).
-2. In SQL Editor, run the migration in `supabase/migrations/202608290001_initial_schema.sql`.
+2. In SQL Editor, run the migrations in order: `supabase/migrations/202608290001_initial_schema.sql`, then `supabase/migrations/202609060002_progress_photos.sql` for private progress-photo storage. The second migration creates a private bucket and per-user RLS policies; never make that bucket public.
 3. Keep the free project active by opening it periodically; free projects can pause after inactivity.
 4. Before importing real training history, export your existing browser data and retain the CSV source file separately.
 
