@@ -76,5 +76,7 @@ test("month/year and local Monday-Sunday boundaries are inclusive", () => {
     { programDay: "Saturday", status: "saved", performedDate: "2026-09-12" },
     { programDay: "Saturday", status: "saved", performedDate: "2026-09-13" }
   ];
-  assert.equal(completedForDay(edge, "Saturday", new Date(2026, 8, 12)).length, 1);
+  const matching = completedForDay(edge, "Saturday", new Date(2026, 8, 12));
+  assert.equal(matching.length, 2);
+  assert.equal(matching.at(-1).performedDate, "2026-09-13");
 });
