@@ -80,3 +80,22 @@ test("month/year and local Monday-Sunday boundaries are inclusive", () => {
   assert.equal(matching.length, 2);
   assert.equal(matching.at(-1).performedDate, "2026-09-13");
 });
+
+test("Wednesday recovery completion is date-specific, reversible, and separate from lifting adherence", () => {
+  assert.match(html, /recoveryActivities/);
+  assert.match(html, /programDay===\"Wednesday\"/);
+  assert.match(html, /toggleYogaCompletion/);
+  assert.match(html, /currentWeekYogaCompleted/);
+  assert.match(html, /yogaCompleted:recoveryActivities\.length\?true/);
+  assert.match(html, /sessions\.length\/3/);
+});
+
+test("legacy yogaCompleted check-ins are limited to their own week", () => {
+  const legacy = [
+    { date: "2026-08-26", yogaCompleted: true },
+    { date: "2026-09-09", yogaCompleted: true }
+  ];
+  const activeWeek = legacy.filter((x) => x.yogaCompleted && inWeek({ performedDate: x.date }, new Date(2026, 8, 9)));
+  assert.equal(activeWeek.length, 1);
+  assert.equal(activeWeek[0].date, "2026-09-09");
+});
