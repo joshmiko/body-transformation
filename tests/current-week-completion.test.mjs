@@ -119,3 +119,8 @@ test("malformed saved records without completion timestamps do not count", () =>
   const malformed = [{ programDay: "Friday", status: "saved", performedDate: "2026-09-11" }];
   assert.equal(completedForDay(malformed, "Friday", new Date(2026, 8, 11)).length, 0);
 });
+
+test("drafts with an end timestamp still do not count as completed", () => {
+  const draft = [{ programDay: "Friday", status: "draft", performedDate: "2026-09-11", endedAt: "2026-09-11T18:00:00Z" }];
+  assert.equal(completedForDay(draft, "Friday", new Date(2026, 8, 11)).length, 0);
+});
