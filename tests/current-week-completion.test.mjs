@@ -29,8 +29,18 @@ function completedForDay(sessions, day, reference) {
   return sessions.filter((session) =>
     (session.programDay || session.day) === day &&
     (session.status === "saved" || !!session.finished) &&
+    (session.finished || session.endedAt) &&
     inWeek(session, reference)
   );
+}
+function visibleState({ lifting = true, active = false, complete = false, yoga = false } = {}) {
+  if (!lifting) return { home: yoga ? "Completed — Undo" : "Mark Yoga / Recovery complete", workouts: yoga ? "COMPLETED" : "›", preview: yoga ? "Recovery complete" : "Start recovery" };
+  const kind = active ? "active" : complete ? "completed" : "available";
+  return {
+    home: kind === "active" ? "Resume Workout" : kind === "completed" ? "Review Workout" : "Preview Workout",
+    workouts: kind === "active" ? "IN PROGRESS" : kind === "completed" ? "COMPLETED" : "›",
+    preview: kind === "active" ? "Resume workout" : kind === "completed" ? "Review workout" : "Start workout"
+  };
 }
 
 test("current-week helpers and local date boundaries are present", () => {
@@ -41,13 +51,18 @@ test("current-week helpers and local date boundaries are present", () => {
   assert.match(html, /localDateKey\(start\)/);
 });
 
-test("workouts/home/preview use current-week completion and validated active pointer", () => {
-  assert.match(html, /active=currentActiveSession\(\),inprog=!!\(active&&\(\(active\.programDay\|\|active\.day\)===d\)\),done=!!currentWeekCompletedSession\(d\)/);
-  assert.match(html, /completed=scheduled\?currentWeekCompletedSession\(selected\):null,active=scheduled\?activeSessionForDay\(selected\):null/);
-  assert.match(html, /const complete=!!currentWeekCompletedSession\(d\)/);
-  assert.match(html, /const s=currentWeekCompletedSession\(d\),active=activeSessionForDay\(d\),label=active\?"Resume workout":s\?"Review workout":"Start workout"/);
-  assert.match(html, /sessionInProgramWeek\(s,now\)/);
+test("rendered state matrix keeps Home, Workouts, and preview consistent", () => {
+  assert.match(html, /function workoutDayState\(/);
+  assert.match(html, /state\.kind===\"active\"\?\"Resume Workout\"/);
+  assert.match(html, /state\.kind===\"completed\"\?\"Review Workout\"/);
+  assert.match(html, /d===\"Wednesday\"\?currentWeekYogaCompleted\(\):workoutDayState\(d\)\.kind===\"completed\"/);
+  assert.deepEqual(visibleState(), { home: "Preview Workout", workouts: "›", preview: "Start workout" });
+  assert.deepEqual(visibleState({ complete: true }), { home: "Review Workout", workouts: "COMPLETED", preview: "Review workout" });
+  assert.deepEqual(visibleState({ active: true, complete: true }), { home: "Resume Workout", workouts: "IN PROGRESS", preview: "Resume workout" });
+  assert.deepEqual(visibleState({ lifting: false }), { home: "Mark Yoga / Recovery complete", workouts: "›", preview: "Start recovery" });
+  assert.deepEqual(visibleState({ lifting: false, yoga: true }), { home: "Completed — Undo", workouts: "COMPLETED", preview: "Recovery complete" });
 });
+
 
 test("prior, current, and future week records are separated", () => {
   const sessions = [
@@ -98,4 +113,9 @@ test("legacy yogaCompleted check-ins are limited to their own week", () => {
   const activeWeek = legacy.filter((x) => x.yogaCompleted && inWeek({ performedDate: x.date }, new Date(2026, 8, 9)));
   assert.equal(activeWeek.length, 1);
   assert.equal(activeWeek[0].date, "2026-09-09");
+});
+
+test("malformed saved records without completion timestamps do not count", () => {
+  const malformed = [{ programDay: "Friday", status: "saved", performedDate: "2026-09-11" }];
+  assert.equal(completedForDay(malformed, "Friday", new Date(2026, 8, 11)).length, 0);
 });
