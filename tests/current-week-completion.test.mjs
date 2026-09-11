@@ -87,7 +87,7 @@ test("Wednesday recovery completion is date-specific, reversible, and separate f
   assert.match(html, /toggleYogaCompletion/);
   assert.match(html, /currentWeekYogaCompleted/);
   assert.match(html, /yogaCompleted:recoveryActivities\.length\?true/);
-  assert.match(html, /d\\.sessions\\.length\\+'\\/3/);
+  assert.match(html, /Training adherence/);
 });
 
 test("legacy yogaCompleted check-ins are limited to their own week", () => {
