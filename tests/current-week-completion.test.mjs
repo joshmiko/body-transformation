@@ -66,9 +66,9 @@ test("rendered state matrix keeps Home, Workouts, and preview consistent", () =>
 
 test("prior, current, and future week records are separated", () => {
   const sessions = [
-    { programDay: "Friday", status: "saved", performedDate: "2026-09-04" },
-    { programDay: "Friday", status: "saved", performedDate: "2026-09-11" },
-    { programDay: "Friday", status: "saved", performedDate: "2026-09-18" }
+    { programDay: "Friday", status: "saved", performedDate: "2026-09-04", finished: "2026-09-04T18:00:00Z" },
+    { programDay: "Friday", status: "saved", performedDate: "2026-09-11", finished: "2026-09-11T18:00:00Z" },
+    { programDay: "Friday", status: "saved", performedDate: "2026-09-18", finished: "2026-09-18T18:00:00Z" }
   ];
   assert.equal(completedForDay(sessions, "Friday", new Date(2026, 8, 11)).length, 1);
   assert.equal(completedForDay(sessions, "Friday", new Date(2026, 8, 4)).length, 1);
@@ -78,7 +78,7 @@ test("prior, current, and future week records are separated", () => {
 test("active draft is not treated as completed and Monday performed Tuesday remains Monday", () => {
   const sessions = [
     { programDay: "Monday", status: "draft", performedDate: "2026-09-07" },
-    { programDay: "Monday", status: "saved", performedDate: "2026-09-08" }
+    { programDay: "Monday", status: "saved", performedDate: "2026-09-08", finished: "2026-09-08T18:00:00Z" }
   ];
   assert.equal(completedForDay(sessions, "Monday", new Date(2026, 8, 8)).length, 1);
   assert.equal(completedForDay(sessions, "Monday", new Date(2026, 8, 8))[0].programDay, "Monday");
@@ -88,8 +88,8 @@ test("month/year and local Monday-Sunday boundaries are inclusive", () => {
   assert.deepEqual(weekBounds(new Date(2026, 0, 1)), { start: "2025-12-29", end: "2026-01-04" });
   assert.deepEqual(weekBounds(new Date(2026, 11, 31)), { start: "2026-12-28", end: "2027-01-03" });
   const edge = [
-    { programDay: "Saturday", status: "saved", performedDate: "2026-09-12" },
-    { programDay: "Saturday", status: "saved", performedDate: "2026-09-13" }
+    { programDay: "Saturday", status: "saved", performedDate: "2026-09-12", finished: "2026-09-12T18:00:00Z" },
+    { programDay: "Saturday", status: "saved", performedDate: "2026-09-13", finished: "2026-09-13T18:00:00Z" }
   ];
   const matching = completedForDay(edge, "Saturday", new Date(2026, 8, 12));
   assert.equal(matching.length, 2);
