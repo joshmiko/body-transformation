@@ -53,7 +53,8 @@ test("unilateral exercises remain one set input per side-paired exercise", () =>
   const lateral = source.Monday.exercises.find(x => x.name === "Single-Arm Cable Lateral Raise");
   assert.deepEqual([lateral.unilateral, lateral.sides, lateral.analyticsSets], [true, 2, 2]);
   const lunge = source.Friday.exercises.find(x => x.name === "Walking Lunge");
-  assert.equal(lunge.unilateral, undefined);
+  assert.deepEqual([lunge.unilateral, lunge.sides, lunge.analyticsSets], [true, 2, 2]);
+  assert.match(lunge.cue, /rest after both legs/);
   assert.doesNotMatch(html, /repsPerSide.*additional input/);
 });
 
@@ -96,4 +97,17 @@ test("coach export/currentProgram includes activities while historical snapshots
   assert.match(html, /activities:cloneValue\(PROGRAM\.activities\|\|\{\}\)/);
   assert.match(html, /programSnapshot:snapshot/);
   assert.match(html, /function sessionProgram\(d\)/);
+});
+
+
+test("Barbell Romanian Deadlift gets a two-set practical ramp at 155 lb", () => {
+  const plateLoad = value => Math.max(45, Math.round(value / 5) * 5);
+  const load = 155;
+  const first = plateLoad(Math.max(45, Math.min(load - 35, load * .62)));
+  const second = plateLoad(Math.max(first + 20, Math.min(load - 15, load * .87)));
+  assert.deepEqual([[first, 5], [second, 3]], [[95, 5], [135, 3]]);
+  assert.equal(first % 5, 0);
+  assert.equal(second % 5, 0);
+  assert.match(html, /n==="Barbell Romanian Deadlift"/);
+  assert.equal(source.Saturday.exercises.find(x => x.name === "Barbell Romanian Deadlift").warm, "barbell");
 });
