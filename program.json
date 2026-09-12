@@ -130,17 +130,6 @@
         "unit": "sec"
       },
       {
-        "name": "Dead Hang",
-        "type": "Accessory",
-        "sets": 2,
-        "min": 20,
-        "max": 45,
-        "rest": 60,
-        "cue": "Hang with control and leave roughly 5–10 seconds in reserve; stop before grip failure.",
-        "warm": "bodyweight",
-        "unit": "sec"
-      },
-      {
         "name": "Incline DB Bench",
         "type": "Compound",
         "sets": 3,
