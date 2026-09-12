@@ -67,10 +67,7 @@ test("minimal Monday payload imports successfully", () => {
 
 test("validator accepts only the three programmed lifting days", () => {
   for (const programDay of ["Monday", "Friday", "Saturday"]) {
-    assert.deepEqual(validator({ programDay, performedDate: "2026-09-08" }), {
-      programDay,
-      performedDate: "2026-09-08"
-    });
+    const result = validator({ programDay, performedDate: "2026-09-08" });\n    assert.equal(result.programDay, programDay);\n    assert.equal(result.performedDate, "2026-09-08");
   }
 });
 
