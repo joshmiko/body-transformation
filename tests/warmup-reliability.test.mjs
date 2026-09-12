@@ -117,7 +117,7 @@ test("general warm-up undo, restore, and skip clear stale actual values", () => 
   complete(record);
   assert.deepEqual(record.actual, { durationMin: 5, speedMph: 3, inclinePercent: 3 });
   assert.equal(record.status, "completed");
-  assert.match(html, /function resetGeneralWarmupActual\\(g\\)/);
-  assert.match(html, /resetGeneralWarmupActual\\(g\\);g\.status="skipped"/);
-  assert.match(html, /resetGeneralWarmupActual\\(g\\);g\.status="planned"/);
+  assert.match(html, /function resetGeneralWarmupActual\(g\)/);
+  assert.match(html, /resetGeneralWarmupActual\(g\);g\.status="skipped"/);
+  assert.match(html, /resetGeneralWarmupActual\(g\);g\.status="planned"/);
 });
