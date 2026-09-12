@@ -1,6 +1,6 @@
 {
   "Monday": {
-    "title": "Monday — Lower + Push",
+    "title": "Monday — Squat + Bench",
     "subtitle": "Strength + hypertrophy",
     "generalWarmup": {
       "type": "treadmill",
@@ -119,6 +119,28 @@
         "warm": "bodyweight"
       },
       {
+        "name": "Dead Hang",
+        "type": "Accessory",
+        "sets": 2,
+        "min": 20,
+        "max": 45,
+        "rest": 60,
+        "cue": "Hang with control and leave roughly 5–10 seconds in reserve; stop before grip failure.",
+        "warm": "bodyweight",
+        "unit": "sec"
+      },
+      {
+        "name": "Dead Hang",
+        "type": "Accessory",
+        "sets": 2,
+        "min": 20,
+        "max": 45,
+        "rest": 60,
+        "cue": "Hang with control and leave roughly 5–10 seconds in reserve; stop before grip failure.",
+        "warm": "bodyweight",
+        "unit": "sec"
+      },
+      {
         "name": "Incline DB Bench",
         "type": "Compound",
         "sets": 3,
@@ -161,8 +183,8 @@
     ]
   },
   "Saturday": {
-    "title": "Saturday — Legs",
-    "subtitle": "Lower body + core",
+    "title": "Saturday — Full-Body Hypertrophy",
+    "subtitle": "Full-body hypertrophy",
     "generalWarmup": {
       "type": "treadmill",
       "durationMin": 5,
@@ -188,46 +210,83 @@
         "machineBaseWeight": 167
       },
       {
-        "name": "DB Romanian Deadlift",
+        "name": "Barbell Romanian Deadlift",
+        "type": "Compound",
+        "sets": 2,
+        "min": 8,
+        "max": 10,
+        "rest": 120,
+        "cue": "Hinge at the hips; keep the bar close and feel the hamstrings.",
+        "warm": "barbell"
+      },
+      {
+        "name": "DB Shoulder Press",
         "type": "Compound",
         "sets": 3,
         "min": 8,
         "max": 12,
         "rest": 120,
-        "cue": "Hinge at hips; keep dumbbells close; feel hamstrings.",
+        "cue": "Press smoothly without leaning back.",
         "warm": "db"
       },
       {
-        "name": "Walking Lunge",
+        "name": "DB Flat Bench",
         "type": "Compound",
         "sets": 2,
         "min": 8,
-        "max": 10,
-        "rest": 90,
-        "cue": "Controlled steps; maintain balance.",
+        "max": 12,
+        "rest": 120,
+        "cue": "Controlled touch and steady press.",
+        "warm": "db"
+      },
+      {
+        "name": "DB Lateral Raise",
+        "type": "Isolation",
+        "sets": 2,
+        "min": 12,
+        "max": 20,
+        "rest": 60,
+        "cue": "Raise with control; avoid shrugging.",
         "warm": "db"
       },
       {
         "name": "Calf Raise",
         "type": "Isolation",
-        "sets": 3,
-        "min": 10,
-        "max": 15,
+        "sets": 2,
+        "min": 12,
+        "max": 20,
         "rest": 60,
         "cue": "Full stretch and hard peak contraction.",
         "warm": "machine"
-      },
-      {
-        "name": "Dead Hang",
-        "type": "Accessory",
-        "sets": 2,
-        "min": 20,
-        "max": 45,
-        "rest": 60,
-        "cue": "Relax shoulders only as much as comfortable; build grip and hang time.",
-        "warm": "bodyweight",
-        "unit": "sec"
       }
     ]
+  },
+  "activities": {
+    "Tuesday": {
+      "title": "Tuesday — Zone 2 Bike",
+      "type": "zone2",
+      "detail": "Steady Zone 2 bike session.",
+      "durationMin": 30,
+      "durationMax": 40,
+      "stepsAverageTarget": 6000
+    },
+    "Wednesday": {
+      "title": "Wednesday — Yoga / Recovery",
+      "type": "yoga",
+      "detail": "Yoga, mobility, and recovery-focused movement.",
+      "stepsAverageTarget": 6000
+    },
+    "Thursday": {
+      "title": "Thursday — Easy Walking / Recovery",
+      "type": "walking",
+      "detail": "Easy walking and light mobility.",
+      "stepsAverageTarget": 6000
+    },
+    "Sunday": {
+      "title": "Sunday — Rest / Reset",
+      "type": "rest",
+      "detail": "Rest, gentle mobility, and prepare for the week ahead.",
+      "stepsAverageTarget": 6000
+    }
   }
 }
