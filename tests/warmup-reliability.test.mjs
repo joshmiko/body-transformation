@@ -103,3 +103,21 @@ test("current-week and Wednesday regression coverage remains wired", () => {
   assert.match(html, /function currentWeekYogaCompleted\(/);
   assert.match(html, /currentWeekRecoveryActivities\(/);
 });
+
+
+test("general warm-up undo, restore, and skip clear stale actual values", () => {
+  const resetActual = (g) => { g.actual = { durationMin: null, speedMph: null, inclinePercent: null }; g.completedAt = null; };
+  const complete = (g) => { g.actual = { durationMin: g.planned.durationMin ?? 5, speedMph: g.planned.speedMph ?? 3, inclinePercent: g.planned.inclinePercent ?? 3 }; g.status = "completed"; g.completedAt = "2026-09-12T10:00:00.000Z"; };
+  const record = { status: "completed", planned: { durationMin: 5, speedMph: 3, inclinePercent: 3 }, actual: { durationMin: 8, speedMph: 3.4, inclinePercent: 4 }, completedAt: "2026-09-12T10:00:00.000Z" };
+  resetActual(record); record.status = "planned";
+  assert.deepEqual(record.actual, { durationMin: null, speedMph: null, inclinePercent: null });
+  assert.equal(record.completedAt, null);
+  complete(record); resetActual(record); record.status = "planned";
+  assert.deepEqual(record.actual, { durationMin: null, speedMph: null, inclinePercent: null });
+  complete(record);
+  assert.deepEqual(record.actual, { durationMin: 5, speedMph: 3, inclinePercent: 3 });
+  assert.equal(record.status, "completed");
+  assert.match(html, /function resetGeneralWarmupActual\\(g\\)/);
+  assert.match(html, /resetGeneralWarmupActual\\(g\\);g\.status="skipped"/);
+  assert.match(html, /resetGeneralWarmupActual\\(g\\);g\.status="planned"/);
+});
