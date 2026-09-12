@@ -19,13 +19,13 @@ const embeddedProgram = JSON.parse(html.slice(programStart, programEnd));
 if (JSON.stringify(embeddedProgram) !== JSON.stringify(parsedProgram)) throw new Error("Embedded program does not match program.json");
 for (const [day, expected] of Object.entries({
   Monday: [["Back Squat", 3, 5, 8], ["Barbell Bench Press", 3, 5, 8], ["Lat Pulldown", 3, 8, 12], ["1-Arm DB Row", 2, 8, 12], ["Single-Arm Cable Lateral Raise", 2, 12, 20], ["DB Hammer Curl", 2, 10, 15]],
-  Friday: [["Deadlift", 2, 5, 6], ["Pull-Ups", 3, 3, 6], ["Incline DB Bench", 3, 8, 12], ["Cable Row", 3, 8, 12], ["Walking Lunge", 2, 8, 10], ["DB Curl", 2, 10, 15]],
-  Saturday: [["Leg Press", 3, 8, 12], ["DB Romanian Deadlift", 3, 8, 12], ["Walking Lunge", 2, 8, 10], ["Calf Raise", 3, 10, 15], ["Dead Hang", 2, 20, 45]]
+  Friday: [["Deadlift", 2, 5, 6], ["Pull-Ups", 3, 3, 6], ["Dead Hang", 2, 20, 45], ["Incline DB Bench", 3, 8, 12], ["Cable Row", 3, 8, 12], ["Walking Lunge", 2, 8, 10], ["DB Curl", 2, 10, 15]],
+  Saturday: [["Leg Press", 3, 8, 12], ["Barbell Romanian Deadlift", 2, 8, 10], ["DB Shoulder Press", 3, 8, 12], ["DB Flat Bench", 2, 8, 12], ["DB Lateral Raise", 2, 12, 20], ["Calf Raise", 2, 12, 20]]
 })) {
   const actual = (embeddedProgram[day]?.exercises || []).map(ex => [ex.name, ex.sets, ex.min, ex.max]);
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Unexpected ${day} program configuration`);
 }
-if (embeddedProgram.Saturday.exercises.find(ex => ex.name === "Dead Hang")?.unit !== "sec") throw new Error("Dead Hang must remain seconds-based");
+if (embeddedProgram.Friday.exercises.find(ex => ex.name === "Dead Hang")?.unit !== "sec") throw new Error("Dead Hang must remain seconds-based");
 if (embeddedProgram.Saturday.exercises.find(ex => ex.name === "Leg Press")?.machine !== "Matrix") throw new Error("Leg Press must remain Matrix-specific");
 const monday = embeddedProgram.Monday.exercises;
 const restByName = Object.fromEntries(monday.map(ex => [ex.name, ex.rest]));
