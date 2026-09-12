@@ -67,7 +67,17 @@
         "cue": "Neutral grip, no torso swing.",
         "warm": "db"
       }
-    ]
+    ],
+    "generalWarmup": {
+      "type": "treadmill",
+      "durationMin": 5,
+      "speedMph": 3,
+      "inclinePercent": 3,
+      "inclineRange": {
+        "min": 3,
+        "max": 5
+      }
+    }
   },
   "Wednesday": {
     "title": "Wednesday — Yoga / Recovery",
@@ -138,7 +148,17 @@
         "cue": "Supinated grip; slow eccentric.",
         "warm": "db"
       }
-    ]
+    ],
+    "generalWarmup": {
+      "type": "treadmill",
+      "durationMin": 5,
+      "speedMph": 3,
+      "inclinePercent": 3,
+      "inclineRange": {
+        "min": 3,
+        "max": 5
+      }
+    }
   },
   "Saturday": {
     "title": "Saturday — Legs",
@@ -154,7 +174,8 @@
         "cue": "Full controlled range; knees track with toes.",
         "warm": "legpress",
         "machine": "Matrix",
-        "loadType": "machine"
+        "loadType": "machine",
+        "machineBaseWeight": 167
       },
       {
         "name": "DB Romanian Deadlift",
@@ -197,6 +218,16 @@
         "warm": "bodyweight",
         "unit": "sec"
       }
-    ]
+    ],
+    "generalWarmup": {
+      "type": "treadmill",
+      "durationMin": 5,
+      "speedMph": 3,
+      "inclinePercent": 3,
+      "inclineRange": {
+        "min": 3,
+        "max": 5
+      }
+    }
   }
 }
