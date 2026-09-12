@@ -39,6 +39,7 @@ function extractFunction(source, name) {
 const validator = vm.runInNewContext(`(${extractFunction(html, "validateManualWorkoutImport")})`);
 const importSource = extractFunction(html, "importManualWorkout");
 const importWorkout = vm.runInNewContext(`(${importSource})`, {
+  validateManualWorkoutImport: validator,
   PROGRAM: { Monday: { exercises: [] }, Friday: { exercises: [] }, Saturday: { exercises: [] } },
   manualImportKey: payload => JSON.stringify(payload),
   cloneValue: value => JSON.parse(JSON.stringify(value)),
