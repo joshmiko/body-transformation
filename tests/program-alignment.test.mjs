@@ -111,3 +111,29 @@ test("Barbell Romanian Deadlift gets a two-set practical ramp at 155 lb", () => 
   assert.match(html, /n==="Barbell Romanian Deadlift"/);
   assert.equal(source.Saturday.exercises.find(x => x.name === "Barbell Romanian Deadlift").warm, "barbell");
 });
+
+
+test("Saturday fresh-session defaults match the coaching references", () => {
+  const m = html.match(/const defaults=(\{[^;]+\});/);
+  assert.ok(m, "defaults map should be present");
+  const defaults = JSON.parse(m[1]);
+  assert.deepEqual({
+    "Leg Press": defaults["Leg Press"],
+    "Barbell Romanian Deadlift": defaults["Barbell Romanian Deadlift"],
+    "DB Shoulder Press": defaults["DB Shoulder Press"],
+    "DB Flat Bench": defaults["DB Flat Bench"],
+    "DB Lateral Raise": defaults["DB Lateral Raise"],
+    "Calf Raise": defaults["Calf Raise"]
+  }, {
+    "Leg Press": 417,
+    "Barbell Romanian Deadlift": 155,
+    "DB Shoulder Press": 45,
+    "DB Flat Bench": 70,
+    "DB Lateral Raise": 10,
+    "Calf Raise": 60
+  });
+  assert.match(html, /const inc=.*"Barbell Romanian Deadlift":5/);
+  assert.match(html, /const inc=.*"DB Shoulder Press":5/);
+  assert.match(html, /const inc=.*"DB Flat Bench":5/);
+  assert.match(html, /programSnapshot:p/);
+});
