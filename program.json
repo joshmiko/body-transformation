@@ -50,8 +50,11 @@
         "min": 8,
         "max": 12,
         "rest": 75,
-        "cue": "Brace and pull toward hip; pause briefly.",
-        "warm": "db"
+        "cue": "Brace and pull toward hip; pause briefly; rest after both arms.",
+        "warm": "db",
+        "unilateral": true,
+        "sides": 2,
+        "analyticsSets": 2
       },
       {
         "name": "Single-Arm Cable Lateral Raise",
@@ -156,8 +159,11 @@
         "min": 8,
         "max": 10,
         "rest": 90,
-        "cue": "Long controlled step; knee tracks over foot.",
-        "warm": "db"
+        "cue": "Long controlled step; knee tracks over foot; rest after both legs.",
+        "warm": "db",
+        "unilateral": true,
+        "sides": 2,
+        "analyticsSets": 2
       },
       {
         "name": "DB Curl",
