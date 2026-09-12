@@ -2,6 +2,16 @@
   "Monday": {
     "title": "Monday — Lower + Push",
     "subtitle": "Strength + hypertrophy",
+    "generalWarmup": {
+      "type": "treadmill",
+      "durationMin": 5,
+      "speedMph": 3,
+      "inclinePercent": 3,
+      "inclineRange": {
+        "min": 3,
+        "max": 5
+      }
+    },
     "exercises": [
       {
         "name": "Back Squat",
@@ -77,6 +87,16 @@
   "Friday": {
     "title": "Friday — Pull + Push",
     "subtitle": "Strength + athletic balance",
+    "generalWarmup": {
+      "type": "treadmill",
+      "durationMin": 5,
+      "speedMph": 3,
+      "inclinePercent": 3,
+      "inclineRange": {
+        "min": 3,
+        "max": 5
+      }
+    },
     "exercises": [
       {
         "name": "Deadlift",
@@ -143,6 +163,16 @@
   "Saturday": {
     "title": "Saturday — Legs",
     "subtitle": "Lower body + core",
+    "generalWarmup": {
+      "type": "treadmill",
+      "durationMin": 5,
+      "speedMph": 3,
+      "inclinePercent": 3,
+      "inclineRange": {
+        "min": 3,
+        "max": 5
+      }
+    },
     "exercises": [
       {
         "name": "Leg Press",
@@ -154,7 +184,8 @@
         "cue": "Full controlled range; knees track with toes.",
         "warm": "legpress",
         "machine": "Matrix",
-        "loadType": "machine"
+        "loadType": "machine",
+        "machineBaseWeight": 167
       },
       {
         "name": "DB Romanian Deadlift",
