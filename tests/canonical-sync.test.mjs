@@ -72,7 +72,7 @@ test("sync writes every local domain with stable idempotency keys", async () => 
   assert.deepEqual(rows.map(x => x.record_type).sort(), [
     "checkin", "coaching_state", "nutrition_entry", "nutrition_summary", "nutrition_target", "recovery_activity", "workout_session"
   ]);
-  assert.equal(new Set(rows.map(x => x.source_record_id)).size, rows.length);
+  assert.equal(new Set(rows.map(x => x.source_record_id)).size, rows.length);\n  assert.ok(rows.every(row => row.user_id === "user-1"));
 });
 
 test("offline writes queue and retry without creating duplicate keys", async () => {
