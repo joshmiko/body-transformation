@@ -74,87 +74,230 @@ export function sessionActive() {
 }
 
 
-async function syncLocalDbInternal(localDb) {
-  if (!sessionActive()) return { skipped: true, sessions: 0, checkins: 0 };
-  const user = currentUser();
-  if (!user?.id) return { skipped: true, sessions: 0, checkins: 0 };
-  let sessions = 0, checkins = 0;
-  for (const checkin of localDb.checkins || []) {
-    if (checkin.syncedAt) continue;
-    await request("body_checkins", {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({
-        user_id: user.id,
-        recorded_at: checkin.createdAt || new Date().toISOString(),
-        weight: Number(checkin.weight) || null,
-        weight_unit: "lb",
-        waist: Number(checkin.waist) || null,
-        waist_unit: "in",
-        notes: checkin.notes || null
-      })
-    });
-    checkin.syncedAt = new Date().toISOString();
-    checkins++;
+const canonicalQueueKey = "bt_supabase_canonical_sync_queue";
+
+function readCanonicalQueue() {
+  try {
+    const value = JSON.parse(localStorage.getItem(canonicalQueueKey) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
   }
-  for (const session of Object.values(localDb.sessions || {})) {
-    if (!session.finished || session.cloudSyncedAt) continue;
-    const sourceId = `${session.date || ""}_${session.day || ""}`;
-    const [created] = await request("workout_sessions", {
-      method: "POST",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        user_id: user.id,
-        source: "manual",
-        source_record_id: sourceId,
-        occurred_on: session.date,
-        started_at: session.started || null,
-        finished_at: session.finished,
-        status: "completed"
-      })
-    });
-    const sessionId = created?.id;
-    if (sessionId) {
-      for (const exercise of Object.values(session.exercises || {})) {
-        const [remoteExercise] = await request("workout_exercises", {
-          method: "POST",
-          headers: { Prefer: "return=representation" },
-          body: JSON.stringify({
-            session_id: sessionId,
-            exercise_name_snapshot: exercise.name,
-            position: 1,
-            planned_sets: exercise.planned?.sets || null,
-            min_reps: exercise.planned?.min || null,
-            max_reps: exercise.planned?.max || null
-          })
-        });
-        if (!remoteExercise?.id) continue;
-        for (const [index, set] of (exercise.actual || []).entries()) {
-          if (!set.done) continue;
-          await request("workout_sets", {
-            method: "POST",
-            headers: { Prefer: "return=minimal" },
-            body: JSON.stringify({
-              workout_exercise_id: remoteExercise.id,
-              position: index + 1,
-              kind: "working",
-              weight: Number(set.weight) || null,
-              weight_unit: "lb",
-              reps: Number(set.reps) || null,
-              feel: String(set.feel || "").toLowerCase() || null,
-              completed_at: session.finished
-            })
-          });
-        }
-      }
-    }
-    session.cloudSyncedAt = new Date().toISOString();
-    sessions++;
-  }
-  localStorage.setItem("bt10_db", JSON.stringify(localDb));
-  return { skipped: false, sessions, checkins };
 }
 
+function writeCanonicalQueue(rows) {
+  localStorage.setItem(canonicalQueueKey, JSON.stringify(rows.slice(-500)));
+}
+
+function canonicalStamp(value, fallback = new Date().toISOString()) {
+  const parsed = Date.parse(value || "");
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : fallback;
+}
+
+function canonicalDate(value) {
+  const raw = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : null;
+}
+
+function canonicalRecordsFromDb(localDb) {
+  const records = [];
+  const add = (recordType, sourceRecordId, payload, occurredOn, updatedAt, localRef) => {
+    if (!payload || !sourceRecordId) return;
+    records.push({
+      record_type: recordType,
+      source_record_id: String(sourceRecordId),
+      occurred_on: canonicalDate(occurredOn),
+      payload,
+      updated_at: canonicalStamp(updatedAt),
+      localRef
+    });
+  };
+  Object.entries(localDb.sessions || {}).forEach(([key, session]) => add(
+    "workout_session",
+    session?.id || session?.sessionId || key,
+    session,
+    session?.performedDate || session?.date || session?.finished || session?.endedAt,
+    session?.updatedAt || session?.finished || session?.endedAt,
+    session
+  ));
+  (localDb.checkins || []).forEach((checkin, index) => add(
+    "checkin",
+    checkin?.id || checkin?.sourceRecordId || (checkin?.createdAt || checkin?.date || "checkin") + "_" + index,
+    checkin,
+    checkin?.date || checkin?.createdAt,
+    checkin?.updatedAt || checkin?.createdAt || checkin?.date,
+    checkin
+  ));
+  const nutrition = localDb.nutrition || {};
+  (nutrition.entries || []).forEach((entry, index) => add(
+    "nutrition_entry",
+    entry?.id || entry?.sourceRecordId || (entry?.date || "nutrition") + "_" + (entry?.name || "item") + "_" + index,
+    entry,
+    entry?.date,
+    entry?.updatedAt || entry?.createdAt || entry?.date,
+    entry
+  ));
+  (nutrition.dailySummaries || []).forEach((summary, index) => add(
+    "nutrition_summary",
+    summary?.id || summary?.sourceSummaryId || (summary?.date || "summary") + "_" + index,
+    summary,
+    summary?.date,
+    summary?.updatedAt || summary?.createdAt || summary?.date,
+    summary
+  ));
+  if (nutrition.targets && typeof nutrition.targets === "object") add(
+    "nutrition_target",
+    "default",
+    nutrition.targets,
+    null,
+    nutrition.targets.updatedAt || nutrition.targets.createdAt,
+    nutrition.targets
+  );
+  (localDb.recoveryActivities || []).forEach((activity, index) => add(
+    "recovery_activity",
+    activity?.id || (activity?.performedDate || activity?.date || "recovery") + "_" + (activity?.programDay || activity?.type || index),
+    activity,
+    activity?.performedDate || activity?.date,
+    activity?.updatedAt || activity?.createdAt || activity?.performedDate || activity?.date,
+    activity
+  ));
+  if (localDb.coachSync && typeof localDb.coachSync === "object") add(
+    "coaching_state",
+    "state",
+    localDb.coachSync,
+    null,
+    localDb.coachSync.updatedAt || localDb.coachSync.createdAt,
+    localDb.coachSync
+  );
+  return records;
+}
+
+function recordKey(row) {
+  return String(row.record_type) + ":" + String(row.source_record_id);
+}
+
+async function upsertCanonicalRecords(rows) {
+  if (!rows.length) return [];
+  return request("user_data_records?on_conflict=user_id%2Crecord_type%2Csource_record_id", {
+    method: "POST",
+    headers: { Prefer: "return=representation,resolution=merge-duplicates" },
+    body: JSON.stringify(rows.map(({ localRef, ...row }) => row))
+  });
+}
+
+function markCanonicalSynced(rows, stamp) {
+  rows.forEach(row => {
+    if (row.localRef && typeof row.localRef === "object") {
+      row.localRef.cloudSyncedAt = stamp;
+      row.localRef.updatedAt = row.updatedAt || stamp;
+    }
+  });
+}
+
+async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
+  if (!sessionActive()) return { skipped: true, sessions: 0, checkins: 0, records: 0 };
+  const user = currentUser();
+  if (!user?.id) return { skipped: true, sessions: 0, checkins: 0, records: 0 };
+  const current = canonicalRecordsFromDb(localDb);
+  const queued = skipQueue ? [] : readCanonicalQueue();
+  const byKey = new Map();
+  queued.forEach(row => byKey.set(recordKey(row), row));
+  current.forEach(row => byKey.set(recordKey(row), row));
+  const rows = [...byKey.values()].map(row => ({ ...row, user_id: user.id }));
+  if (!rows.length) return { skipped: false, sessions: 0, checkins: 0, records: 0 };
+  try {
+    await upsertCanonicalRecords(rows);
+    const stamp = new Date().toISOString();
+    markCanonicalSynced(rows, stamp);
+    if (!skipQueue) writeCanonicalQueue([]);
+    localStorage.setItem("bt10_db", JSON.stringify(localDb));
+    return {
+      skipped: false,
+      sessions: rows.filter(row => row.record_type === "workout_session").length,
+      checkins: rows.filter(row => row.record_type === "checkin").length,
+      records: rows.length,
+      offline: false
+    };
+  } catch (error) {
+    if (!skipQueue) writeCanonicalQueue(rows.map(({ localRef, ...row }) => row));
+    return { skipped: false, sessions: 0, checkins: 0, records: rows.length, offline: true, error: error?.message || "Sync unavailable" };
+  }
+}
+
+function localRecordStamp(record) {
+  return Date.parse(record?.updatedAt || record?.createdAt || record?.finished || record?.endedAt || record?.date || "") || 0;
+}
+
+function mergeRecord(local, row) {
+  const cloud = row?.payload;
+  if (!cloud || typeof cloud !== "object") return local;
+  const cloudStamp = Date.parse(row.updated_at || "") || 0;
+  const localStamp = localRecordStamp(local);
+  if (local && !local.cloudSyncedAt && localStamp > cloudStamp) return local;
+  const merged = JSON.parse(JSON.stringify(cloud));
+  merged.cloudSyncedAt = row.updated_at || new Date().toISOString();
+  return merged;
+}
+
+export function mergeCanonicalRecords(localDb, rows = []) {
+  const merged = localDb && typeof localDb === "object" ? localDb : {};
+  const sessions = { ...(merged.sessions || {}) };
+  const checkins = Array.isArray(merged.checkins) ? [...merged.checkins] : [];
+  const nutrition = { ...(merged.nutrition || {}), entries: [...(merged.nutrition?.entries || [])], dailySummaries: [...(merged.nutrition?.dailySummaries || [])] };
+  const recovery = Array.isArray(merged.recoveryActivities) ? [...merged.recoveryActivities] : [];
+  const findIndex = (list, id) => list.findIndex(item => String(item?.id || item?.sourceRecordId || "") === String(id));
+  for (const row of rows) {
+    const id = String(row.source_record_id || "");
+    if (row.record_type === "workout_session") {
+      const key = Object.keys(sessions).find(k => String(sessions[k]?.id || sessions[k]?.sessionId || k) === id) || id;
+      const value = mergeRecord(sessions[key], row);
+      if (value) sessions[key] = value;
+    } else if (row.record_type === "checkin") {
+      const index = findIndex(checkins, id);
+      const value = mergeRecord(index >= 0 ? checkins[index] : null, row);
+      if (value) index >= 0 ? checkins.splice(index, 1, value) : checkins.push(value);
+    } else if (row.record_type === "nutrition_entry") {
+      const index = findIndex(nutrition.entries, id);
+      const value = mergeRecord(index >= 0 ? nutrition.entries[index] : null, row);
+      if (value) index >= 0 ? nutrition.entries.splice(index, 1, value) : nutrition.entries.push(value);
+    } else if (row.record_type === "nutrition_summary") {
+      const index = findIndex(nutrition.dailySummaries, id);
+      const value = mergeRecord(index >= 0 ? nutrition.dailySummaries[index] : null, row);
+      if (value) index >= 0 ? nutrition.dailySummaries.splice(index, 1, value) : nutrition.dailySummaries.push(value);
+    } else if (row.record_type === "nutrition_target") {
+      const value = mergeRecord(nutrition.targets || null, row);
+      if (value) nutrition.targets = value;
+    } else if (row.record_type === "recovery_activity") {
+      const index = findIndex(recovery, id);
+      const value = mergeRecord(index >= 0 ? recovery[index] : null, row);
+      if (value) index >= 0 ? recovery.splice(index, 1, value) : recovery.push(value);
+    } else if (row.record_type === "coaching_state") {
+      const value = mergeRecord(merged.coachSync || null, row);
+      if (value) merged.coachSync = value;
+    }
+  }
+  merged.sessions = sessions;
+  merged.checkins = checkins;
+  merged.nutrition = nutrition;
+  merged.recoveryActivities = recovery;
+  return merged;
+}
+
+export async function pullCanonicalRecords() {
+  if (!sessionActive()) return [];
+  return request("user_data_records?select=record_type,source_record_id,payload,updated_at,occurred_on&order=updated_at.asc");
+}
+
+export async function rehydrateLocalDb(localDb) {
+  if (!sessionActive()) return localDb;
+  const rows = await pullCanonicalRecords();
+  const merged = mergeCanonicalRecords(localDb, Array.isArray(rows) ? rows : []);
+  await syncLocalDbInternal(merged);
+  localStorage.setItem("bt10_db", JSON.stringify(merged));
+  return merged;
+}
 
 export function syncLocalDb(localDb) {
   if (syncInFlight) return syncInFlight;
