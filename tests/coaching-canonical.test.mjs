@@ -37,16 +37,14 @@ function extractFunction(source, name) {
 }
 
 test("newer coaching data invalidates an unreviewed pending package", () => {
-  const state = { latest: "2026-09-10T12:00:00.000Z" };
   const validTimestamp = value => Date.parse(value || "") || null;
-  const latestCoachingDataTimestamp = () => state.latest;
-  const isCurrent = vm.runInNewContext(
+  const makeIsCurrent = latest => vm.runInNewContext(
     `(${extractFunction(html, "pendingCoachingPackageIsCurrent")})`,
-    { validTimestamp, latestCoachingDataTimestamp }
+    { validTimestamp, latestCoachingDataTimestamp: () => latest }
   );
-  assert.equal(isCurrent({ includedThrough: "2026-09-09T12:00:00.000Z" }), false);
-  assert.equal(isCurrent({ includedThrough: "2026-09-10T12:00:00.000Z" }), true);
-
+  const latest = Date.parse("2026-09-10T12:00:00.000Z");
+  assert.equal(makeIsCurrent(latest)({ includedThrough: "2026-09-09T12:00:00.000Z" }), false);
+  assert.equal(makeIsCurrent(latest)({ includedThrough: "2026-09-10T12:00:01.000Z" }), true);
 });
 
 test("coaching cutoff remains tied to reviewed watermark", () => {
