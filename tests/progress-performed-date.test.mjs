@@ -47,7 +47,10 @@ const sessionChronologyDate = vm.runInNewContext(
   { sessionPerformedDate }
 );
 const weekStart = value => {
-  const d = new Date(String(value) + "T12:00:00Z");
+  const raw = String(value || "");
+  const d = /^\\d{4}-\\d{2}-\\d{2}$/.test(raw)
+    ? new Date(raw + "T12:00:00Z")
+    : new Date(raw);
   const day = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() - day + 1);
   return d;
