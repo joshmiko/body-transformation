@@ -385,7 +385,7 @@ document.getElementById("bt-static-login")?.addEventListener("click",async(e)=>{
 });
 </script><script src="env.js"></script><script type="module">
 import * as btSupabase from "./src/supabase-rest.js?v=canonical1";
-window.btSupabase = btSupabase;
+window.btSupabase = btSupabase;\nsetTimeout(()=>{if(btSupabase.sessionActive())window.btRehydrateSupabase?.().catch(()=>{})},0);
 document.getElementById("bt-static-login")?.addEventListener("click", async (event) => {
   event.preventDefault();
   const status = document.getElementById("bt-static-status");
