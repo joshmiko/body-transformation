@@ -205,7 +205,7 @@ async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
   const byKey = new Map();
   queued.forEach(row => byKey.set(recordKey(row), row));
   current.forEach(row => byKey.set(recordKey(row), row));
-  const rows = [...byKey.values()];
+  const rows = [...byKey.values()].map(row => ({ ...row, user_id: user.id }));
   if (!rows.length) return { skipped: false, sessions: 0, checkins: 0, records: 0 };
   try {
     await upsertCanonicalRecords(rows);
