@@ -46,7 +46,7 @@ test("newer coaching data invalidates an unreviewed pending package", () => {
   );
   assert.equal(isCurrent({ includedThrough: "2026-09-09T12:00:00.000Z" }), false);
   assert.equal(isCurrent({ includedThrough: "2026-09-10T12:00:00.000Z" }), true);
-  latest = null;
+  state.latest = null;
   assert.equal(isCurrent({ includedThrough: "2026-09-10T12:00:00.000Z" }), true);
 });
 
