@@ -37,9 +37,9 @@ function extractFunction(source, name) {
 }
 
 test("newer coaching data invalidates an unreviewed pending package", () => {
-  let latest = "2026-09-10T12:00:00.000Z";
+  const state = { latest: "2026-09-10T12:00:00.000Z" };
   const validTimestamp = value => Date.parse(value || "") || null;
-  const latestCoachingDataTimestamp = () => latest;
+  const latestCoachingDataTimestamp = () => state.latest;
   const isCurrent = vm.runInNewContext(
     `(${extractFunction(html, "pendingCoachingPackageIsCurrent")})`,
     { validTimestamp, latestCoachingDataTimestamp }
