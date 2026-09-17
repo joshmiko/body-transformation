@@ -228,6 +228,9 @@ test("all inline workout scripts parse before browser execution", () => {
     .map(match => ({ attrs: match[1], source: match[2] }))
     .filter(item => item.source.trim());
   assert.ok(scripts.length >= 2);
+  const workoutScript = scripts.find(item => item.source.includes("function render(d,ei)"));
+  assert.ok(workoutScript, "the active workout render script must be found");
+  assert.doesNotThrow(() => Function(workoutScript.source.replace(/^\\s*import\\s+[^;]+;\\s*$/gm, "")));
   scripts.forEach(({ attrs, source }) => {
     const withoutStaticImports = source.replace(/^\s*import\s+[^;]+;\s*$/gm, "");
     if (/type\s*=\s*["']module["']/.test(attrs)) {
