@@ -162,3 +162,66 @@ test("warm-up row actions preserve intentional skips/deletions and offer an empt
   assert.match(html, /warmupAddAvailable/);
   assert.match(html, /Add warm-up set/);
 });
+
+function productionFunction(startMarker, endMarker, names = [], values = []) {
+  const start = html.indexOf(startMarker);
+  const end = html.indexOf(endMarker, start);
+  assert.ok(start >= 0 && end > start, startMarker + " should be present");
+  return Function(...names, "return (" + html.slice(start, end) + ")")(...values);
+}
+
+test("active warm-up lifecycle defers, generates, and preserves skipped-empty intent", () => {
+  const warmups = productionWarmups();
+  const warmupCanBeAdded = productionFunction("function warmupCanBeAdded", "function warmupWasIntentionallyEmpty", ["warmups"], [warmups]);
+  const intentional = productionFunction("function warmupWasIntentionallyEmpty", "function repairActiveWarmupGuidance", ["warmupCanBeAdded"], [warmupCanBeAdded]);
+  const session = { status: "draft", exercises: {} };
+  const getSession = () => session;
+  const exerciseRecord = (_session, _i, e) => {
+    if (!session.exercises[0]) session.exercises[0] = { name: e.name, warmups: [], warmupsInitialized: false };
+    return session.exercises[0];
+  };
+  const migrateSet = (x, type) => { x.type = type; x.status = x.status || (x.done ? "completed" : "planned"); return x; };
+  const rows = productionFunction("function warmupRows", "function warmupRecord", ["getSession", "exerciseRecord", "warmups", "wud", "migrateSet", "warmupWasIntentionallyEmpty", "warmupCanBeAdded"], [getSession, exerciseRecord, warmups, () => ({}), migrateSet, intentional, warmupCanBeAdded]);
+  const exercise = { name: "Back Squat", warm: "squat" };
+  assert.deepEqual(rows("Monday", 0, exercise, ""), []);
+  assert.equal(session.exercises[0].warmupInitializationReason, "deferred-no-load");
+  assert.deepEqual(rows("Monday", 0, exercise, 205).map(x => [x.weight, x.reps]), [[45, 9], [135, 5], [170, 3]]);
+  session.exercises[0].warmups = [];
+  session.exercises[0].warmupsInitialized = false;
+  session.exercises[0].warmupsSkipped = true;
+  assert.deepEqual(rows("Monday", 0, exercise, 205), []);
+  assert.equal(session.exercises[0].warmupInitializationReason, "skipped");
+  assert.equal(session.exercises[0].warmupsExplicitEmpty, true);
+});
+
+test("draft-only treadmill recovery leaves completed sessions and snapshots unchanged", () => {
+  const program = { Monday: { generalWarmup: { type: "treadmill", durationMin: 5 }, exercises: [{}] } };
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const repair = productionFunction("function repairActiveWarmupGuidance", "function generalWarmupPlan", ["PROGRAM", "planForDay", "cloneValue"], [program, d => program[d], clone]);
+  const snapshot = { exercises: [{}] };
+  const draft = { status: "draft", programSnapshot: clone(snapshot) };
+  repair(draft, "Monday");
+  assert.deepEqual(draft.programSnapshot, snapshot);
+  assert.equal(draft.generalWarmup.type, "treadmill");
+  const saved = { status: "saved", programSnapshot: clone(snapshot) };
+  repair(saved, "Monday");
+  assert.equal(saved.generalWarmup, undefined);
+});
+
+test("working sets and warm-ups remain separate for export/volume accounting", () => {
+  const session = { exercises: { "0": { warmups: [{ type: "warmup", weight: 45, reps: 8, done: true }], actual: [{ type: "working", weight: 205, reps: 5, done: true }] } } };
+  const working = Object.values(session.exercises).flatMap(ex => (ex.actual || []).filter(set => set.type === "working" && set.done));
+  const warm = Object.values(session.exercises).flatMap(ex => (ex.warmups || []).filter(set => set.type === "warmup" && set.done));
+  assert.equal(working.length, 1);
+  assert.equal(warm.length, 0 + 0); // warm-ups are intentionally excluded from working volume
+  assert.equal(warm.length, 1); // but remain available to export separately
+  assert.notEqual(working[0], warm[0]);
+  assert.match(html, /warmups:/);
+  assert.match(html, /actual:/);
+});
+
+test("inline workout script parses before any browser execution", () => {
+  const scripts = [...html.matchAll(/<script(?:[^>]*)>([\\s\\S]*?)<\\/script>/g)].map(match => match[1]).filter(source => source && !/\\bimport\\s/.test(source));
+  assert.ok(scripts.length > 0);
+  scripts.forEach(source => assert.doesNotThrow(() => Function(source)));
+});
