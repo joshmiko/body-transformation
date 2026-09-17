@@ -223,8 +223,17 @@ test("working sets and warm-ups remain separate for export/volume accounting", (
   assert.match(html, /actual:/);
 });
 
-test("inline workout script parses before any browser execution", () => {
-  const scripts = [...html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)].map(match => match[1]).filter(source => source && !/\bimport\s/.test(source));
-  assert.ok(scripts.length > 0);
-  scripts.forEach(source => assert.doesNotThrow(() => Function(source)));
+test("all inline workout scripts parse before browser execution", () => {
+  const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)]
+    .map(match => ({ attrs: match[1], source: match[2] }))
+    .filter(item => item.source.trim());
+  assert.ok(scripts.length >= 2);
+  scripts.forEach(({ attrs, source }) => {
+    const withoutStaticImports = source.replace(/^\s*import\s+[^;]+;\s*$/gm, "");
+    if (/type\s*=\s*["']module["']/.test(attrs)) {
+      assert.doesNotThrow(() => Function("return async function(){\n" + withoutStaticImports + "\n}"));
+    } else {
+      assert.doesNotThrow(() => Function(withoutStaticImports));
+    }
+  });
 });
