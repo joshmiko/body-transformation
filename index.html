@@ -387,7 +387,7 @@ document.getElementById("bt-static-login")?.addEventListener("click",async(e)=>{
 import * as btSupabase from "./src/supabase-rest.js?v=canonical1";
 window.btSupabase = btSupabase;
 const btSyncIndicator = (state) => {
-  if (!document?.body) return;
+  if (typeof document === "undefined" || !document.body) return;
   let el = document.getElementById("bt-sync-status");
   if (!el) {
     el = document.createElement("div");
