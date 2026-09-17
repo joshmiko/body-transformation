@@ -345,7 +345,9 @@ async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
   const meta = readCanonicalMeta();
   const current = canonicalRecordsFromDb(db, meta);
   const queued = skipQueue ? [] : readCanonicalQueue();
-  const rows = mergeRowsByKey(current, queued).map(row => ({ ...row, user_id: user.id }));
+  const queuedKeys = new Set(queued.map(recordKey));
+  const changed = current.filter(row => queuedKeys.has(recordKey(row)) || !meta.records[recordKey(row)] || meta.records[recordKey(row)].deleted || meta.records[recordKey(row)].fingerprint !== row._fingerprint);
+  const rows = mergeRowsByKey(changed, queued).map(row => ({ ...row, user_id: user.id }));
   if (!rows.length) {
     setSyncStatus("synced", "Synced to cloud");
     return { skipped: false, sessions: 0, checkins: 0, records: 0, offline: false, status: "synced" };
