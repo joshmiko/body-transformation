@@ -384,7 +384,7 @@ document.getElementById("bt-static-login")?.addEventListener("click",async(e)=>{
  try{const r=await fetch("https://ncvtnlrogpngaelqgvvt.supabase.co/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:"sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW","Content-Type":"application/json"},body:JSON.stringify({email,password})}),d=await r.json();if(!r.ok)throw new Error(d.error_description||d.msg||"Sign-in failed");localStorage.setItem("bt_supabase_session",JSON.stringify(d));status.textContent="Signed in successfully.";document.getElementById("bt-static-auth")?.classList.add("bt-auth-hidden")}catch(err){status.textContent=err?.message||"Sign-in failed."}
 });
 </script><script src="env.js"></script><script type="module">
-import * as btSupabase from "./src/supabase-rest.js?v=canonical1";
+import * as btSupabase from "./src/supabase-rest.js?v=canonical2";
 window.btSupabase = btSupabase;
 let btSyncHideTimer;
 const btSyncIndicator = (state) => {
