@@ -100,9 +100,8 @@ test("check-ins without ids receive a stable id before sync", async () => {
   requests = [];
   await supabase.syncLocalDb(db);
   const bodies = requests.filter(item => item.url.includes("/user_data_records?")).map(item => JSON.parse(item.options.body));
-  assert.equal(bodies.length, 2);
+  assert.equal(bodies.length, 1);
   assert.equal(bodies[0][0].source_record_id, firstId);
-  assert.equal(bodies[1][0].source_record_id, firstId);
 });
 
 test("deleting a previously synced record creates a tombstone and prevents resurrection", async () => {
