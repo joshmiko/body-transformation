@@ -54,6 +54,8 @@ test("expired access token refreshes once and retries the request", async () => 
   const restRequests = requests.filter(item => item.url.includes("/rest/v1/"));
   assert.equal(restRequests.length, 2);
   assert.match(restRequests[1].options.headers.Authorization, /fresh-token/);
+  const refreshed = JSON.parse(localStorage.getItem("bt_supabase_session"));
+  assert.ok(refreshed.expires_at > Math.floor(Date.now() / 1000) + 3000);
 });
 
 test("refresh failure is bounded and reports sign-in required", async () => {
@@ -104,6 +106,22 @@ test("check-ins without ids receive a stable id before sync", async () => {
   assert.equal(bodies[0][0].source_record_id, firstId);
 });
 
+
+test("first rehydration preserves a newer same-id local record when metadata is absent", async () => {
+  reset();
+  localStorage.setItem("bt_supabase_session", JSON.stringify(session({ access_token: "valid-token", expires_at: Math.floor(Date.now() / 1000) + 3600 })));
+  const local = { sessions: { "session-1": { id: "session-1", programDay: "Monday", sessionNote: "new local edit", updatedAt: "2026-09-12T19:00:00.000Z" } }, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] };
+  fetchImpl = async (url, options = {}) => {
+    requests.push({ url: String(url), options });
+    if (String(url).includes("user_data_records?select=")) {
+      return { ok: true, status: 200, json: async () => [{ record_type: "workout_session", source_record_id: "session-1", payload: { id: "session-1", programDay: "Monday", sessionNote: "older cloud" }, updated_at: "2026-09-12T18:00:00.000Z" }], text: async () => "" };
+    }
+    return { ok: true, status: 200, json: async () => [], text: async () => "" };
+  };
+  const merged = await supabase.rehydrateLocalDb(local);
+  assert.equal(merged.sessions["session-1"].sessionNote, "new local edit");
+});
+
 test("deleting a previously synced record creates a tombstone and prevents resurrection", async () => {
   reset();
   localStorage.setItem("bt_supabase_session", JSON.stringify(session({ access_token: "valid-token", expires_at: Math.floor(Date.now() / 1000) + 3600 })));
@@ -144,5 +162,7 @@ test("a change made during sync gets a follow-up attempt", async () => {
   const second = supabase.syncLocalDb(db);
   release();
   await Promise.all([first, second]);
-  assert.equal(requests.filter(item => item.url.includes("/user_data_records?")).length, 2);
+  const posts = requests.filter(item => item.url.includes("/user_data_records?"));
+  assert.equal(posts.length, 2);
+  assert.equal(JSON.parse(posts[1].options.body)[0].payload.sessionNote, "second");
 });
