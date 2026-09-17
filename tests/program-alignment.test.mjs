@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const source = JSON.parse(fs.readFileSync(path.join(root, "program.json"), "utf8"));
-const embeddedMatch = html.match(/const PROGRAM=(\{[\s\S]*\}),PROGRAM_VERSION="13\.0";/);
+const embeddedMatch = html.match(/const PROGRAM=(\{[\s\S]*\}),PROGRAM_VERSION="13\.1-trial";/);
 assert.ok(embeddedMatch, "embedded current program should be present");
 const embedded = JSON.parse(embeddedMatch[1]);
 
@@ -29,10 +29,12 @@ test("Monday prescription and title are exact", () => {
 
 test("Friday places timed Dead Hang immediately after Pull-Ups", () => {
   const names = source.Friday.exercises.map(x => x.name);
-  assert.deepEqual(names, ["Deadlift", "Pull-Ups", "Dead Hang", "Incline DB Bench", "Cable Row", "Walking Lunge", "DB Curl"]);
+  assert.deepEqual(names, ["Deadlift", "Pull-Ups", "Dead Hang", "Incline DB Bench", "Cable Row", "Walking Lunge", "DB Curl", "Rope Overhead Cable Triceps Extension"]);
   const hang = source.Friday.exercises[2];
   assert.deepEqual([hang.sets, hang.min, hang.max, hang.rest, hang.unit], [2, 20, 45, 60, "sec"]);
   assert.match(hang.cue, /5–10 seconds in reserve/);
+  const triceps = source.Friday.exercises.at(-1);
+  assert.deepEqual([triceps.sets, triceps.min, triceps.max, triceps.rest, triceps.warm, triceps.loadType], [2, 10, 15, 75, "cable", "cable"]);
 });
 
 test("Saturday is the full-body hypertrophy template and stale exercises are absent", () => {
@@ -40,12 +42,14 @@ test("Saturday is the full-body hypertrophy template and stale exercises are abs
   assert.deepEqual(source.Saturday.exercises.map(x => [x.name, x.sets, x.min, x.max, x.rest]), [
     ["Leg Press", 3, 8, 12, 120],
     ["Barbell Romanian Deadlift", 2, 8, 10, 120],
+    ["Seated Leg Curl", 2, 10, 15, 75],
     ["DB Shoulder Press", 3, 8, 12, 120],
     ["DB Flat Bench", 2, 8, 12, 120],
     ["DB Lateral Raise", 2, 12, 20, 60],
     ["Calf Raise", 2, 12, 20, 60]
   ]);
   const stale = ["Walking Lunge", "DB Romanian Deadlift", "Dead Hang"];
+  assert.equal(source.Saturday.exercises.find(x => x.name === "Seated Leg Curl")?.warm, "machine");
   assert.equal(stale.some(name => source.Saturday.exercises.some(x => x.name === name)), false);
 });
 
