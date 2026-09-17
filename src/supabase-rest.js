@@ -86,7 +86,9 @@ async function refreshSession({ force = false } = {}) {
       setSyncStatus("sign-in-needed", error.message);
       throw error;
     }
-    return writeSession({ ...current, ...payload, refresh_token: payload.refresh_token || current.refresh_token, user: payload.user || current.user });
+    const refreshed = { ...current, ...payload, refresh_token: payload.refresh_token || current.refresh_token, user: payload.user || current.user };
+    if (payload.expires_in && !payload.expires_at) delete refreshed.expires_at;
+    return writeSession(refreshed);
   })().finally(() => { refreshInFlight = null; });
   return refreshInFlight;
 }
@@ -387,7 +389,7 @@ async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
 }
 
 function localRecordStamp(record) {
-  return Date.parse(record?.updatedAt || record?.createdAt || record?.finished || record?.endedAt || record?.date || "") || 0;
+  return Date.parse(record?.updatedAt || record?.createdAt || record?.finished || record?.endedAt || record?.startedAt || record?.date || "") || 0;
 }
 
 function localRowFor(db, row) {
@@ -446,6 +448,7 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
     const localFp = local ? fingerprint(local) : null;
     const known = meta.records[key];
     if (known?.deleted && cloudStamp <= (Date.parse(known.updated_at || "") || 0)) return;
+    if (!known && local && !pendingRow && localRecordStamp(local) >= cloudStamp) return;
     const localDirty = Boolean(local && known && !known.deleted && known.fingerprint !== localFp);
     if (pendingRow && pendingStamp >= cloudStamp) return;
     if (localDirty) return;
