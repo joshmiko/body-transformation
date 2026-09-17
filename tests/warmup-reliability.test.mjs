@@ -192,6 +192,9 @@ test("active warm-up lifecycle defers, generates, and preserves skipped-empty in
   assert.deepEqual(rows("Monday", 0, exercise, 205), []);
   assert.equal(session.exercises[0].warmupInitializationReason, "skipped");
   assert.equal(session.exercises[0].warmupsExplicitEmpty, true);
+  const restore = productionFunction("function restoreWarmupGuidance", "function addWarmup", ["getSession", "sessionProgram", "exerciseRecord", "startWeight", "sets", "warmupRows", "save", "render"], [getSession, () => ({ exercises: [exercise] }), exerciseRecord, () => 205, () => [], rows, () => {}, () => {}]);
+  restore("Monday", 0);
+  assert.deepEqual(session.exercises[0].warmups.map(x => [x.weight, x.reps]), [[45, 9], [135, 5], [170, 3]]);
 });
 
 test("draft-only treadmill recovery leaves completed sessions and snapshots unchanged", () => {
@@ -213,7 +216,7 @@ test("working sets and warm-ups remain separate for export/volume accounting", (
   const working = Object.values(session.exercises).flatMap(ex => (ex.actual || []).filter(set => set.type === "working" && set.done));
   const warm = Object.values(session.exercises).flatMap(ex => (ex.warmups || []).filter(set => set.type === "warmup" && set.done));
   assert.equal(working.length, 1);
-  assert.equal(warm.length, 0 + 0); // warm-ups are intentionally excluded from working volume
+  assert.equal(working.reduce((sum, set) => sum + set.weight * set.reps, 0), 1025); // warm-ups do not enter working volume
   assert.equal(warm.length, 1); // but remain available to export separately
   assert.notEqual(working[0], warm[0]);
   assert.match(html, /warmups:/);
@@ -221,7 +224,7 @@ test("working sets and warm-ups remain separate for export/volume accounting", (
 });
 
 test("inline workout script parses before any browser execution", () => {
-  const scripts = [...html.matchAll(/<script(?:[^>]*)>([\\s\\S]*?)<\\/script>/g)].map(match => match[1]).filter(source => source && !/\\bimport\\s/.test(source));
+  const scripts = [...html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)].map(match => match[1]).filter(source => source && !/\bimport\s/.test(source));
   assert.ok(scripts.length > 0);
   scripts.forEach(source => assert.doesNotThrow(() => Function(source)));
 });
