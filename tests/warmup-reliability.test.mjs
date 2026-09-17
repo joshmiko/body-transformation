@@ -121,3 +121,44 @@ test("general warm-up undo, restore, and skip clear stale actual values", () => 
   assert.match(html, /resetGeneralWarmupActual\(g\);g\.status="skipped"/);
   assert.match(html, /resetGeneralWarmupActual\(g\);g\.status="planned"/);
 });
+
+function productionWarmups() {
+  const start = html.indexOf("function warmups(e,w){");
+  const end = html.indexOf("\nfunction warmupCanBeAdded", start);
+  assert.ok(start >= 0 && end > start, "production warmup function should be present");
+  return Function("plateLoad", "return (" + html.slice(start, end) + ")")(plateLoad);
+}
+
+test("production warm-up generation matches Monday, Friday, and Saturday references", () => {
+  const warmups = productionWarmups();
+  assert.deepEqual(warmups({ name: "Back Squat" }, 205), [[45, 9], [135, 5], [170, 3]]);
+  assert.deepEqual(warmups({ name: "Deadlift" }, 275), [[135, 5], [185, 3], [225, 2], [255, 1]]);
+  assert.deepEqual(warmups({ name: "Barbell Romanian Deadlift" }, 155), [[95, 5], [135, 3]]);
+  assert.deepEqual(warmups({ name: "Leg Press", warm: "legpress", machineBaseWeight: 167 }, 417), [[317, 8]]);
+});
+
+test("eligible warm-ups defer until a load exists and never auto-ramp accessories", () => {
+  const warmups = productionWarmups();
+  assert.deepEqual(warmups({ name: "Back Squat", warm: "squat" }, ""), []);
+  assert.deepEqual(warmups({ name: "Lat Pulldown", warm: "cable" }, 120), []);
+  assert.deepEqual(warmups({ name: "DB Shoulder Press", warm: "db" }, 45), []);
+  assert.match(html, /warmupInitializationReason==="deferred-no-load"/);
+  assert.match(html, /warmupsExplicitEmpty/);
+});
+
+test("legacy active drafts can recover treadmill guidance without rewriting snapshots", () => {
+  assert.match(html, /function repairActiveWarmupGuidance\(session,d\)/);
+  assert.match(html, /session\.status!=="draft"/);
+  assert.match(html, /warmupGuidanceProvenance="recovered-base-program"/);
+  assert.match(html, /snapshot\.generalWarmup\|\|base\?\.generalWarmup/);
+  assert.match(html, /preview-warmup/);
+  assert.match(html, /Ramps available:/);
+});
+
+test("warm-up row actions preserve intentional skips/deletions and offer an empty-state add action", () => {
+  assert.match(html, /warmupWasIntentionallyEmpty\(ex\)/);
+  assert.match(html, /warmupInitializationReason="user-empty"/);
+  assert.match(html, /warmupInitializationReason="user-added"/);
+  assert.match(html, /warmupAddAvailable/);
+  assert.match(html, /Add warm-up set/);
+});
