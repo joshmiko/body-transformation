@@ -143,6 +143,26 @@ test("deleting a previously synced record creates a tombstone and prevents resur
   assert.equal(Object.keys(restored.sessions).length, 0);
 });
 
+
+test("a changed record with a stale legacy timestamp gets a fresh canonical timestamp", async () => {
+  reset();
+  localStorage.setItem("bt_supabase_session", JSON.stringify(session({ access_token: "valid-token", expires_at: Math.floor(Date.now() / 1000) + 3600 })));
+  const db = { sessions: { "session-1": { id: "session-1", programDay: "Monday", sessionNote: "before", updatedAt: "2020-01-01T00:00:00.000Z" } }, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] };
+  fetchImpl = async (url, options = {}) => {
+    requests.push({ url: String(url), options });
+    return { ok: true, status: 200, json: async () => [], text: async () => "" };
+  };
+  await supabase.syncLocalDb(db);
+  db.sessions["session-1"].sessionNote = "after"; // legacy code did not advance updatedAt
+  await supabase.syncLocalDb(db);
+  const posts = requests.filter(item => item.url.includes("/user_data_records?"));
+  assert.equal(posts.length, 2);
+  const first = JSON.parse(posts[0].options.body)[0].updated_at;
+  const second = JSON.parse(posts[1].options.body)[0].updated_at;
+  assert.ok(Date.parse(second) > Date.parse(first));
+  assert.equal(db.sessions["session-1"].updatedAt, "2020-01-01T00:00:00.000Z");
+});
+
 test("a change made during sync gets a follow-up attempt", async () => {
   reset();
   localStorage.setItem("bt_supabase_session", JSON.stringify(session({ access_token: "valid-token", expires_at: Math.floor(Date.now() / 1000) + 3600 })));
