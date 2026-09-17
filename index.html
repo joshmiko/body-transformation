@@ -386,6 +386,22 @@ document.getElementById("bt-static-login")?.addEventListener("click",async(e)=>{
 </script><script src="env.js"></script><script type="module">
 import * as btSupabase from "./src/supabase-rest.js?v=canonical1";
 window.btSupabase = btSupabase;
+const btSyncIndicator = (state) => {
+  if (!document?.body) return;
+  let el = document.getElementById("bt-sync-status");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "bt-sync-status";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    el.style.cssText = "position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:35;pointer-events:none;font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;background:color-mix(in srgb,var(--card) 92%,transparent);color:var(--muted);box-shadow:0 2px 10px rgba(0,0,0,.12);opacity:.9;transition:opacity .2s";
+    document.body.appendChild(el);
+  }
+  el.textContent = state?.message || "";
+  el.style.opacity = state?.state && state.state !== "idle" ? "0.9" : "0";
+};
+btSupabase.subscribeSyncStatus(btSyncIndicator);
+btSyncIndicator(btSupabase.getSyncStatus());
 setTimeout(()=>{if(btSupabase.sessionActive())window.btRehydrateSupabase?.().catch(()=>{})},0);
 document.getElementById("bt-static-login")?.addEventListener("click", async (event) => {
   event.preventDefault();
@@ -462,7 +478,7 @@ let warmupsExpanded={},workoutMenuOpen=false,activeWorkoutDay=null,activeExercis
 function calendarDayName(value=new Date()){return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date(value).getDay()]}
 function calendarDefaultDay(){return calendarDayName(new Date())}
 let selected=calendarDefaultDay();
-function localDateKey(value=new Date()){const d=new Date(value);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}const today=()=>localDateKey();let btSaveTimer;const save=()=>{localStorage.setItem("bt10_db",JSON.stringify(db));const status=document.getElementById("bt-save-status");if(status){status.textContent="Saved";clearTimeout(btSaveTimer);btSaveTimer=setTimeout(()=>{status.textContent="All changes saved"},1200)}const syncPromise=window.btSupabase?.syncLocalDb(db);if(syncPromise?.then)syncPromise.then(result=>{const syncStatus=document.getElementById("bt-save-status");if(syncStatus)syncStatus.textContent=result?.offline?"Saved offline — will retry":"Synced to cloud"}).catch(()=>{const syncStatus=document.getElementById("bt-save-status");if(syncStatus)syncStatus.textContent="Saved offline — will retry"});};
+function localDateKey(value=new Date()){const d=new Date(value);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}const today=()=>localDateKey();let btSaveTimer;const save=()=>{localStorage.setItem("bt10_db",JSON.stringify(db));const syncPromise=window.btSupabase?.syncLocalDb(db);if(syncPromise?.then)syncPromise.then(result=>{const syncStatus=document.getElementById("bt-save-status");if(syncStatus)syncStatus.textContent=result?.status==="sign-in-needed"?"Sign in to sync":result?.offline?"Saved offline — will retry":"Synced to cloud"}).catch(()=>{const syncStatus=document.getElementById("bt-save-status");if(syncStatus)syncStatus.textContent="Saved offline — will retry"});};
 window.btApplySupabaseDb=(merged)=>{if(!merged||typeof merged!=="object")return;db=migrateSessionLifecycle(migrateDb(merged));localStorage.setItem("bt10_db",JSON.stringify(db));home()};
 window.btRehydrateSupabase=async()=>{if(!window.btSupabase?.rehydrateLocalDb)return db;const merged=await window.btSupabase.rehydrateLocalDb(db);if(merged)window.btApplySupabaseDb(merged);return merged};
 let btCalendarDate=new Date().toDateString();
