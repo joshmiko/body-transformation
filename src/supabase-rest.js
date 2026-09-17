@@ -292,7 +292,7 @@ function canonicalRecordsFromDb(localDb, meta = readCanonicalMeta()) {
       source_record_id: key.slice(split + 1),
       occurred_on: null,
       payload: { __deleted: true },
-      updated_at: canonicalStamp(previous.updated_at, now),
+      updated_at: now,
       _fingerprint: "deleted"
     });
   });
@@ -446,6 +446,7 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
     const local = localRowFor(merged, row);
     const localFp = local ? fingerprint(local) : null;
     const known = meta.records[key];
+    if (known?.deleted && cloudStamp <= (Date.parse(known.updated_at || "") || 0)) return;
     const localDirty = Boolean(local && known && !known.deleted && known.fingerprint !== localFp);
     if (pendingRow && pendingStamp >= cloudStamp) return;
     if (localDirty) return;
