@@ -142,7 +142,7 @@ test("eligible warm-ups defer until a load exists and never auto-ramp accessorie
   assert.deepEqual(warmups({ name: "Back Squat", warm: "squat" }, ""), []);
   assert.deepEqual(warmups({ name: "Lat Pulldown", warm: "cable" }, 120), []);
   assert.deepEqual(warmups({ name: "DB Shoulder Press", warm: "db" }, 45), []);
-  assert.match(html, /warmupInitializationReason==="deferred-no-load"/);
+  assert.match(html, /warmupInitializationReason="deferred-no-load"/);
   assert.match(html, /warmupsExplicitEmpty/);
 });
 
