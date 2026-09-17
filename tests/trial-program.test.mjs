@@ -61,7 +61,7 @@ test("Tuesday core is explicit recovery guidance, not a lifting session", () => 
 test("new exercise defaults do not invent load and progression increments remain explicit", () => {
   const defaultsStart = html.indexOf("const defaults=");
   const defaultsEnd = html.indexOf(";\nconst inc=", defaultsStart);
-  const incStart = defaultsEnd + 3;
+  const incStart = html.indexOf("const inc=", defaultsEnd);
   const incEnd = html.indexOf(";\nfunction cloneValue", incStart);
   const defaults = JSON.parse(html.slice(defaultsStart + "const defaults=".length, defaultsEnd));
   const increments = JSON.parse(html.slice(incStart + "const inc=".length, incEnd));
@@ -80,17 +80,24 @@ test("active drafts remain snapshot-owned while new sessions use the current pro
   );
   assert.equal(sessionProgram("Friday").title, "Historical Friday");
   const historicalSnapshot = JSON.parse(JSON.stringify(sessionProgram("Friday")));
-  assert.deepEqual(historicalSnapshot, { programSnapshot: { title: "Historical Friday", exercises: [{ name: "Old exercise" }] } });
+  assert.deepEqual(historicalSnapshot, { title: "Historical Friday", exercises: [{ name: "Old exercise" }] });
   assert.match(html, /programSnapshot:p\?cloneValue\(planForDay\(d\)\|\|null\)/);
 });
 
 test("trial exercises export as normal working sets with their prescribed rest", () => {
-  const start = html.indexOf("function exportExercise(rec,e)");
-  const end = html.indexOf("function exportSession(session)", start);
-  const exportExercise = Function("numericOrNull", "normalizeRir", "normalizeFeel", "return (" + html.slice(start, end) + ")")(
+  const workingStart = html.indexOf("function exportWorkingSet(x,e)");
+  const exerciseStart = html.indexOf("function exportExercise(rec,e)", workingStart);
+  const exportWorkingSet = Function("numericOrNull", "normalizeRir", "normalizeFeel", "return (" + html.slice(workingStart, exerciseStart) + ")")(
     value => value === null || value === undefined || value === "" ? null : Number(value),
     value => value,
     value => value
+  );
+  const end = html.indexOf("function exportSession(session)", exerciseStart);
+  const exportExercise = Function("numericOrNull", "normalizeRir", "normalizeFeel", "exportWorkingSet", "return (" + html.slice(exerciseStart, end) + ")")(
+    value => value === null || value === undefined || value === "" ? null : Number(value),
+    value => value,
+    value => value,
+    exportWorkingSet
   );
   const exported = exportExercise(
     { planned: { sets: 2, min: 10, max: 15, rest: 75 }, actual: [{ weight: 35, reps: 12, done: true, status: "completed" }] },
