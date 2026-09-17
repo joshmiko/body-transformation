@@ -122,13 +122,19 @@ function registerTools(server, supabase) {
     async ({ since, until, maxRecords = 50 }) => {
       const period = parseMaxContextDays(since, until);
       const limit = parseLimit(maxRecords, 50);
-      const rows = await rowsFor(supabase, {
-        types: COACHING_RECORD_TYPES,
+      const datedRows = await rowsFor(supabase, {
+        types: ["workout_session", "checkin", "nutrition_entry", "nutrition_summary", "recovery_activity"],
         limit,
         since: period.since,
         until: period.until
       });
-      const records = visible(rows);
+      // Targets, program state, and reviewed coaching watermark are current-state records
+      // without an occurred_on date, so read them separately without the date predicate.
+      const currentRows = await rowsFor(supabase, {
+        types: ["nutrition_target", "program_state", "coaching_state"],
+        limit
+      });
+      const records = visible([...datedRows, ...currentRows]);
       const workouts = records.filter(item => item.recordType === "workout_session" && isCompletedWorkout(item)).map(item => item.data);
       const checkins = records.filter(item => item.recordType === "checkin").map(item => item.data);
       const nutritionEntries = records.filter(item => item.recordType === "nutrition_entry").map(item => item.data);
