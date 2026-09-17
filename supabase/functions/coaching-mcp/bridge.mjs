@@ -158,6 +158,10 @@ function normalizeSet(raw, kind = "working") {
 
 export function normalizeProgramSnapshot(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const dayKeys = Object.keys(raw).filter(key => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].includes(key));
+  if (dayKeys.length && !Array.isArray(raw.exercises)) {
+    return Object.fromEntries(dayKeys.map(day => [day, normalizeProgramSnapshot(raw[day])]).filter(([, value]) => value));
+  }
   const output = pick(raw, ["schemaVersion", "title", "subtitle", "day", "programDay", "generalWarmup", "notes", "version"]);
   ["title", "subtitle", "day", "programDay", "notes", "version"].forEach(key => {
     if (output[key] !== undefined) output[key] = text(output[key], 300);
