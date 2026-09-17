@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 const storage = new Map();
 globalThis.localStorage = {
@@ -184,4 +186,11 @@ test("a change made during sync gets a follow-up attempt", async () => {
   const posts = requests.filter(item => item.url.includes("/user_data_records?"));
   assert.equal(posts.length, 2);
   assert.equal(JSON.parse(posts[1].options.body)[0].payload.sessionNote, "second");
+});
+
+test("successful sync notice auto-dismisses while pending states remain visible", () => {
+  assert.match(indexHtml, /let btSyncHideTimer/);
+  assert.match(indexHtml, /el\.dataset\.syncState === "synced"/);
+  assert.match(indexHtml, /setTimeout\(\(\) => \{[\s\S]*?el\.style\.opacity = "0"/);
+  assert.match(indexHtml, /nextState === "idle" \? "0" : "0\.9"/);
 });
