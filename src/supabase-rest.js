@@ -93,10 +93,7 @@ async function refreshSession({ force = false } = {}) {
 
 async function authHeaders() {
   const session = readSession();
-  let token = session.access_token || publishableKey;
-  if (session.refresh_token && session.expires_at && Number(session.expires_at) * 1000 <= Date.now() + 30000) {
-    try { token = (await refreshSession()).access_token || token; } catch {}
-  }
+  const token = session.access_token || publishableKey;
   return { apikey: publishableKey, Authorization: "Bearer " + token, "Content-Type": "application/json" };
 }
 
