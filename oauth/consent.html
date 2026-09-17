@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Connect coaching data</title>
+<style>
+:root{color-scheme:dark;--bg:#101214;--card:#1b1f23;--text:#f5f7fa;--muted:#aeb6c0;--accent:#7dd3fc;--danger:#fb7185}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#26323c,#101214 55%);font:16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);display:grid;place-items:center;padding:24px}
+main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,transparent);border:1px solid #30373e;border-radius:20px;padding:24px;box-shadow:0 18px 60px #0008}h1{font-size:25px;line-height:1.15;margin:0 0 10px}p{margin:8px 0;color:var(--muted)}.summary{margin:18px 0;padding:14px;border-radius:14px;background:#111519}.summary strong{display:block;color:var(--text);font-size:17px}.summary small{display:block;color:var(--muted);margin-top:3px}label{display:block;margin:12px 0 5px;font-weight:600}input{width:100%;min-height:48px;padding:12px;border-radius:10px;border:1px solid #46515b;background:#0e1113;color:var(--text);font:inherit}button,.link{min-height:48px;width:100%;border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;text-align:center}button.primary{background:var(--accent);color:#081018}button.secondary{background:#2a3137;color:var(--text)}button.danger{background:transparent;color:var(--danger);border:1px solid #6b2d3c}.actions{display:grid;gap:10px;margin-top:20px}.status{min-height:24px;margin-top:14px;color:var(--muted)}.hidden{display:none!important}.error{color:#fda4af}.link{display:block;margin-top:12px;color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<main>
+<section class="card" aria-live="polite">
+<h1>Connect coaching data</h1>
+<p id="intro">ChatGPT is requesting read-only access to your Body Transformation coaching data.</p>
+<div id="summary" class="summary hidden"></div>
+<div id="auth" class="hidden">
+<p>You are signed out. Sign in to review this request. Your authorization request will stay attached.</p>
+<form id="sign-in">
+<label for="email">Email</label><input id="email" type="email" autocomplete="email" required>
+<label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required>
+<div class="actions"><button class="primary" type="submit">Sign in</button></div>
+</form>
+<a id="open-app" class="link" href="#">Open the app sign-in page</a>
+</div>
+<div id="consent" class="hidden">
+<p>Only your coaching records are shared. Progress photos, tokens, sync queues, and write actions are not included.</p>
+<div class="actions">
+<button id="approve" class="primary" type="button">Approve read-only access</button>
+<button id="deny" class="danger" type="button">Deny</button>
+</div>
+</div>
+<div id="result" class="status"></div>
+</section>
+</main>
+<script src="../env.js"></script>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { readConsentParams, buildSignInReturnUrl, safeClientSummary, redirectUrlFromApproval } from "./consent.mjs";
+
+const config = window.__BT_CONFIG__ || {};
+const supabaseUrl = String(config.supabaseUrl || "https://ncvtnlrogpngaelqgvvt.supabase.co").replace(/\/$/, "");
+const publishableKey = String(config.supabaseAnonKey || "");
+const resultEl = document.getElementById("result");
+const authEl = document.getElementById("auth");
+const consentEl = document.getElementById("consent");
+const summaryEl = document.getElementById("summary");
+let request;
+
+function status(message, error = false) {
+  resultEl.textContent = message || "";
+  resultEl.classList.toggle("error", Boolean(error));
+}
+function show(el, visible) { el.classList.toggle("hidden", !visible); }
+
+async function redirect(result) {
+  const target = redirectUrlFromApproval(result);
+  window.location.assign(target);
+}
+
+async function loadRequest() {
+  try {
+    request = readConsentParams(window.location.search);
+  } catch (error) {
+    status(error.message, true);
+    return;
+  }
+  if (!publishableKey) { status("Supabase configuration is missing.", true); return; }
+  const client = createClient(supabaseUrl, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
+  window.__BT_OAUTH_CLIENT__ = client;
+  const { data: sessionData } = await client.auth.getSession();
+  if (!sessionData?.session) {
+    show(authEl, true);
+    document.getElementById("open-app").href = buildSignInReturnUrl(window.location.href);
+    status("Sign in is required before you can review access.");
+    return;
+  }
+  const { data, error } = await client.auth.oauth.getAuthorizationDetails(request.authorizationId);
+  if (error || !data) { status(error?.message || "This authorization request is no longer available.", true); return; }
+  const summary = safeClientSummary(data);
+  summaryEl.innerHTML = "<strong>" + summary.name.replace(/[&<>]/g, "") + "</strong>" +
+    (summary.origin ? "<small>Request from " + summary.origin.replace(/[&<>]/g, "") + "</small>" : "") +
+    "<small>Read-only coaching records</small>";
+  show(summaryEl, true);
+  show(consentEl, true);
+  document.getElementById("approve").onclick = async () => {
+    status("Approving…");
+    try { await redirect(await client.auth.oauth.approveAuthorization(request.authorizationId)); }
+    catch (error) { status(error.message || "Approval failed. Try again.", true); }
+  };
+  document.getElementById("deny").onclick = async () => {
+    status("Denying…");
+    try { await redirect(await client.auth.oauth.denyAuthorization(request.authorizationId)); }
+    catch (error) { status(error.message || "Denial failed. Try again.", true); }
+  };
+  document.getElementById("sign-in").onsubmit = async (event) => {
+    event.preventDefault();
+    status("Signing in…");
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const { error: signInError } = await client.auth.signInWithPassword({ email, password });
+    if (signInError) { status(signInError.message || "Sign-in failed.", true); return; }
+    show(authEl, false);
+    await loadRequest();
+  };
+}
+loadRequest().catch(error => status(error.message || "Unable to load authorization.", true));
+</script>
+</body>
+</html>
