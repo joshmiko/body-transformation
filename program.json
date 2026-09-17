@@ -174,6 +174,18 @@
         "rest": 60,
         "cue": "Supinated grip; slow eccentric.",
         "warm": "db"
+      },
+      {
+        "name": "Rope Overhead Cable Triceps Extension",
+        "type": "Isolation",
+        "sets": 2,
+        "min": 10,
+        "max": 15,
+        "rest": 75,
+        "cue": "Keep elbows pointed forward; stretch under control and extend without leaning.",
+        "warm": "cable",
+        "loadType": "cable",
+        "unit": "reps"
       }
     ]
   },
@@ -213,6 +225,19 @@
         "rest": 120,
         "cue": "Hinge at the hips; keep the bar close and feel the hamstrings.",
         "warm": "barbell"
+      },
+      {
+        "name": "Seated Leg Curl",
+        "type": "Isolation",
+        "sets": 2,
+        "min": 10,
+        "max": 15,
+        "rest": 75,
+        "cue": "Keep hips down, curl smoothly, and pause briefly without lifting the pelvis.",
+        "warm": "machine",
+        "loadType": "machine",
+        "machine": "Seated leg curl",
+        "unit": "reps"
       },
       {
         "name": "DB Shoulder Press",
@@ -260,10 +285,21 @@
     "Tuesday": {
       "title": "Tuesday — Zone 2 Bike",
       "type": "zone2",
-      "detail": "Steady Zone 2 bike session.",
+      "detail": "Steady Zone 2 bike session. Optional core: Dead Bug — 2 sets of 8–12 per side, about 60 seconds rest. Track this as recovery guidance, not a lifting workout.",
       "durationMin": 30,
       "durationMax": 40,
-      "stepsAverageTarget": 6000
+      "stepsAverageTarget": 6000,
+      "coreGuidance": {
+        "name": "Dead Bug",
+        "type": "anti-extension",
+        "sets": 2,
+        "min": 8,
+        "max": 12,
+        "rest": 60,
+        "unit": "reps-per-side",
+        "cue": "Keep ribs down and move slowly without arching your low back.",
+        "tracking": "recovery-activity-guidance"
+      }
     },
     "Wednesday": {
       "title": "Wednesday — Yoga / Recovery",
