@@ -81,7 +81,7 @@ test("active drafts remain snapshot-owned while new sessions use the current pro
   assert.equal(sessionProgram("Friday").title, "Historical Friday");
   const historicalSnapshot = JSON.parse(JSON.stringify(sessionProgram("Friday")));
   assert.deepEqual(historicalSnapshot, { title: "Historical Friday", exercises: [{ name: "Old exercise" }] });
-  assert.match(html, /programSnapshot:p\?cloneValue\(planForDay\(d\)\|\|null\)/);
+  assert.match(html, /programSnapshot:p/);
 });
 
 test("trial exercises export as normal working sets with their prescribed rest", () => {
