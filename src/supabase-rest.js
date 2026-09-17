@@ -216,7 +216,7 @@ function ensureDbIdentities(localDb) {
   });
   db.checkins = Array.isArray(db.checkins) ? db.checkins : [];
   db.checkins.forEach((item, index) => {
-    if (item && typeof item === "object" && !item.id) item.id = stableId("checkin", item.createdAt || item.date || index);
+    if (item && typeof item === "object" && !item.id) item.id = stableId("checkin", (item.createdAt || item.date || "") + "|" + index);
   });
   db.nutrition = db.nutrition && typeof db.nutrition === "object" ? db.nutrition : {};
   db.nutrition.entries = Array.isArray(db.nutrition.entries) ? db.nutrition.entries : [];
@@ -448,7 +448,7 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
     const known = meta.records[key];
     const localDirty = Boolean(local && known && !known.deleted && known.fingerprint !== localFp);
     if (pendingRow && pendingStamp >= cloudStamp) return;
-    if (localDirty && localRecordStamp(local) > cloudStamp) return;
+    if (localDirty) return;
     if (row.payload && row.payload.__deleted) {
       removeLocalRow(merged, row);
       meta.records[key] = { fingerprint: "deleted", updated_at: row.updated_at || new Date().toISOString(), deleted: true };
