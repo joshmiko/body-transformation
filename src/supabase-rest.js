@@ -263,7 +263,8 @@ function canonicalRecordsFromDb(localDb, meta = readCanonicalMeta()) {
     const fp = fingerprint(payload);
     const previous = meta.records[key];
     const unchanged = previous && previous.fingerprint === fp && !previous.deleted;
-    const stamp = unchanged ? previous.updated_at : canonicalStamp(updatedAt, now);
+    let stamp = unchanged ? previous.updated_at : canonicalStamp(updatedAt, now);
+    if (!unchanged && previous && (Date.parse(stamp) || 0) <= (Date.parse(previous.updated_at || "") || 0)) stamp = now;
     records.push({
       record_type: recordType,
       source_record_id: String(sourceRecordId),
@@ -317,7 +318,6 @@ function markCanonicalSynced(rows, stamp, meta) {
     };
     if (row.localRef && typeof row.localRef === "object") {
       row.localRef.cloudSyncedAt = stamp;
-      row.localRef.updatedAt = row.updated_at || stamp;
     }
   });
 }
