@@ -196,7 +196,7 @@ function canonicalStamp(value, fallback = new Date().toISOString()) {
 
 function canonicalDate(value) {
   const raw = String(value || "").trim();
-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(raw)) return raw;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   const parsed = new Date(raw);
   return Number.isFinite(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : null;
 }
@@ -371,7 +371,7 @@ async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
       status: "synced"
     };
   } catch (error) {
-    const authFailure = error?.code === "AUTH_REQUIRED" || /\\b401\\b|sign-in required/i.test(error?.message || "");
+    const authFailure = error?.code === "AUTH_REQUIRED" || /\b401\b|sign-in required/i.test(error?.message || "");
     if (!skipQueue) writeCanonicalQueue(rows.map(({ localRef, ...row }) => row));
     setSyncStatus(authFailure ? "sign-in-needed" : "pending", authFailure ? "Sign in to sync" : "Saved offline — will retry");
     return {
