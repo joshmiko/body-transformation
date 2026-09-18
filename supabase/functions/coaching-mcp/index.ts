@@ -102,7 +102,7 @@ function registerTools(server, supabase) {
         .maybeSingle();
       if (error) fail("Unable to read workout: " + error.message);
       const item = sanitizeCanonicalRow(data);
-      if (!item) return result({ workout: null, found: false });
+      if (!item || !isCompletedWorkout(item)) return result({ workout: null, found: false });
       const workout = normalizeWorkout(item.data) || item.data;
       return result({ workout, found: true });
     }
