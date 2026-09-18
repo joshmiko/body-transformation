@@ -190,8 +190,9 @@ export function normalizeWorkout(raw) {
   if (raw.generalWarmup && typeof raw.generalWarmup === "object") output.generalWarmup = pick(raw.generalWarmup, ["type", "durationMin", "speedMph", "inclinePercent", "completed"]);
   const exercises = capList(raw.exercises, TOOL_LIMITS.maxExercises).map(exercise => {
     if (!exercise || typeof exercise !== "object") return null;
-    const item = pick(exercise, ["id", "name", "type", "machine", "loadType", "unit", "planned", "completed", "substitution", "unilateral", "exerciseNote", "prescribed"]);
+    const item = pick(exercise, ["id", "name", "type", "machine", "loadType", "unit", "rest", "planned", "completed", "substitution", "unilateral", "exerciseNote", "prescribed"]);
     ["id", "name", "type", "machine", "loadType", "unit", "substitution", "exerciseNote"].forEach(key => { if (item[key] !== undefined) item[key] = text(item[key], key === "exerciseNote" ? 1000 : 200); });
+    if (item.rest !== undefined) item.rest = number(item.rest);
     ["planned", "completed", "unilateral"].forEach(key => { if (item[key] !== undefined) item[key] = Boolean(item[key]); });
     if (exercise.prescribed && typeof exercise.prescribed === "object") item.prescribed = normalizeProgramSnapshot({ exercises: [exercise.prescribed] }).exercises[0];
     const warmups = capList(exercise.warmups ?? exercise.warmupSets, TOOL_LIMITS.maxSets).map(set => normalizeSet(set, "warmup")).filter(Boolean);
