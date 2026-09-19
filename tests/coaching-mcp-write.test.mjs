@@ -33,7 +33,7 @@ const program = {
   },
   Saturday: {
     title: "Lower",
-    exercises: [{ name: "Dead Hang", type: "hang", sets: 2, min: 20, max: 45, unit: "sec" }]
+    exercises: [{ name: "Dead Hang", type: "hang", sets: 2, min: 20, max: 45, rest: 60, unit: "sec" }]
   }
 };
 const guidance = {
