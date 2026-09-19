@@ -271,6 +271,9 @@ export function normalizeProgramState(raw) {
 function normalizeCoachingState(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const output = pick(raw, ["reviewedWatermark", "reviewedAt", "completedAt", "updatedAt"]);
+  const pending = Array.isArray(raw.pendingPackages) ? raw.pendingPackages.filter(item => item && item.reviewed !== true).at(-1) : null;
+  if (pending?.id) output.latestPackageId = text(pending.id, 120);
+  if (pending?.includedThrough) output.latestPackageThrough = timestampOrNull(pending.includedThrough);
   ["reviewedWatermark", "reviewedAt", "completedAt", "updatedAt"].forEach(key => {
     if (output[key] !== undefined) output[key] = timestampOrNull(output[key]) || text(output[key], 120);
   });
