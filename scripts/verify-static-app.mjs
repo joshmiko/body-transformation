@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-const [html, manifest, program, mcpServer, mcpBridge, consentRoute, consentHelper, migration, supabaseConfig] = await Promise.all([
+const [html, manifest, program, mcpServer, mcpBridge, consentRoute, consentHelper, migration, writeMigration, writeBridge, supabaseConfig] = await Promise.all([
   readFile(new URL("../index.html", import.meta.url), "utf8"),
   readFile(new URL("../manifest.json", import.meta.url), "utf8"),
   readFile(new URL("../program.json", import.meta.url), "utf8"),
@@ -9,6 +9,8 @@ const [html, manifest, program, mcpServer, mcpBridge, consentRoute, consentHelpe
   readFile(new URL("../oauth/consent.html", import.meta.url), "utf8"),
   readFile(new URL("../oauth/consent.mjs", import.meta.url), "utf8"),
   readFile(new URL("../supabase/migrations/202609170001_program_state_canonical.sql", import.meta.url), "utf8"),
+  readFile(new URL("../supabase/migrations/202609190001_coaching_bridge_write_queue.sql", import.meta.url), "utf8"),
+  readFile(new URL("../supabase/functions/coaching-mcp/write-bridge.mjs", import.meta.url), "utf8"),
   readFile(new URL("../supabase/config.toml", import.meta.url), "utf8"),
 ]);
 
@@ -49,6 +51,11 @@ if (!consentRoute.includes("getAuthorizationDetails") || !consentRoute.includes(
 if (!consentHelper.includes("authorization_id")) throw new Error("OAuth consent helper is incomplete");
 if (!mcpBridge.includes("sanitizeCanonicalRow") || !mcpBridge.includes("TOOL_LIMITS")) throw new Error("Coaching bridge normalization is missing");
 if (!migration.includes("'program_state'")) throw new Error("Program-state migration is missing");
+if (!writeBridge.includes("validateCoachUpdate")) throw new Error("Coach update validation is missing");
+if (!writeMigration.includes("coaching_update_requests") || !writeMigration.includes("block oauth clients from legacy data")) throw new Error("Coach update write queue migration is missing");
+if ((html.match(/addEventListener\("click",btStaticSignIn\)/g) || []).length !== 1) throw new Error("Sign-in must have exactly one canonical click handler");
+if ((html.match(/addEventListener\("click",btStaticPasskey\)/g) || []).length !== 1) throw new Error("Passkey must have exactly one canonical click handler");
+if (/onclick="btStaticSignIn\(\)"|onclick="btStaticPasskey\(\)"/.test(html)) throw new Error("Sign-in handlers must not be inline");
 if (!supabaseConfig.includes("[functions.coaching-mcp]") || !supabaseConfig.includes("verify_jwt = false")) throw new Error("MCP function discovery config is missing");
 const monday = embeddedProgram.Monday.exercises;
 const restByName = Object.fromEntries(monday.map(ex => [ex.name, ex.rest]));
