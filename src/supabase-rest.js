@@ -543,6 +543,39 @@ export function syncLocalDb(localDb) {
   return syncInFlight;
 }
 
+export function listCoachUpdateRequests(query = "select=*&status=in.(draft,submitted)&order=updated_at.desc") {
+  return request("coaching_update_requests?" + query);
+}
+
+export function getCoachUpdateRequest(id) {
+  return request("coaching_update_requests?id=eq." + encodeURIComponent(id) + "&select=*");
+}
+
+export function reviewCoachUpdateRequest(id, { status, reviewedAt = null, appliedAt = null } = {}) {
+  const allowed = new Set(["approved", "rejected", "applied"]);
+  if (!allowed.has(status)) throw new Error("Invalid coach update review status");
+  const patch = { status };
+  if (reviewedAt) patch.reviewed_at = reviewedAt;
+  if (appliedAt) patch.applied_at = appliedAt;
+  return request("coaching_update_requests?id=eq." + encodeURIComponent(id), {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(patch)
+  });
+}
+
+export function appendCoachUpdateAudit(event) {
+  const value = event && typeof event === "object" ? event : {};
+  const allowed = ["request_id", "event_type", "actor_type", "actor_client_id", "details"];
+  const payload = {};
+  allowed.forEach(key => { if (value[key] !== undefined) payload[key] = value[key]; });
+  return request("coaching_update_audit", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload)
+  });
+}
+
 function storagePath(path) {
   return String(path || "").split("/").filter(Boolean).map(encodeURIComponent).join("/");
 }
