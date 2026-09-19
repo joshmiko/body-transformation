@@ -23,7 +23,7 @@ const program = {
       min: 5,
       max: 8,
       rest: 150,
-      warm: [{ weight: 45, reps: 8 }],
+      warm: "squat",
       unilateral: false,
       substitution: "Leg press",
       unit: "reps",
