@@ -1,4 +1,4 @@
-# Read-only coaching bridge (review release)
+# Staged Supabase coaching bridge (review release)
 
 This branch adds a review-only bridge for ChatGPT Developer Mode. It is intentionally separate from \`main\`: no Edge Function deployment, production migration, or Supabase dashboard change is performed here.
 
@@ -17,13 +17,21 @@ When the user is signed in, Supabase remains the canonical store. The app cache 
 - \`get_coaching_context\`: bounded date window (maximum 366 days) containing workouts, check-ins, nutrition, recovery, current program, and safe coaching watermark.
 - \`get_changes_since\`: bounded timestamp-based incremental reads with a page cursor.
 
-Tools are annotated read-only and never write data. Responses are normalized and capped: progress photos, auth material, sync queues, tombstones, raw pending packages, and unrelated tables are not returned. Unknown fields in canonical payloads are ignored.
+Read tools are annotated read-only. Write tools are explicitly non-destructive and idempotent, require confirmation, validate known optional fields, and write only `coaching_update_requests` plus an audit event. Responses are normalized and capped: progress photos, auth material, sync queues, tombstones, raw pending packages, and unrelated tables are not returned. Unknown fields in canonical payloads are ignored.
 
 ## Program state and history
 
 \`supabase/migrations/202609170001_program_state_canonical.sql\` adds \`program_state\` to the existing canonical record type check. The app's current/future program can be synced under the stable source id \`current\`; each saved workout still carries its immutable \`programSnapshot\`, so historical workouts do not change when a future plan changes. The migration is forward-compatible and is not applied by this review branch.
 
 \`src/supabase-rest.js\` maps \`program_state\` in both directions. If a local \`db.programState\`, \`db.nextWeekProgram\`, or \`globalThis.__BT_PROGRAM_STATE__\` is present, it is queued as a canonical program record. Rehydration restores \`db.nextWeekProgram\` while preserving local unsynced edits.
+
+## Write boundary and review/apply flow
+
+OAuth clients cannot write user_data_records or the legacy workout, nutrition, check-in, or program tables. The staged RLS migration adds a least-privilege queue: OAuth may create a draft and move its own draft to submitted; the signed-in app session is the only actor that can review, approve, reject, and apply it. The app must show a preview and preserve the current program snapshot before applying any program change.
+
+Every request includes a caller-supplied idempotency key, a payload hash, and an optional expected coaching watermark. Repeating a request with the same key and payload is safe; changing the payload returns an idempotency conflict. A stale expected watermark returns a conflict instead of overwriting a newer review. Audit rows record draft and submit events. No tool can edit or delete a completed workout, nutrition history, progress photo, or immutable workout programSnapshot.
+
+The queue migration is intentionally not applied to production in this review release. Before rollout, take a verifiable backup/count snapshot, review Supabase security advisors, apply the migration, deploy the function, and run two-user OAuth/RLS tests. Keep the manual package export/import as an advanced offline/debug fallback until those authenticated tests pass.
 
 ## One-time dashboard steps (future, after review)
 
@@ -34,10 +42,10 @@ Tools are annotated read-only and never write data. Responses are normalized and
 5. Review and apply \`202609170001_program_state_canonical.sql\` after backing up the canonical table.
 6. Deploy the function from a reviewed checkout with \`supabase functions deploy coaching-mcp --no-verify-jwt\`. The middleware performs OAuth discovery and user authentication.
 7. In ChatGPT Developer Mode, add the public function URL: \`https://ncvtnlrogpngaelqgvvt.supabase.co/functions/v1/coaching-mcp\`.
-8. Complete the consent screen, verify the four read-only tools, and revoke the grant in Supabase Auth when no longer needed.
+8. Complete the consent screen, verify the four read tools plus the two queue tools against a test account, and revoke the grant in Supabase Auth when no longer needed.
 
 The browser app needs only the publishable key. No OpenAI API key, database password, personal access token, or service-role secret is required for this bridge.
 
 ## Validation
 
-Run \`npm run ci\` on the branch. A later supervised rollout should additionally use the MCP Inspector/ChatGPT Developer Mode against a test user and verify that a second user cannot see the first user's records. This branch deliberately stops before those external setup steps and before any production write.
+Run \`npm run ci\` on the branch. A later supervised rollout should additionally use the MCP Inspector/ChatGPT Developer Mode against a test user and verify that a second user cannot see the first user's records, that OAuth cannot write canonical tables, and that app review/apply is the only activation path. This branch deliberately stops before those external setup steps and before any production write.
