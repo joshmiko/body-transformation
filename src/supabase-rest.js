@@ -12,6 +12,7 @@ let syncRequested = false;
 let latestSyncDb = null;
 let refreshInFlight = null;
 let rehydrateInFlight = null;
+let canonicalProgramState = null;
 
 export const supabaseConfigured = Boolean(projectUrl && publishableKey);
 
@@ -50,6 +51,11 @@ function setSyncStatus(state, message) {
     try { globalThis.dispatchEvent(new CustomEvent("bt-sync-status", { detail: { ...syncStatus } })); } catch {}
   }
   return { ...syncStatus };
+}
+
+export function setCanonicalProgramState(value) {
+  canonicalProgramState = value && typeof value === "object" ? value : null;
+  return canonicalProgramState;
 }
 
 export function getSyncStatus() {
@@ -282,6 +288,8 @@ function canonicalRecordsFromDb(localDb, meta = readCanonicalMeta()) {
   if (db.nutrition.targets && typeof db.nutrition.targets === "object") add("nutrition_target", "default", db.nutrition.targets, null, db.nutrition.targets.updatedAt || db.nutrition.targets.createdAt, db.nutrition.targets);
   db.recoveryActivities.forEach((item, index) => add("recovery_activity", item?.id || stableId("recovery", index), item, item?.performedDate || item?.date, item?.updatedAt || item?.createdAt || item?.performedDate || item?.date, item));
   if (db.coachSync && typeof db.coachSync === "object") add("coaching_state", "state", db.coachSync, null, db.coachSync.updatedAt || db.coachSync.createdAt, db.coachSync);
+  const programState = canonicalProgramState || globalThis.__BT_PROGRAM_STATE__ || db.programState || (db.nextWeekProgram ? { schemaVersion: 1, source: "app", currentProgram: db.nextWeekProgram } : null);
+  if (programState) add("program_state", "current", programState, null, programState.updatedAt, programState);
   const present = new Set(records.map(recordKey));
   Object.entries(meta.records || {}).forEach(([key, previous]) => {
     if (present.has(key) || previous.deleted) return;
@@ -405,6 +413,7 @@ function localRowFor(db, row) {
   if (list) return list.find(item => String(item?.id || item?.sourceRecordId || "") === id) || null;
   if (row.record_type === "nutrition_target") return db.nutrition.targets || null;
   if (row.record_type === "coaching_state") return db.coachSync || null;
+  if (row.record_type === "program_state") return db.programState || null;
   return null;
 }
 
@@ -424,6 +433,7 @@ function removeLocalRow(db, row) {
     for (let i = list.length - 1; i >= 0; i--) if (String(list[i]?.id || list[i]?.sourceRecordId || "") === id) list.splice(i, 1);
   } else if (row.record_type === "nutrition_target") delete db.nutrition.targets;
   else if (row.record_type === "coaching_state") delete db.coachSync;
+  else if (row.record_type === "program_state") delete db.programState;
 }
 
 function mergeRecord(local, row) {
@@ -477,6 +487,11 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
       const i = merged.recoveryActivities.findIndex(item => String(item?.id || item?.sourceRecordId || "") === String(row.source_record_id));
       if (i >= 0) merged.recoveryActivities.splice(i, 1, value); else merged.recoveryActivities.push(value);
     } else if (row.record_type === "coaching_state") merged.coachSync = value;
+    else if (row.record_type === "program_state") {
+      merged.programState = value;
+      const plan = value.currentProgram || value.nextWeekProgram;
+      if (plan) merged.nextWeekProgram = plan;
+    }
     meta.records[key] = { fingerprint: fingerprint(value), updated_at: row.updated_at || new Date().toISOString(), deleted: false };
   });
   writeCanonicalMeta(meta);
@@ -526,6 +541,39 @@ export function syncLocalDb(localDb) {
     return result;
   })().finally(() => { syncInFlight = null; });
   return syncInFlight;
+}
+
+export function listCoachUpdateRequests(query = "select=*&status=in.(draft,submitted)&order=updated_at.desc") {
+  return request("coaching_update_requests?" + query);
+}
+
+export function getCoachUpdateRequest(id) {
+  return request("coaching_update_requests?id=eq." + encodeURIComponent(id) + "&select=*");
+}
+
+export function reviewCoachUpdateRequest(id, { status, reviewedAt = null, appliedAt = null } = {}) {
+  const allowed = new Set(["approved", "rejected", "applied"]);
+  if (!allowed.has(status)) throw new Error("Invalid coach update review status");
+  const patch = { status };
+  if (reviewedAt) patch.reviewed_at = reviewedAt;
+  if (appliedAt) patch.applied_at = appliedAt;
+  return request("coaching_update_requests?id=eq." + encodeURIComponent(id), {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(patch)
+  });
+}
+
+export function appendCoachUpdateAudit(event) {
+  const value = event && typeof event === "object" ? event : {};
+  const allowed = ["request_id", "user_id", "event_type", "actor_type", "actor_client_id", "details"];
+  const payload = {};
+  allowed.forEach(key => { if (value[key] !== undefined) payload[key] = value[key]; });
+  return request("coaching_update_audit", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify(payload)
+  });
 }
 
 function storagePath(path) {

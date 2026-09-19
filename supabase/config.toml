@@ -1,0 +1,4 @@
+# Edge Function discovery is handled by OAuth middleware.
+# The function verifies the caller itself and still enforces Supabase user RLS.
+[functions.coaching-mcp]
+verify_jwt = false
