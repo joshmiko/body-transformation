@@ -566,7 +566,7 @@ export function reviewCoachUpdateRequest(id, { status, reviewedAt = null, applie
 
 export function appendCoachUpdateAudit(event) {
   const value = event && typeof event === "object" ? event : {};
-  const allowed = ["request_id", "event_type", "actor_type", "actor_client_id", "details"];
+  const allowed = ["request_id", "user_id", "event_type", "actor_type", "actor_client_id", "details"];
   const payload = {};
   allowed.forEach(key => { if (value[key] !== undefined) payload[key] = value[key]; });
   return request("coaching_update_audit", {
