@@ -23,6 +23,7 @@ test("bridge contract is user-scoped, read-only, and program-state aware", async
   assert.ok(server.includes("readOnlyHint: false"));
   assert.ok(writeMigration.includes("block oauth clients from legacy data"));
   assert.ok(writeMigration.includes("auth.jwt() ->> 'client_id'"));
+  assert.ok(writeMigration.includes("bt_guard_coaching_update_request"));
   assert.ok(rest.includes("listCoachUpdateRequests"));
   assert.ok(writeBridge.includes("validateCoachUpdate"));
   assert.ok(rest.includes("setCanonicalProgramState"));
