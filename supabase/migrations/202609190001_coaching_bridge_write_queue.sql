@@ -170,6 +170,41 @@ create policy "oauth clients submit coach drafts"
     and status = 'submitted'
   );
 
+-- OAuth clients may only submit an intact draft. This trigger closes the
+-- column-update gap that row-level policies cannot express.
+create or replace function public.bt_guard_coaching_update_request()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $
+begin
+  if (select auth.jwt() ->> 'client_id') is not null then
+    if old.user_id is distinct from new.user_id
+      or old.idempotency_key is distinct from new.idempotency_key
+      or old.schema is distinct from new.schema
+      or old.source_package_id is distinct from new.source_package_id
+      or old.expected_watermark is distinct from new.expected_watermark
+      or old.coach_summary is distinct from new.coach_summary
+      or old.next_week_program is distinct from new.next_week_program
+      or old.target_guidance is distinct from new.target_guidance
+      or old.payload_hash is distinct from new.payload_hash
+      or old.requested_by_client_id is distinct from new.requested_by_client_id
+      or old.created_at is distinct from new.created_at
+      or new.status <> 'submitted'
+      or old.status <> 'draft'
+    then
+      raise exception 'OAuth clients may only submit an unchanged coach-update draft';
+    end if;
+  end if;
+  return new;
+end
+$;
+
+drop trigger if exists coaching_update_requests_guard_oauth on public.coaching_update_requests;
+create trigger coaching_update_requests_guard_oauth
+  before update on public.coaching_update_requests
+  for each row execute procedure public.bt_guard_coaching_update_request();
+
 drop policy if exists "direct sessions read coach update audit" on public.coaching_update_audit;
 create policy "direct sessions read coach update audit"
   on public.coaching_update_audit
