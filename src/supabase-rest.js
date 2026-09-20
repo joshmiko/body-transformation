@@ -382,7 +382,6 @@ async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
     markCanonicalSynced(rows, stamp, meta);
     writeCanonicalMeta(meta);
     if (!skipQueue) writeCanonicalQueue([]);
-    globalThis.localStorage?.setItem("bt10_db", JSON.stringify(db));
     setSyncStatus("synced", "Synced to cloud");
     return {
       skipped: false,
@@ -521,7 +520,6 @@ export async function rehydrateLocalDb(localDb) {
   if (rehydrateInFlight) return rehydrateInFlight;
   rehydrateInFlight = (async () => {
     const db = ensureDbIdentities(localDb);
-    globalThis.localStorage?.setItem("bt10_db", JSON.stringify(db));
     try {
       const rows = await pullCanonicalRecords();
       const merged = mergeCanonicalRecords(db, Array.isArray(rows) ? rows : [], { pendingRows: readCanonicalQueue() });
