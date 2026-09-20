@@ -94,6 +94,7 @@ function safeRequest(row) {
     payloadHash: row.payload_hash,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    requestVersion: row.request_version || 1,
     submittedAt: row.submitted_at || null,
     reviewedAt: row.reviewed_at || null,
     appliedAt: row.applied_at || null
@@ -404,9 +405,10 @@ function registerTools(server, supabase) {
       const now = new Date().toISOString();
       const updated = await context.supabase
         .from("coaching_update_requests")
-        .update({ status: "submitted", submitted_at: now })
+        .update({ status: "submitted", submitted_at: now, request_version: Number(row.request_version || 1) + 1 })
         .eq("id", row.id)
         .eq("status", "draft")
+        .eq("request_version", Number(row.request_version || 1))
         .select("*")
         .single();
       if (updated.error) fail("Unable to submit coach-update draft: " + updated.error.message);
