@@ -13,7 +13,7 @@ export function buildSignInReturnUrl(currentHref) {
 
 export function safeClientSummary(details) {
   const source = details?.data || details || {};
-  const name = String(source.client_name || source.clientName || source.application_name || "ChatGPT").slice(0, 120);
+  const name = String(source.client?.name || source.client_name || source.clientName || source.application_name || "Coaching assistant").slice(0, 120);
   let origin = "";
   try {
     const raw = source.redirect_uri || source.redirectUri || source.redirect_url || "";
@@ -29,3 +29,4 @@ export function redirectUrlFromApproval(result) {
   if (!url) throw new Error("Supabase did not return a safe completion URL.");
   return url;
 }
+

@@ -18,12 +18,16 @@ test("consent summary is bounded and contains no credential material", () => {
   assert.equal(summary.origin, "https://chatgpt.com");
   assert.ok(summary.scopes.every(scope => scope.length <= 80));
   assert.equal(JSON.stringify(summary).includes("private"), false);
+  assert.equal(safeClientSummary({ client: { name: "Body Transformation Coach — Codex" } }).name, "Body Transformation Coach — Codex");
+  assert.equal(safeClientSummary({}).name, "Coaching assistant");
 });
 
-test("static consent route keeps OAuth operations and does not contain tokens", async () => {
+test("static consent route accurately describes read and proposed-update access without exposing tokens", async () => {
   const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
-  for (const marker of ["authorization_id", "getAuthorizationDetails", "approveAuthorization", "denyAuthorization", "Keep"]) {
+  for (const marker of ["authorization_id", "getAuthorizationDetails", "approveAuthorization", "denyAuthorization", "Keep", "create and submit proposed coach updates", "in-app review", "cannot apply a program change"]) {
     assert.ok(html.includes(marker), "missing " + marker);
   }
+  assert.equal(/read-only access|write actions are not included|ChatGPT is requesting/i.test(html), false);
   assert.equal(/access_token|refresh_token|service_role/i.test(html), false);
 });
+

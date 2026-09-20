@@ -14,7 +14,7 @@ main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,tr
 <main>
 <section class="card" aria-live="polite">
 <h1>Connect coaching data</h1>
-<p id="intro">ChatGPT is requesting read-only access to your Body Transformation coaching data.</p>
+<p id="intro">A coaching assistant is requesting access to your Body Transformation coaching data.</p>
 <div id="summary" class="summary hidden"></div>
 <div id="auth" class="hidden">
 <p>You are signed out. Sign in to review this request. Keep this authorization request open; it will stay attached after sign-in.</p>
@@ -26,9 +26,10 @@ main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,tr
 <a id="open-app" class="link" href="#">Open the app sign-in page</a>
 </div>
 <div id="consent" class="hidden">
-<p>Only your coaching records are shared. Progress photos, tokens, sync queues, and write actions are not included.</p>
+<p>This connection can read your workouts, check-ins, nutrition, recovery, and current program. It can create and submit proposed coach updates for your in-app review. It cannot apply a program change or edit completed workouts.</p>
+<p>Progress photos, login credentials, and raw sync queues are not shared.</p>
 <div class="actions">
-<button id="approve" class="primary" type="button">Approve read-only access</button>
+<button id="approve" class="primary" type="button">Approve coaching connection</button>
 <button id="deny" class="danger" type="button">Deny</button>
 </div>
 </div>
@@ -82,7 +83,7 @@ async function loadRequest() {
   const summary = safeClientSummary(data);
   summaryEl.innerHTML = "<strong>" + summary.name.replace(/[&<>]/g, "") + "</strong>" +
     (summary.origin ? "<small>Request from " + summary.origin.replace(/[&<>]/g, "") + "</small>" : "") +
-    "<small>Read-only coaching records</small>";
+    "<small>Read coaching records and propose updates for review</small>";
   show(summaryEl, true);
   show(consentEl, true);
   document.getElementById("approve").onclick = async () => {
@@ -110,3 +111,4 @@ loadRequest().catch(error => status(error.message || "Unable to load authorizati
 </script>
 </body>
 </html>
+
