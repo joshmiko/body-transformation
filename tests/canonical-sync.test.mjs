@@ -82,10 +82,10 @@ test("offline writes queue and retry without creating duplicate keys", async () 
   failNextWrite = true;
   const failed = await supabase.syncLocalDb(db);
   assert.equal(failed.offline, true);
-  assert.ok(JSON.parse(storage.get("bt_supabase_canonical_sync_queue")).length >= 1);
+  assert.ok(JSON.parse(storage.get(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_queue", "user-1"))).length >= 1);
   const retried = await supabase.syncLocalDb(db);
   assert.equal(retried.offline, false);
-  assert.equal(JSON.parse(storage.get("bt_supabase_canonical_sync_queue")).length, 0);
+  assert.equal(JSON.parse(storage.get(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_queue", "user-1"))).length, 0);
   const posts = requests.filter(x => x.url.includes("/user_data_records?"));
   assert.equal(posts.length, 2);
   assert.equal(JSON.parse(posts[0].options.body)[0].source_record_id, JSON.parse(posts[1].options.body)[0].source_record_id);

@@ -5,8 +5,21 @@ const config = globalThis.__BT_CONFIG__ || {
 const projectUrl = String(config.supabaseUrl || "").replace(/\/$/, "");
 const publishableKey = String(config.supabaseAnonKey || "");
 const sessionKey = "bt_supabase_session";
-const canonicalQueueKey = "bt_supabase_canonical_sync_queue";
-const canonicalMetaKey = "bt_supabase_canonical_sync_meta_v2";
+const canonicalQueueKeyPrefix = "bt_supabase_canonical_sync_queue";
+const canonicalMetaKeyPrefix = "bt_supabase_canonical_sync_meta_v2";
+export function accountScopedStorageKey(prefix, userId) {
+  const id = String(userId || "anonymous").trim() || "anonymous";
+  return String(prefix || "bt") + ":" + id;
+}
+function currentAccountId() {
+  return String(readSession().user?.id || "").trim() || "anonymous";
+}
+function canonicalQueueKey() {
+  return accountScopedStorageKey(canonicalQueueKeyPrefix, currentAccountId());
+}
+function canonicalMetaKey() {
+  return accountScopedStorageKey(canonicalMetaKeyPrefix, currentAccountId());
+}
 let syncInFlight = null;
 let syncRequested = false;
 let latestSyncDb = null;
@@ -177,21 +190,21 @@ export function sessionActive() {
 }
 
 function readCanonicalQueue() {
-  const value = safeJson(globalThis.localStorage?.getItem(canonicalQueueKey) || "[]", []);
+  const value = safeJson(globalThis.localStorage?.getItem(canonicalQueueKey()) || "[]", []);
   return Array.isArray(value) ? value : [];
 }
 
 function writeCanonicalQueue(rows) {
-  globalThis.localStorage?.setItem(canonicalQueueKey, JSON.stringify((rows || []).slice(-500)));
+  globalThis.localStorage?.setItem(canonicalQueueKey(), JSON.stringify((rows || []).slice(-500)));
 }
 
 function readCanonicalMeta() {
-  const value = safeJson(globalThis.localStorage?.getItem(canonicalMetaKey) || "{}", {});
+  const value = safeJson(globalThis.localStorage?.getItem(canonicalMetaKey()) || "{}", {});
   return value && typeof value === "object" && value.records && typeof value.records === "object" ? value : { records: {} };
 }
 
 function writeCanonicalMeta(meta) {
-  globalThis.localStorage?.setItem(canonicalMetaKey, JSON.stringify(meta || { records: {} }));
+  globalThis.localStorage?.setItem(canonicalMetaKey(), JSON.stringify(meta || { records: {} }));
 }
 
 function canonicalStamp(value, fallback = new Date().toISOString()) {
@@ -369,7 +382,6 @@ async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
     markCanonicalSynced(rows, stamp, meta);
     writeCanonicalMeta(meta);
     if (!skipQueue) writeCanonicalQueue([]);
-    globalThis.localStorage?.setItem("bt10_db", JSON.stringify(db));
     setSyncStatus("synced", "Synced to cloud");
     return {
       skipped: false,
@@ -508,7 +520,6 @@ export async function rehydrateLocalDb(localDb) {
   if (rehydrateInFlight) return rehydrateInFlight;
   rehydrateInFlight = (async () => {
     const db = ensureDbIdentities(localDb);
-    globalThis.localStorage?.setItem("bt10_db", JSON.stringify(db));
     try {
       const rows = await pullCanonicalRecords();
       const merged = mergeCanonicalRecords(db, Array.isArray(rows) ? rows : [], { pendingRows: readCanonicalQueue() });
