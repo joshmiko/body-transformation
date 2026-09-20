@@ -456,13 +456,40 @@ function migrateSessionLifecycle(out){
  out.sessionSchemaVersion=2;
  return out;
 }
-let db=migrateSessionLifecycle(migrateDb(JSON.parse(localStorage.getItem("bt10_db")||'{"sessions":{},"notes":{},"checkins":[],"programOverrides":{},"lastSync":null,"syncLog":[]}')));localStorage.setItem("bt10_db",JSON.stringify(db));
+const btEmptyDbSeed='{"sessions":{},"notes":{},"checkins":[],"programOverrides":{},"lastSync":null,"syncLog":[]}';
+function btAccountStorageId(userId){
+  const raw=String(userId||window.btSupabase?.currentUser?.()?.id||"").trim();
+  return raw||"anonymous";
+}
+function btDbStorageKey(userId){
+  return "bt10_db_user_"+btAccountStorageId(userId);
+}
+function btReadDbForAccount(userId){
+  if(!localStorage.getItem("bt10_db_unscoped_quarantine_v1")){
+    const legacy=localStorage.getItem("bt10_db");
+    if(legacy){
+      localStorage.setItem("bt10_db_unscoped_quarantine_v1",legacy);
+      localStorage.removeItem("bt10_db");
+    }
+  }
+  const raw=localStorage.getItem(btDbStorageKey(userId))||btEmptyDbSeed;
+  try{return migrateSessionLifecycle(migrateDb(JSON.parse(raw)))}catch{return migrateSessionLifecycle(migrateDb(JSON.parse(btEmptyDbSeed)))}
+}
+function btWriteDbForAccount(value,userId){
+  localStorage.setItem(btDbStorageKey(userId),JSON.stringify(value));
+}
+function btResetForAccount(userId){
+  db=btReadDbForAccount(userId);
+  return db;
+}
+let db=btReadDbForAccount();
+btWriteDbForAccount(db);
 let warmupsExpanded={},workoutMenuOpen=false,activeWorkoutDay=null,activeExerciseIndex=0,sessionClockTimer=null,restTick=null;
 function calendarDayName(value=new Date()){return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date(value).getDay()]}
 function calendarDefaultDay(){return calendarDayName(new Date())}
 let selected=calendarDefaultDay();
-function localDateKey(value=new Date()){const d=new Date(value);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}const today=()=>localDateKey();let btSaveTimer;const save=()=>{try{coachCurrentProgram()}catch{}localStorage.setItem("bt10_db",JSON.stringify(db));const syncPromise=window.btSupabase?.syncLocalDb(db);if(syncPromise?.then)syncPromise.then(result=>{const syncStatus=document.getElementById("bt-save-status");if(syncStatus)syncStatus.textContent=result?.status==="sign-in-needed"?"Sign in to sync":result?.offline?"Saved offline — will retry":"Synced to cloud"}).catch(()=>{const syncStatus=document.getElementById("bt-save-status");if(syncStatus)syncStatus.textContent="Saved offline — will retry"});};
-window.btApplySupabaseDb=(merged)=>{if(!merged||typeof merged!=="object")return;db=migrateSessionLifecycle(migrateDb(merged));localStorage.setItem("bt10_db",JSON.stringify(db));home()};
+function localDateKey(value=new Date()){const d=new Date(value);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}const today=()=>localDateKey();let btSaveTimer;const save=()=>{try{coachCurrentProgram()}catch{}btWriteDbForAccount(db);const syncPromise=window.btSupabase?.syncLocalDb(db);if(syncPromise?.then)syncPromise.then(result=>{const syncStatus=document.getElementById("bt-save-status");if(syncStatus)syncStatus.textContent=result?.status==="sign-in-needed"?"Sign in to sync":result?.offline?"Saved offline — will retry":"Synced to cloud"}).catch(()=>{const syncStatus=document.getElementById("bt-save-status");if(syncStatus)syncStatus.textContent="Saved offline — will retry"});};
+window.btApplySupabaseDb=(merged)=>{if(!merged||typeof merged!=="object")return;db=migrateSessionLifecycle(migrateDb(merged));btWriteDbForAccount(db);home()};
 window.btRehydrateSupabase=async()=>{if(!window.btSupabase?.rehydrateLocalDb)return db;const merged=await window.btSupabase.rehydrateLocalDb(db);if(merged)window.btApplySupabaseDb(merged);return merged};
 let btCalendarDate=new Date().toDateString();
 function refreshForCalendarDay(){
@@ -702,7 +729,7 @@ function home(forceToday=false){
  document.getElementById("app").innerHTML=`<div class="days">${days}</div>${body}<div class="card"><h3>This week's plan</h3>${weekDays.map(d=>{const item=planForDay(d)||activityPlanForDay(d),complete=activityPlanForDay(d)?activityCompleted(d):(d==="Wednesday"?currentWeekYogaCompleted():workoutDayState(d).kind==="completed");return `<div class="history row ${complete?"plan-complete":""}" onclick="selectDay('${d}')"><div><b>${item?.title||d}</b><div class="muted">${d}${activityPlanForDay(d)&&activityPlanForDay(d).type==="zone2"?" • 30–40 min":""}</div></div><span>${complete?"":"›"}</span></div>`}).join("")}</div>`;
 }
 function profile(){nav("nProfile");document.getElementById("app").innerHTML=`<div class="hero"><div class="ey">PROFILE</div><h2>Your profile</h2><div class="muted">Account preferences and sign-in.</div><button class="secondary" style="margin-top:12px" onclick="btSignOut()">Sign out</button></div><div class="card"><h3>Program focus</h3><div class="small">Monday, Friday, and Saturday lifting • Wednesday recovery • 50–55 minute sessions • progressive overload with recovery-aware adjustments.</div></div>`}
-function btSignOut(){localStorage.removeItem("bt_supabase_session");document.getElementById("bt-auth-controls")?.remove();document.getElementById("bt-static-auth")?.classList.remove("bt-auth-hidden");document.getElementById("bt-static-auth")?.classList.remove("bt-auth-hidden");home(true)}
+function btSignOut(){const userId=window.btSupabase?.currentUser?.()?.id||null;if(userId)btWriteDbForAccount(db,userId);window.btSupabase?.signOut?.();db=btReadDbForAccount("anonymous");btWriteDbForAccount(db,"anonymous");document.getElementById("bt-auth-controls")?.remove();document.getElementById("bt-static-auth")?.classList.remove("bt-auth-hidden");home(true)}
 function selectDay(d){previewDay(d)}
 function deleteWorkout(key){if(!confirm("Delete this completed workout? This cannot be undone."))return;delete db.sessions[key];save();progress()}
 function parseDateValue(value){const raw=String(value||"");return /^\d{4}-\d{2}-\d{2}$/.test(raw)?new Date(raw+"T12:00:00"):new Date(raw)}
@@ -860,10 +887,10 @@ function btStaticSignIn(){
  const status=document.getElementById("bt-static-status"),email=document.getElementById("bt-static-email")?.value.trim(),password=document.getElementById("bt-static-password")?.value;
  if(!email||!password){if(status)status.textContent="Enter your email and password.";return}
  if(status)status.textContent="Signing in…";
- fetch("https://ncvtnlrogpngaelqgvvt.supabase.co/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:"sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW","Content-Type":"application/json"},body:JSON.stringify({email,password})}).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error_description||data.msg||"Sign-in failed");localStorage.setItem("bt_supabase_session",JSON.stringify(data));await window.btRehydrateSupabase?.();if(status)status.textContent="Signed in successfully.";btHideLogin();}).catch(error=>{if(status)status.textContent=error.message||"Sign-in failed";});
+ fetch("https://ncvtnlrogpngaelqgvvt.supabase.co/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:"sb_publishable_Omsxr2yIpZG8krgJfZql7A_DPfJnIHW","Content-Type":"application/json"},body:JSON.stringify({email,password})}).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error_description||data.msg||"Sign-in failed");const previousUserId=window.btSupabase?.currentUser?.()?.id||null;localStorage.setItem("bt_supabase_session",JSON.stringify(data));if(previousUserId!==data.user?.id)btResetForAccount(data.user?.id);await window.btRehydrateSupabase?.();if(status)status.textContent="Signed in successfully.";btHideLogin();}).catch(error=>{if(status)status.textContent=error.message||"Sign-in failed";});
 }
 window.btStaticSignIn=btStaticSignIn;
-async function btStaticPasskey(){const status=document.getElementById("bt-static-status");try{const p=window.btPasskeys||await import("./src/passkey-auth.js");const data=await p.signInWithPasskey();localStorage.setItem("bt_supabase_session",JSON.stringify(data));await window.btRehydrateSupabase?.();status.textContent="Signed in successfully.";btHideLogin();}catch(error){status.textContent=error?.message||"Face ID/passkey is not available on this device yet.";}}
+async function btStaticPasskey(){const status=document.getElementById("bt-static-status");try{const p=window.btPasskeys||await import("./src/passkey-auth.js");const data=await p.signInWithPasskey();const previousUserId=window.btSupabase?.currentUser?.()?.id||null;localStorage.setItem("bt_supabase_session",JSON.stringify(data));if(previousUserId!==data.user?.id)btResetForAccount(data.user?.id);await window.btRehydrateSupabase?.();status.textContent="Signed in successfully.";btHideLogin();}catch(error){status.textContent=error?.message||"Face ID/passkey is not available on this device yet.";}}
 document.getElementById("bt-static-login")?.addEventListener("click",btStaticSignIn);
 window.btStaticPasskey=btStaticPasskey;
 document.getElementById("bt-static-passkey")?.addEventListener("click",btStaticPasskey);
