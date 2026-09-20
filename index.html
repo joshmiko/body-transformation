@@ -856,7 +856,6 @@ function applyCoachRequestLocally(row){
  const state=coachSyncState();
  state.appliedRequests=Array.isArray(state.appliedRequests)?state.appliedRequests:[];
  if(!state.appliedRequests.includes(row.id))state.appliedRequests.push(row.id);
- if(row.expected_watermark)state.reviewedWatermark=row.expected_watermark;
  save();
 }
 async function reviewCoachRequest(id,action){
@@ -878,6 +877,9 @@ async function reviewCoachRequest(id,action){
    applyCoachRequestLocally(current);
    const applied=await window.btSupabase.reviewCoachUpdateRequest(row.id,{status:"applied",appliedAt:new Date().toISOString(),expectedVersion:Number(current.request_version)||2});
    await window.btSupabase.appendCoachUpdateAudit({request_id:row.id,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:"applied",actor_type:"app",details:{effectiveDate:nextMonday()}});
+   const appliedState=coachSyncState();
+   if(current.expected_watermark)appliedState.reviewedWatermark=current.expected_watermark;
+   save();
    current=Array.isArray(applied)?applied[0]:applied;
   }
   coachInboxRows=coachInboxRows.map(x=>String(x.id)===String(id)?current:x);
