@@ -22,7 +22,7 @@ begin
       or old.payload_hash is distinct from new.payload_hash
       or old.requested_by_client_id is distinct from new.requested_by_client_id
       or old.created_at is distinct from new.created_at
-      or old.request_version is distinct from new.request_version
+      or new.request_version <> old.request_version + 1
       or new.status <> 'submitted'
       or old.status <> 'draft'
     then
