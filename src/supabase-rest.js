@@ -523,7 +523,6 @@ export async function rehydrateLocalDb(localDb) {
     try {
       const rows = await pullCanonicalRecords();
       const merged = mergeCanonicalRecords(db, Array.isArray(rows) ? rows : [], { pendingRows: readCanonicalQueue() });
-      globalThis.localStorage?.setItem("bt10_db", JSON.stringify(merged));
       await syncLocalDbInternal(merged);
       return merged;
     } catch (error) {
@@ -554,7 +553,7 @@ export function syncLocalDb(localDb) {
   return syncInFlight;
 }
 
-export function listCoachUpdateRequests(query = "select=*&status=in.(draft,submitted)&order=updated_at.desc") {
+export function listCoachUpdateRequests(query = "select=*&status=in.(submitted,approved)&order=updated_at.desc") {
   return request("coaching_update_requests?" + query);
 }
 
@@ -562,16 +561,22 @@ export function getCoachUpdateRequest(id) {
   return request("coaching_update_requests?id=eq." + encodeURIComponent(id) + "&select=*");
 }
 
-export function reviewCoachUpdateRequest(id, { status, reviewedAt = null, appliedAt = null } = {}) {
+export function reviewCoachUpdateRequest(id, { status, reviewedAt = null, appliedAt = null, expectedVersion = null } = {}) {
   const allowed = new Set(["approved", "rejected", "applied"]);
   if (!allowed.has(status)) throw new Error("Invalid coach update review status");
-  const patch = { status };
+  const version = Number(expectedVersion);
+  if (!Number.isInteger(version) || version < 1) throw new Error("A current coach-update version is required.");
+  const patch = { status, request_version: version + 1 };
   if (reviewedAt) patch.reviewed_at = reviewedAt;
   if (appliedAt) patch.applied_at = appliedAt;
-  return request("coaching_update_requests?id=eq." + encodeURIComponent(id), {
+  const filter = "&request_version=eq." + encodeURIComponent(String(version));
+  return request("coaching_update_requests?id=eq." + encodeURIComponent(id) + filter, {
     method: "PATCH",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify(patch)
+  }).then(rows => {
+    if (!Array.isArray(rows) || !rows.length) throw new Error("Coach update changed elsewhere. Refresh and review the latest version.");
+    return rows;
   });
 }
 
