@@ -614,7 +614,7 @@ async function storageRequest(path, options = {}, retryAuth = true) {
 }
 
 export function uploadProgressPhoto(path, blob) {
-  return storageRequest("object/progress-photos/" + storagePath(path), { method: "POST", headers: { "x-upsert": "false" }, body: blob });
+  return storageRequest("object/progress-photos/" + storagePath(path), { method: "POST", headers: { "x-upsert": "true" }, body: blob });
 }
 
 export async function createProgressPhotoSignedUrl(path, expiresIn = 3600) {
