@@ -43,7 +43,8 @@ test("replacement uploads before removing prior cloud object",()=>{
 
 test("legacy local photos are retained and cloud failures are non-blocking",()=>{
   assert.match(app,/syncLegacyProgressPhotosToCloud/);
-  assert.match(app,/localStorage\.setItem\("bt10_db"/);
+  assert.match(app,/btWriteDbForAccount\\(db\\)/);
+  assert.doesNotMatch(app,/localStorage\\.setItem\\(\"bt10_db\"/);
   assert.match(app,/Offline or cloud sync unavailable; local photos remain available/);
   assert.match(app,/Removed on this device; cloud cleanup will retry when connected/);
   assert.match(app,/photo\.cloudStatus="pending"/);
