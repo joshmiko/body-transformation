@@ -31,3 +31,14 @@ test("static consent route accurately describes read and proposed-update access 
   assert.equal(/access_token|refresh_token|service_role/i.test(html), false);
 });
 
+test("signed-out consent registers sign-in before the initial session check can return", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  const handler = html.indexOf('signInForm.addEventListener("submit"');
+  const initialLoad = html.indexOf("loadRequest().catch");
+  const signedOutReturn = html.indexOf('status("Sign in is required before you can review access.")');
+  assert.ok(handler > signedOutReturn, "sign-in handler should be registered outside loadRequest");
+  assert.ok(handler < initialLoad, "sign-in handler must exist before the initial request load");
+  assert.equal((html.match(/createClient\(/g)||[]).length,1,"reuse one Supabase client through sign-in");
+  assert.match(html,/signInWithPassword/);
+  assert.match(html,/await loadRequest\(\)/);
+});
