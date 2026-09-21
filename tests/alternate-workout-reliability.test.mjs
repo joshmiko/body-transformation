@@ -17,7 +17,7 @@ test("alternate completion is explicit and completion-only", () => {
 });
 
 test("alternate completion is idempotent for the same day and date", () => {
-  assert.match(html, /id="alternate_"\+performedDate\+"_\+String\(d\)\.toLowerCase\(\)+"_completion"/);
+  assert.match(html, /id="alternate_"\+performedDate\+"_"\+String\(d\)\.toLowerCase\(\)+"_completion"/);
   assert.match(html, /existing=Object\.values\(db\.sessions\|\|\{\}\)\.find\(s=>s&&s\.id===id\)/);
 });
 
