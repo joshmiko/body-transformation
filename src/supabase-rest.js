@@ -272,6 +272,15 @@ function recordKey(row) {
   return String(row.record_type) + ":" + String(row.source_record_id);
 }
 
+export function isStandaloneWarmupSession(session, sourceRecordId = "") {
+  const id = String(sourceRecordId || session?.id || session?.sessionId || "").trim();
+  return id.startsWith("warm_")
+    || session?.type === "warmup"
+    || session?.warmupChild === true
+    || session?.recordType === "warmup"
+    || session?.sessionType === "warmup";
+}
+
 function canonicalRecordsFromDb(localDb, meta = readCanonicalMeta()) {
   const db = ensureDbIdentities(localDb);
   const records = [];
@@ -294,7 +303,11 @@ function canonicalRecordsFromDb(localDb, meta = readCanonicalMeta()) {
       _fingerprint: fp
     });
   };
-  Object.entries(db.sessions).forEach(([key, session]) => add("workout_session", session?.id || session?.sessionId || key, session, session?.performedDate || session?.date || session?.finished || session?.endedAt, session?.updatedAt || session?.finished || session?.endedAt, session));
+  Object.entries(db.sessions).forEach(([key, session]) => {
+    // Warm-up child/legacy rows are embedded set data, never standalone workout sessions.
+    if (isStandaloneWarmupSession(session, key)) return;
+    add("workout_session", session?.id || session?.sessionId || key, session, session?.performedDate || session?.date || session?.finished || session?.endedAt, session?.updatedAt || session?.finished || session?.endedAt, session);
+  });
   db.checkins.forEach((item, index) => add("checkin", item?.id || item?.sourceRecordId || stableId("checkin", item?.createdAt || item?.date || index), item, item?.date || item?.createdAt, item?.updatedAt || item?.createdAt || item?.date, item));
   db.nutrition.entries.forEach((item, index) => add("nutrition_entry", item?.id || item?.sourceRecordId || stableId("nutrition", index), item, item?.date, item?.updatedAt || item?.createdAt || item?.date, item));
   db.nutrition.dailySummaries.forEach((item, index) => add("nutrition_summary", item?.id || item?.sourceSummaryId || stableId("summary", item?.date || index), item, item?.date, item?.updatedAt || item?.createdAt || item?.date, item));
@@ -305,7 +318,7 @@ function canonicalRecordsFromDb(localDb, meta = readCanonicalMeta()) {
   if (programState) add("program_state", "current", programState, null, programState.updatedAt, programState);
   const present = new Set(records.map(recordKey));
   Object.entries(meta.records || {}).forEach(([key, previous]) => {
-    if (present.has(key) || previous.deleted) return;
+    if (present.has(key) || previous.deleted || key.startsWith("workout_session:warm_")) return;
     const split = key.indexOf(":");
     if (split < 0) return;
     records.push({
@@ -462,6 +475,8 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
   const pending = options.pendingRows || readCanonicalQueue();
   const pendingByKey = new Map(pending.map(row => [recordKey(row), row]));
   (Array.isArray(rows) ? rows : []).forEach(row => {
+    // Ignore historical warm-up child rows on rehydration without deleting them.
+    if (row.record_type === "workout_session" && isStandaloneWarmupSession(row.payload, row.source_record_id)) return;
     const key = recordKey(row);
     const pendingRow = pendingByKey.get(key);
     const cloudStamp = Date.parse(row.updated_at || "") || 0;
