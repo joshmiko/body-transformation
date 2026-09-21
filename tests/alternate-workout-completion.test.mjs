@@ -15,6 +15,7 @@ test("alternate completion path is explicit, completion-only, and does not fabri
   assert.match(html, /alternateWorkout:true,completionOnly:true/);
   assert.match(html, /exercises:{},stats:{workingSets:0,completedSets:0}/);
   assert.match(html, /durationSec:Number.isFinite(durationMin)/);
+  assert.match(html, /alternateWorkout:!!session\.alternateWorkout,completionOnly:!!session\.completionOnly/);
 });
 
 test("alternate completion is idempotent for the same day and date", () => {
