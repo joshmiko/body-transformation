@@ -48,7 +48,11 @@ const resultEl = document.getElementById("result");
 const authEl = document.getElementById("auth");
 const consentEl = document.getElementById("consent");
 const summaryEl = document.getElementById("summary");
+const signInForm = document.getElementById("sign-in");
+const openAppLink = document.getElementById("open-app");
+const client = publishableKey ? createClient(supabaseUrl, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
 let request;
+if (client) window.__BT_OAUTH_CLIENT__ = client;
 
 function status(message, error = false) {
   resultEl.textContent = message || "";
@@ -68,16 +72,17 @@ async function loadRequest() {
     status(error.message, true);
     return;
   }
-  if (!publishableKey) { status("Supabase configuration is missing.", true); return; }
-  const client = createClient(supabaseUrl, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
-  window.__BT_OAUTH_CLIENT__ = client;
+  if (!client) { status("Supabase configuration is missing.", true); return; }
   const { data: sessionData } = await client.auth.getSession();
   if (!sessionData?.session) {
     show(authEl, true);
-    document.getElementById("open-app").href = buildSignInReturnUrl(window.location.href);
+    show(consentEl, false);
+    show(summaryEl, false);
+    openAppLink.href = buildSignInReturnUrl(window.location.href);
     status("Sign in is required before you can review access.");
     return;
   }
+  show(authEl, false);
   const { data, error } = await client.auth.oauth.getAuthorizationDetails(request.authorizationId);
   if (error || !data) { status(error?.message || "This authorization request is no longer available.", true); return; }
   const summary = safeClientSummary(data);
@@ -96,19 +101,18 @@ async function loadRequest() {
     try { await redirect(await client.auth.oauth.denyAuthorization(request.authorizationId)); }
     catch (error) { status(error.message || "Denial failed. Try again.", true); }
   };
-  document.getElementById("sign-in").onsubmit = async (event) => {
-    event.preventDefault();
-    status("Signing in…");
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    const { error: signInError } = await client.auth.signInWithPassword({ email, password });
-    if (signInError) { status(signInError.message || "Sign-in failed.", true); return; }
-    show(authEl, false);
-    await loadRequest();
-  };
 }
+signInForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!client) { status("Supabase configuration is missing.", true); return; }
+  status("Signing in…");
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const { error: signInError } = await client.auth.signInWithPassword({ email, password });
+  if (signInError) { status(signInError.message || "Sign-in failed.", true); return; }
+  await loadRequest();
+});
 loadRequest().catch(error => status(error.message || "Unable to load authorization.", true));
 </script>
 </body>
 </html>
-
