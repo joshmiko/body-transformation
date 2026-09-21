@@ -47,7 +47,7 @@ test("alternate completion is idempotent and remains reachable with a draft", ()
   saveAlternateWorkout("Monday");
   assert.equal(Object.keys(db.sessions).length, 1);
   assert.equal(db.sessions["alternate_2026-09-21_monday_completion"].alternateWorkout, true);
-  assert.equal(db.sessions.alternate_2026-09-21_monday_completion.completionOnly, true);
+  assert.equal(db.sessions["alternate_2026-09-21_monday_completion"].completionOnly, true);
   assert.match(html, /id="alternate_"\+performedDate\+"_"\+String\(d\)\.toLowerCase\(\)/);
   assert.match(html, /id="bt-resume-alternate">Complete as alternate workout/);
 });
