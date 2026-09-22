@@ -41,7 +41,7 @@ main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,tr
 <script src="../env.js"></script>
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { readConsentParams, buildSignInReturnUrl, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, isStaleAuthorizationError, getAuthorizationDetailsOnce } from "./consent.mjs";
+import { readConsentParams, buildSignInReturnUrl, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, isStaleAuthorizationError, getAuthorizationDetailsOnce, accountIdentity, sameAccount } from "./consent.mjs";
 
 const config = window.__BT_CONFIG__ || {};
 const supabaseUrl = String(config.supabaseUrl || "https://ncvtnlrogpngaelqgvvt.supabase.co").replace(/\/$/, "");
@@ -61,7 +61,7 @@ const signInForm = document.getElementById("sign-in");
 const openAppLink = document.getElementById("open-app");
 const client = publishableKey ? createClient(supabaseUrl, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
 let request;
-let lookupState = { accountConfirmed: false, detailsLookupStarted: false };
+let lookupState = { accountConfirmed: false, detailsLookupStarted: false, accountKey: "" };
 if (client) window.__BT_OAUTH_CLIENT__ = client;
 
 function status(message, error = false) {
@@ -86,6 +86,15 @@ async function loadAuthorizationDetails() {
   }
   const identity = safeIdentityLabel(sessionData.session);
   accountLabelEl.textContent = "Signed in as " + identity;
+  if (!sameAccount(lookupState.accountKey, sessionData.session)) {
+    lookupState = { accountConfirmed: false, detailsLookupStarted: false, accountKey: accountIdentity(sessionData.session) };
+    confirmAccountButton.disabled = false;
+    switchAccountButton.disabled = false;
+    switchAccountButton.textContent = "Use another account";
+    accountNoteEl.textContent = "The signed-in account changed. Confirm the current account before continuing.";
+    status("The signed-in account changed. Confirm it before reviewing this request.", true);
+    return;
+  }
   lookupState.accountConfirmed = true;
   switchAccountButton.disabled = true;
   switchAccountButton.textContent = "Account selected";
@@ -107,6 +116,8 @@ async function loadAuthorizationDetails() {
     return;
   }
   const shape = classifyAuthorizationDetails(data);
+  confirmAccountButton.disabled = true;
+  confirmAccountButton.textContent = "Account confirmed";
   if (shape.kind === "invalid") {
     show(accountEl, false);
     show(consentEl, false);
@@ -172,7 +183,7 @@ async function loadRequest() {
   }
   const identity = safeIdentityLabel(sessionData.session);
   accountLabelEl.textContent = "Signed in as " + identity;
-  lookupState = { accountConfirmed: false, detailsLookupStarted: false };
+  lookupState = { accountConfirmed: false, detailsLookupStarted: false, accountKey: accountIdentity(sessionData.session) };
   accountNoteEl.textContent = "Confirm this account before the request is inspected or approved.";
   confirmAccountButton.textContent = "Continue as " + identity;
   confirmAccountButton.disabled = false;
