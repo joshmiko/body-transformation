@@ -25,11 +25,11 @@ test("bridge contract is user-scoped, read-only, and program-state aware", async
   const draft = server.slice(draftStart, submitStart);
   const submit = server.slice(submitStart);
   assert.match(draft, /requireOAuthClient\(jwtClaims\)/);
-  assert.match(draft, /existingByIdempotency\\(supabase/);
-  assert.match(draft, /recordAudit\\(supabase/);
+  assert.match(draft, /existingByIdempotency\(supabase/);
+  assert.match(draft, /recordAudit\(supabase/);
   assert.match(submit, /requireOAuthClient\(jwtClaims\)/);
   assert.match(submit, /from\(\"coaching_update_requests\"\)/);
-  assert.match(submit, /recordAudit\\(supabase/);
+  assert.match(submit, /recordAudit\(supabase/);
   assert.ok(server.includes("idempotencyKey"));
   assert.ok(server.includes("expectedWatermark"));
   assert.ok(server.includes("coaching_update_requests"));
