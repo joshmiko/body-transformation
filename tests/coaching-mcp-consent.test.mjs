@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl } from "../oauth/consent.mjs";
+import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl, isStaleAuthorizationError } from "../oauth/consent.mjs";
 
 test("consent requires authorization_id and preserves it through sign-in fallback", () => {
   assert.throws(() => readConsentParams("?state=abc"), /authorization_id/);
@@ -107,4 +107,28 @@ test("sign-in and load failures use the same redacted error path", async () => {
   assert.doesNotMatch(html, /status\(signInError\.message/);
   assert.doesNotMatch(html, /status\(error\.message/);
   assert.match(html, /other devices remain signed in/);
+});
+
+test("account confirmation gates authorization-details lookup", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  const loadStart = html.indexOf("async function loadRequest()");
+  const loadEnd = html.indexOf("\nswitchAccountButton.addEventListener", loadStart);
+  const loadBody = html.slice(loadStart, loadEnd);
+  assert.match(loadBody, /confirmAccountButton\.onclick/);
+  assert.doesNotMatch(loadBody, /getAuthorizationDetails/);
+  assert.doesNotMatch(loadBody, /approveAuthorization/);
+  assert.doesNotMatch(loadBody, /denyAuthorization/);
+  const detailStart = html.indexOf("async function loadAuthorizationDetails()");
+  const detailEnd = html.indexOf("\n\nasync function loadRequest()", detailStart);
+  assert.match(html.slice(detailStart, detailEnd), /getAuthorizationDetails/);
+});
+
+test("account switching preserves the request and stale authorizations stop with a restart message", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  assert.match(html, /signOut\(\{ scope: "local" \}\)/);
+  assert.match(html, /await loadRequest\(\)/);
+  assert.match(html, /This authorization link is expired or already processed/);
+  assert.equal(isStaleAuthorizationError({ message: "OAuth authorization request expired" }), true);
+  assert.equal(isStaleAuthorizationError({ message: "temporary network failure" }), false);
+  assert.match(html, /authorization_id/);
 });
