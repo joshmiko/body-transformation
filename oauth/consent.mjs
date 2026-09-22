@@ -48,7 +48,7 @@ export function redirectUrlFromApproval(result) {
 export function classifyAuthorizationDetails(value) {
   const source = value?.data || value || {};
   if (source.authorization_id) return { kind: "consent", details: source };
-  if (source.redirect_url || source.redirectUrl) return { kind: "redirect", redirectUrl: validateCompletionUrl(source.redirect_url || source.redirectUrl) };
+  if (source.redirect_url || source.redirectUrl) return { kind: "redirect", redirectUrl: validateCompletionUrl(source.redirect_url || source.redirectUrl), details: source };
   return { kind: "invalid", details: source };
 }
 
