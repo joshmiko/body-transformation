@@ -67,6 +67,11 @@ export function safeClientSummary(details) {
   return { name, origin, scopes };
 }
 
+export function isStaleAuthorizationError(error) {
+  const text = String(error?.message || error?.error_description || error || "").toLowerCase();
+  return /expired|already processed|already used|not found|not pending|invalid authorization|authorization request.*(invalid|missing|expired)/.test(text);
+}
+
 export function safeIdentityLabel(session) {
   const user = session?.user || session?.data?.user || session || {};
   const email = String(user.email || "").trim();
