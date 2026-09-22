@@ -74,6 +74,42 @@ test("workout normalization handles numeric-keyed app exercises and actual worki
   assert.equal(normalized.exercises[0].warmups[0].type, "warmup");
 });
 
+
+test("workout normalization preserves session rest, feel and performed identity fields", () => {
+  const normalized = normalizeWorkout({
+    exercises: [{
+      name: "Squat",
+      planned: true,
+      prescribedExercise: { name: "Back Squat", type: "barbell", sets: 3, min: 5, max: 8 },
+      performedExercise: { name: "Safety Bar Squat", type: "barbell", substitution: "shoulder comfort" },
+      actual: [{
+        weight: 205,
+        reps: 6,
+        feel: "Good",
+        prescribedRestSec: 150,
+        actualRestSec: 142,
+        completedAt: "2026-09-19T15:00:00Z"
+      }, {
+        weight: 205,
+        reps: 5,
+        feel: "Easy",
+        actualRestSec: null
+      }],
+      warmups: [{ weight: 45, reps: 8, feel: "Easy" }]
+    }]
+  });
+  const exercise = normalized.exercises[0];
+  assert.equal(exercise.planned, true);
+  assert.equal(exercise.prescribedExercise.name, "Back Squat");
+  assert.equal(exercise.performedExercise.name, "Safety Bar Squat");
+  assert.equal(exercise.workingSets[0].feel, "Good");
+  assert.equal(exercise.workingSets[0].effort, "Good");
+  assert.equal(exercise.workingSets[0].prescribedRestSec, 150);
+  assert.equal(exercise.workingSets[0].actualRestSec, 142);
+  assert.equal("actualRestSec" in exercise.workingSets[1], false);
+  assert.equal("feel" in exercise.warmups[0], false);
+});
+
 test("legacy array exercises and workingSets remain readable", () => {
   const normalized = normalizeWorkout({
     exercises: [{ name: "Bench", workingSets: [{ weight: 135, reps: 8 }], warmups: [{ weight: 45, reps: 10 }] }]
