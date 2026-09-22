@@ -89,3 +89,22 @@ test("consent source never prints authorization codes or tokens in user-facing e
   assert.doesNotMatch(html, /innerHTML\s*=\s*.*redirect_url/);
   assert.equal(/access_token|refresh_token|client_secret|authorization_code/.test(html), false);
 });
+
+test("already-approved response requires explicit account confirmation before redirect", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  const result = classifyAuthorizationDetails({ redirect_url: "https://chatgpt.com/callback?code=already-approved" });
+  assert.equal(result.kind, "redirect");
+  assert.match(html, /id="continue-approved"/);
+  assert.match(html, /Review the signed-in account before continuing/);
+  assert.match(html, /continueApprovedButton\.onclick/);
+  assert.match(html, /Continue as /);
+});
+
+test("sign-in and load failures use the same redacted error path", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  assert.match(html, /safeOAuthError\(signInError/);
+  assert.match(html, /safeOAuthError\(error, "Unable to load authorization/);
+  assert.doesNotMatch(html, /status\(signInError\.message/);
+  assert.doesNotMatch(html, /status\(error\.message/);
+  assert.match(html, /other devices remain signed in/);
+});
