@@ -7,7 +7,7 @@
 <style>
 :root{color-scheme:dark;--bg:#101214;--card:#1b1f23;--text:#f5f7fa;--muted:#aeb6c0;--accent:#7dd3fc;--danger:#fb7185}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#26323c,#101214 55%);font:16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);display:grid;place-items:center;padding:24px}
-main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,transparent);border:1px solid #30373e;border-radius:20px;padding:24px;box-shadow:0 18px 60px #0008}h1{font-size:25px;line-height:1.15;margin:0 0 10px}p{margin:8px 0;color:var(--muted)}.summary{margin:18px 0;padding:14px;border-radius:14px;background:#111519}.summary strong{display:block;color:var(--text);font-size:17px}.summary small{display:block;color:var(--muted);margin-top:3px}label{display:block;margin:12px 0 5px;font-weight:600}input{width:100%;min-height:48px;padding:12px;border-radius:10px;border:1px solid #46515b;background:#0e1113;color:var(--text);font:inherit}button,.link{min-height:48px;width:100%;border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;text-align:center}button.primary{background:var(--accent);color:#081018}button.secondary{background:#2a3137;color:var(--text)}button.danger{background:transparent;color:var(--danger);border:1px solid #6b2d3c}.actions{display:grid;gap:10px;margin-top:20px}.status{min-height:24px;margin-top:14px;color:var(--muted)}.account{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0;padding:12px;border-radius:12px;background:#111519}.account strong{display:block;color:var(--text)}.account small{display:block;color:var(--muted);margin-top:2px}.account button{width:auto;min-height:40px;padding:8px 10px;font-size:13px}.approved{margin:14px 0;padding:14px;border-radius:14px;background:#111519}.approved strong{display:block;color:var(--text);font-size:17px}.approved p{margin:5px 0 12px}.hidden{display:none!important}.error{color:#fda4af}.link{display:block;margin-top:12px;color:var(--accent);text-decoration:none}
+main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,transparent);border:1px solid #30373e;border-radius:20px;padding:24px;box-shadow:0 18px 60px #0008}h1{font-size:25px;line-height:1.15;margin:0 0 10px}p{margin:8px 0;color:var(--muted)}.summary{margin:18px 0;padding:14px;border-radius:14px;background:#111519}.summary strong{display:block;color:var(--text);font-size:17px}.summary small{display:block;color:var(--muted);margin-top:3px}label{display:block;margin:12px 0 5px;font-weight:600}input{width:100%;min-height:48px;padding:12px;border-radius:10px;border:1px solid #46515b;background:#0e1113;color:var(--text);font:inherit}button,.link{min-height:48px;width:100%;border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;text-align:center}button.primary{background:var(--accent);color:#081018}button.secondary{background:#2a3137;color:var(--text)}button.danger{background:transparent;color:var(--danger);border:1px solid #6b2d3c}.actions{display:grid;gap:10px;margin-top:20px}.status{min-height:24px;margin-top:14px;color:var(--muted)}.account{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0;padding:12px;border-radius:12px;background:#111519}.account strong{display:block;color:var(--text)}.account small{display:block;color:var(--muted);margin-top:2px}.account-actions{display:grid;gap:6px}.account-actions button{width:auto;min-height:40px;padding:8px 10px;font-size:13px}.approved{margin:14px 0;padding:14px;border-radius:14px;background:#111519}.approved strong{display:block;color:var(--text);font-size:17px}.approved p{margin:5px 0 12px}.hidden{display:none!important}.error{color:#fda4af}.link{display:block;margin-top:12px;color:var(--accent);text-decoration:none}
 </style>
 </head>
 <body>
@@ -16,7 +16,7 @@ main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,tr
 <h1>Connect coaching data</h1>
 <p id="intro">A coaching assistant is requesting access to your Body Transformation coaching data.</p>
 <div id="summary" class="summary hidden"></div>
-<div id="account" class="account hidden"><div><strong id="account-label">Signed-in account</strong><small>Only this account can approve the connection.</small></div><button id="switch-account" class="secondary" type="button">Use another account</button></div>
+<div id="account" class="account hidden"><div><strong id="account-label">Signed-in account</strong><small>Confirm this account before the request is inspected or approved.</small></div><div class="account-actions"><button id="confirm-account" class="primary" type="button">Continue as account</button><button id="switch-account" class="secondary" type="button">Use another account</button></div></div>
 <div id="approved" class="approved hidden"><strong>Already approved</strong><p>This connection is already approved for the account above. Review the account before continuing.</p><button id="continue-approved" class="primary" type="button">Continue</button></div>
 <div id="auth" class="hidden">
 <p>You are signed out. Sign in to review this request. Keep this authorization request open; it will stay attached after sign-in.</p>
@@ -41,7 +41,7 @@ main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,tr
 <script src="../env.js"></script>
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { readConsentParams, buildSignInReturnUrl, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel } from "./consent.mjs";
+import { readConsentParams, buildSignInReturnUrl, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, isStaleAuthorizationError } from "./consent.mjs";
 
 const config = window.__BT_CONFIG__ || {};
 const supabaseUrl = String(config.supabaseUrl || "https://ncvtnlrogpngaelqgvvt.supabase.co").replace(/\/$/, "");
@@ -52,6 +52,7 @@ const consentEl = document.getElementById("consent");
 const summaryEl = document.getElementById("summary");
 const accountEl = document.getElementById("account");
 const accountLabelEl = document.getElementById("account-label");
+const confirmAccountButton = document.getElementById("confirm-account");
 const switchAccountButton = document.getElementById("switch-account");
 const approvedEl = document.getElementById("approved");
 const continueApprovedButton = document.getElementById("continue-approved");
@@ -70,6 +71,78 @@ function show(el, visible) { el.classList.toggle("hidden", !visible); }
 async function redirect(result) {
   const target = redirectUrlFromApproval(result);
   window.location.assign(target);
+}
+
+const staleRequestMessage = "This authorization link is expired or already processed. Start a new authentication in Codex; do not reuse this link.";
+
+async function loadAuthorizationDetails() {
+  if (!client || !request) return;
+  const { data: sessionData } = await client.auth.getSession();
+  if (!sessionData?.session) {
+    await loadRequest();
+    return;
+  }
+  const identity = safeIdentityLabel(sessionData.session);
+  accountLabelEl.textContent = "Signed in as " + identity;
+  confirmAccountButton.disabled = true;
+  status("Loading connection details…");
+  const { data, error } = await client.auth.oauth.getAuthorizationDetails(request.authorizationId);
+  confirmAccountButton.disabled = false;
+  if (error) {
+    if (isStaleAuthorizationError(error)) {
+      show(accountEl, false);
+      show(consentEl, false);
+      show(approvedEl, false);
+      show(summaryEl, false);
+      status(staleRequestMessage, true);
+    } else {
+      status(safeOAuthError(error, "Supabase could not load this authorization request."), true);
+    }
+    return;
+  }
+  const shape = classifyAuthorizationDetails(data);
+  if (shape.kind === "invalid") {
+    show(accountEl, false);
+    show(consentEl, false);
+    show(approvedEl, false);
+    show(summaryEl, false);
+    status(staleRequestMessage, true);
+    return;
+  }
+  if (shape.kind === "redirect") {
+    const approvedSummary = safeClientSummary(shape.details || {});
+    summaryEl.innerHTML = "<strong>" + approvedSummary.name.replace(/[&<>]/g, "") + "</strong>" +
+      (approvedSummary.origin ? "<small>Request from " + approvedSummary.origin.replace(/[&<>]/g, "") + "</small>" : "") +
+      "<small>This connection is already approved for this account.</small>";
+    show(summaryEl, true);
+    show(approvedEl, true);
+    continueApprovedButton.textContent = "Continue as " + identity;
+    continueApprovedButton.onclick = async () => {
+      status("Continuing…");
+      try { await redirect({ data: { redirect_url: shape.redirectUrl } }); }
+      catch (error) { status(safeOAuthError(error, "Unable to continue this connection."), true); }
+    };
+    status("Review the signed-in account before continuing.");
+    return;
+  }
+  const summary = safeClientSummary(shape.details);
+  summaryEl.innerHTML = "<strong>" + summary.name.replace(/[&<>]/g, "") + "</strong>" +
+    (summary.origin ? "<small>Request from " + summary.origin.replace(/[&<>]/g, "") + "</small>" : "") +
+    (summary.scopes.length ? "<small>Requested: " + summary.scopes.join(", ").replace(/[&<>]/g, "") + "</small>" : "") +
+    "<small>Read coaching records and propose updates for review</small>";
+  show(summaryEl, true);
+  show(approvedEl, false);
+  show(consentEl, true);
+  document.getElementById("approve").onclick = async () => {
+    status("Approving…");
+    try { await redirect(await client.auth.oauth.approveAuthorization(request.authorizationId)); }
+    catch (error) { status(safeOAuthError(error, "Approval failed. Try again."), true); }
+  };
+  document.getElementById("deny").onclick = async () => {
+    status("Denying…");
+    try { await redirect(await client.auth.oauth.denyAuthorization(request.authorizationId)); }
+    catch (error) { status(safeOAuthError(error, "Denial failed. Try again."), true); }
+  };
 }
 
 async function loadRequest() {
@@ -93,46 +166,12 @@ async function loadRequest() {
   }
   const identity = safeIdentityLabel(sessionData.session);
   accountLabelEl.textContent = "Signed in as " + identity;
+  confirmAccountButton.textContent = "Continue as " + identity;
+  confirmAccountButton.disabled = false;
+  confirmAccountButton.onclick = () => loadAuthorizationDetails().catch(error => status(safeOAuthError(error, "Unable to load authorization."), true));
   show(accountEl, true);
   show(authEl, false);
-  const { data, error } = await client.auth.oauth.getAuthorizationDetails(request.authorizationId);
-  if (error) { status(safeOAuthError(error, "Supabase could not load this authorization request."), true); return; }
-  const shape = classifyAuthorizationDetails(data);
-  if (shape.kind === "redirect") {
-    const approvedSummary = safeClientSummary(shape.details || {});
-    summaryEl.innerHTML = "<strong>" + approvedSummary.name.replace(/[&<>]/g, "") + "</strong>" +
-      (approvedSummary.origin ? "<small>Request from " + approvedSummary.origin.replace(/[&<>]/g, "") + "</small>" : "") +
-      "<small>This connection is already approved for this account.</small>";
-    show(summaryEl, true);
-    show(approvedEl, true);
-    continueApprovedButton.textContent = "Continue as " + identity;
-    continueApprovedButton.onclick = async () => {
-      status("Continuing…");
-      try { await redirect({ data: { redirect_url: shape.redirectUrl } }); }
-      catch (error) { status(safeOAuthError(error, "Unable to continue this connection."), true); }
-    };
-    status("Review the signed-in account before continuing.");
-    return;
-  }
-  if (shape.kind !== "consent") { status("Supabase returned an invalid authorization response.", true); return; }
-  const summary = safeClientSummary(shape.details);
-  summaryEl.innerHTML = "<strong>" + summary.name.replace(/[&<>]/g, "") + "</strong>" +
-    (summary.origin ? "<small>Request from " + summary.origin.replace(/[&<>]/g, "") + "</small>" : "") +
-    (summary.scopes.length ? "<small>Requested: " + summary.scopes.join(", ").replace(/[&<>]/g, "") + "</small>" : "") +
-    "<small>Read coaching records and propose updates for review</small>";
-  show(summaryEl, true);
-  show(approvedEl, false);
-  show(consentEl, true);
-  document.getElementById("approve").onclick = async () => {
-    status("Approving…");
-    try { await redirect(await client.auth.oauth.approveAuthorization(request.authorizationId)); }
-    catch (error) { status(safeOAuthError(error, "Approval failed. Try again."), true); }
-  };
-  document.getElementById("deny").onclick = async () => {
-    status("Denying…");
-    try { await redirect(await client.auth.oauth.denyAuthorization(request.authorizationId)); }
-    catch (error) { status(safeOAuthError(error, "Denial failed. Try again."), true); }
-  };
+  status("Confirm the signed-in account before reviewing this request.");
 }
 switchAccountButton.addEventListener("click", async () => {
   if (!client) { status("Supabase configuration is missing.", true); return; }
