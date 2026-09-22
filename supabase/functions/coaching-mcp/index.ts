@@ -379,7 +379,7 @@ function registerTools(server, supabase, jwtClaims) {
       const requestedExpected = input.expectedWatermark === undefined
         ? undefined
         : normalizeExpectedWatermark(input.expectedWatermark);
-      const query = context.supabase
+      const query = supabase
         .from("coaching_update_requests")
         .select("*")
         .eq("id", input.requestId)
