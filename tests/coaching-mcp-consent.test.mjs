@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl } from "../oauth/consent.mjs";
+import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl, isStaleAuthorizationError, getAuthorizationDetailsOnce, accountIdentity, sameAccount } from "../oauth/consent.mjs";
 
 test("consent requires authorization_id and preserves it through sign-in fallback", () => {
   assert.throws(() => readConsentParams("?state=abc"), /authorization_id/);
@@ -107,4 +107,61 @@ test("sign-in and load failures use the same redacted error path", async () => {
   assert.doesNotMatch(html, /status\(signInError\.message/);
   assert.doesNotMatch(html, /status\(error\.message/);
   assert.match(html, /other devices remain signed in/);
+});
+
+test("account confirmation gates authorization-details lookup", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  const loadStart = html.indexOf("async function loadRequest()");
+  const loadEnd = html.indexOf("\nswitchAccountButton.addEventListener", loadStart);
+  const loadBody = html.slice(loadStart, loadEnd);
+  assert.match(loadBody, /confirmAccountButton\.onclick/);
+  assert.doesNotMatch(loadBody, /getAuthorizationDetails/);
+  assert.doesNotMatch(loadBody, /approveAuthorization/);
+  assert.doesNotMatch(loadBody, /denyAuthorization/);
+  const detailStart = html.indexOf("async function loadAuthorizationDetails()");
+  const detailEnd = html.indexOf("\n\nasync function loadRequest()", detailStart);
+  assert.match(html.slice(detailStart, detailEnd), /getAuthorizationDetails/);
+});
+
+test("account switching preserves the request and stale authorizations stop with a restart message", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  assert.match(html, /signOut\(\{ scope: "local" \}\)/);
+  assert.match(html, /await loadRequest\(\)/);
+  assert.match(html, /This authorization link is expired or already processed/);
+  assert.equal(isStaleAuthorizationError({ message: "OAuth authorization request expired" }), true);
+  assert.equal(isStaleAuthorizationError({ message: "temporary network failure" }), false);
+  assert.match(html, /authorization_id/);
+});
+
+test("stale authorization matcher covers Supabase processing-state failures", () => {
+  assert.equal(isStaleAuthorizationError({ message: "authorization request cannot be processed" }), true);
+});
+
+test("pre-confirm switch then new-account confirmation performs one details lookup", async () => {
+  const calls = [];
+  const client = { auth: { oauth: { getAuthorizationDetails: async id => { calls.push(id); return { data: { authorization_id: id } }; } } } };
+  const state = { accountConfirmed: false, detailsLookupStarted: false };
+  await assert.rejects(() => getAuthorizationDetailsOnce(client, "auth_new_user", state), /Confirm the signed-in account/);
+  state.accountConfirmed = true;
+  await getAuthorizationDetailsOnce(client, "auth_new_user", state);
+  await assert.rejects(() => getAuthorizationDetailsOnce(client, "auth_new_user", state), /already started/);
+  assert.deepEqual(calls, ["auth_new_user"]);
+});
+
+test("session mismatch returns to account choice without performing a lookup", async () => {
+  const calls = [];
+  const client = { auth: { oauth: { getAuthorizationDetails: async id => { calls.push(id); return { data: { authorization_id: id } }; } } } };
+  const state = { accountConfirmed: true, detailsLookupStarted: false };
+  assert.equal(accountIdentity({ user: { id: "account-a" } }), "account-a");
+  assert.equal(sameAccount("account-a", { user: { id: "account-a" } }), true);
+  assert.equal(sameAccount("account-a", { user: { id: "account-b" } }), false);
+  state.accountConfirmed = false;
+  await assert.rejects(() => getAuthorizationDetailsOnce(client, "auth_after_mismatch", state), /Confirm the signed-in account/);
+  assert.deepEqual(calls, []);
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  assert.match(html, /signed-in account changed/);
+  assert.match(html, /sameAccount\(lookupState\.accountKey/);
+  assert.match(html, /confirmAccountButton\.textContent = "Continue as " \+ identity/);
+  assert.match(html, /confirmAccountButton\.textContent = "Account selected"/);
+  assert.match(html, /confirmAccountButton\.textContent = "Account confirmed"/);
 });
