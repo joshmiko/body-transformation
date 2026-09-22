@@ -55,6 +55,97 @@ test("workout normalization keeps program snapshots, warmups, working sets and r
   assert.equal(row.data.programSnapshot.exercises[0].name, "Squat");
 });
 
+test("workout normalization handles numeric-keyed app exercises and actual working sets", () => {
+  const normalized = normalizeWorkout({
+    programDay: "Monday",
+    exercises: {
+      "10": { name: "Tenth", type: "accessory", actual: { "1": { weight: 30, reps: 10 }, "0": { weight: 25, reps: 12 } } },
+      "2": { name: "Second", type: "row", warmups: { "0": { weight: 20, reps: 8 } }, actual: [{ weight: 40, reps: 8 }] },
+      "0": { name: "First", type: "compound", warmupSets: [{ weight: 45, reps: 8 }], actual: { "0": { weight: 100, reps: 5 } }, sets: 3 },
+      "ignored": { name: "Ignored", actual: [{ weight: 1, reps: 1 }] }
+    }
+  });
+  assert.deepEqual(normalized.exercises.map(exercise => exercise.name), ["First", "Second", "Tenth", "Ignored"]);
+  assert.deepEqual(normalized.exercises[0].warmups.map(set => [set.weight, set.reps]), [[45, 8]]);
+  assert.deepEqual(normalized.exercises[0].workingSets.map(set => [set.weight, set.reps]), [[100, 5]]);
+  assert.deepEqual(normalized.exercises[1].workingSets.map(set => [set.weight, set.reps]), [[40, 8]]);
+  assert.deepEqual(normalized.exercises[2].workingSets.map(set => [set.weight, set.reps]), [[25, 12], [30, 10]]);
+  assert.equal(normalized.exercises[0].workingSets[0].type, "working");
+  assert.equal(normalized.exercises[0].warmups[0].type, "warmup");
+});
+
+
+test("workout normalization preserves session rest, feel and performed identity fields", () => {
+  const normalized = normalizeWorkout({
+    exercises: [{
+      name: "Squat",
+      planned: { sets: 3, min: 5, max: 8, unit: "reps", rest: 150, unilateral: false },
+      prescribedExercise: "Back Squat",
+      performedExercise: "Safety Bar Squat",
+      actual: [{
+        weight: 205,
+        reps: 6,
+        feel: "Good",
+        rir: 2,
+        status: "completed",
+        prescribedRestSec: 150,
+        actualRestSec: 142,
+        completedAt: "2026-09-19T15:00:00Z"
+      }, {
+        weight: 205,
+        reps: 5,
+        feel: "Easy",
+        rir: null,
+        status: "skipped",
+        actualRestSec: null
+      }],
+      warmups: [{ weight: 45, reps: 8, feel: "Easy" }]
+    }]
+  });
+  const exercise = normalized.exercises[0];
+  assert.deepEqual(exercise.planned, { sets: 3, min: 5, max: 8, unit: "reps", rest: 150, unilateral: false });
+  assert.equal(exercise.prescribedExercise, "Back Squat");
+  assert.equal(exercise.performedExercise, "Safety Bar Squat");
+  assert.equal(exercise.workingSets[0].feel, "Good");
+  assert.equal(exercise.workingSets[0].effort, "Good");
+  assert.equal(exercise.workingSets[0].rir, 2);
+  assert.equal(exercise.workingSets[0].status, "completed");
+  assert.equal(exercise.workingSets[0].prescribedRestSec, 150);
+  assert.equal(exercise.workingSets[0].actualRestSec, 142);
+  assert.equal(exercise.workingSets[1].feel, "Easy");
+  assert.equal(exercise.workingSets[1].rir, null);
+  assert.equal(exercise.workingSets[1].status, "skipped");
+  assert.equal(exercise.workingSets[1].actualRestSec, null);
+  assert.equal("feel" in exercise.warmups[0], false);
+});
+
+
+test("workout normalization preserves nested general warm-up planning and treadmill actuals", () => {
+  const normalized = normalizeWorkout({
+    generalWarmup: {
+      planned: { type: "treadmill", durationMin: 8, speedMph: 2.8, inclinePercent: 3, unit: "min" },
+      actual: { type: "treadmill", durationMin: 8, speedMph: 3.1, inclinePercent: 4, completed: true, status: "completed" },
+      status: "completed",
+      completedAt: "2026-09-19T14:05:00Z"
+    },
+    exercises: []
+  });
+  assert.equal(normalized.generalWarmup.planned.speedMph, 2.8);
+  assert.equal(normalized.generalWarmup.actual.speedMph, 3.1);
+  assert.equal(normalized.generalWarmup.actual.inclinePercent, 4);
+  assert.equal(normalized.generalWarmup.actual.completed, true);
+  assert.equal(normalized.generalWarmup.status, "completed");
+  assert.equal(normalized.generalWarmup.completedAt, "2026-09-19T14:05:00.000Z");
+});
+
+test("legacy array exercises and workingSets remain readable", () => {
+  const normalized = normalizeWorkout({
+    exercises: [{ name: "Bench", workingSets: [{ weight: 135, reps: 8 }], warmups: [{ weight: 45, reps: 10 }] }]
+  });
+  assert.deepEqual(normalized.exercises[0].workingSets[0].weight, 135);
+  assert.equal(normalized.exercises[0].warmups[0].type, "warmup");
+});
+
 test("deleted and unknown records are not visible", () => {
   assert.equal(sanitizeCanonicalRow({ record_type: "progress_photo", source_record_id: "p", payload: {} }), null);
   assert.equal(sanitizeCanonicalRow({ record_type: "workout_session", source_record_id: "gone", payload: { __deleted: true } }), null);
