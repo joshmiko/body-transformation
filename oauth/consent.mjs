@@ -69,7 +69,14 @@ export function safeClientSummary(details) {
 
 export function isStaleAuthorizationError(error) {
   const text = String(error?.message || error?.error_description || error || "").toLowerCase();
-  return /expired|already processed|already used|not found|not pending|invalid authorization|authorization request.*(invalid|missing|expired)/.test(text);
+  return /expired|already processed|already used|not found|not pending|cannot be processed|invalid authorization|authorization request.*(invalid|missing|expired)/.test(text);
+}
+
+export async function getAuthorizationDetailsOnce(client, authorizationId, state) {
+  if (!state || state.accountConfirmed !== true) throw new Error("Confirm the signed-in account before loading authorization details.");
+  if (state.detailsLookupStarted) throw new Error("Authorization details lookup already started.");
+  state.detailsLookupStarted = true;
+  return client.auth.oauth.getAuthorizationDetails(authorizationId);
 }
 
 export function safeIdentityLabel(session) {
