@@ -151,12 +151,12 @@ function boundedCollection(value, max) {
 function normalizeSet(raw, kind = "working") {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const output = { type: kind === "warmup" ? "warmup" : "working" };
-  const fields = ["id", "setNumber", "order", "status", "planned", "added", "skipped", "unit", "weight", "reps", "repsPerSide", "seconds", "rest", "completedAt", "note"];
+  const fields = ["id", "setNumber", "order", "status", "planned", "added", "skipped", "unit", "weight", "reps", "repsPerSide", "seconds", "rest", "prescribedRestSec", "actualRestSec", "completedAt", "note"];
   fields.forEach(key => {
     if (key === "planned" || key === "added" || key === "skipped") {
       const value = bool(raw[key]);
       if (value !== undefined) output[key] = value;
-    } else if (["weight", "reps", "repsPerSide", "seconds", "rest", "setNumber", "order"].includes(key)) {
+    } else if (["weight", "reps", "repsPerSide", "seconds", "rest", "prescribedRestSec", "actualRestSec", "setNumber", "order"].includes(key)) {
       const value = number(raw[key]);
       if (value !== undefined) output[key] = value;
     } else if (key === "completedAt") {
@@ -168,6 +168,8 @@ function normalizeSet(raw, kind = "working") {
     }
   });
   if (kind !== "warmup") {
+    const feel = text(raw.feel, 40);
+    if (feel !== undefined) output.feel = feel;
     const effort = text(raw.effort ?? raw.feel, 40);
     if (effort !== undefined) output.effort = effort;
     const rir = number(raw.rir);
@@ -215,6 +217,8 @@ export function normalizeWorkout(raw) {
     if (item.rest !== undefined) item.rest = number(item.rest);
     ["planned", "completed", "unilateral"].forEach(key => { if (item[key] !== undefined) item[key] = Boolean(item[key]); });
     if (exercise.prescribed && typeof exercise.prescribed === "object") item.prescribed = normalizeProgramSnapshot({ exercises: [exercise.prescribed] }).exercises[0];
+    if (exercise.prescribedExercise && typeof exercise.prescribedExercise === "object") item.prescribedExercise = normalizeProgramSnapshot({ exercises: [exercise.prescribedExercise] }).exercises[0];
+    if (exercise.performedExercise && typeof exercise.performedExercise === "object") item.performedExercise = normalizeProgramSnapshot({ exercises: [exercise.performedExercise] }).exercises[0];
     const warmups = boundedCollection(exercise.warmups ?? exercise.warmupSets, TOOL_LIMITS.maxSets).map(set => normalizeSet(set, "warmup")).filter(Boolean);
     const workingSource = exercise.actual !== undefined
       ? exercise.actual
