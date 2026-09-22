@@ -128,6 +128,26 @@ function capList(value, max) {
   return Array.isArray(value) ? value.slice(0, max) : [];
 }
 
+function compareCollectionKeys(left, right) {
+  const leftNumber = Number(left);
+  const rightNumber = Number(right);
+  const leftIsNumeric = Number.isInteger(leftNumber) && String(leftNumber) === left;
+  const rightIsNumeric = Number.isInteger(rightNumber) && String(rightNumber) === right;
+  if (leftIsNumeric && rightIsNumeric) return leftNumber - rightNumber;
+  if (leftIsNumeric) return -1;
+  if (rightIsNumeric) return 1;
+  return left.localeCompare(right);
+}
+
+function boundedCollection(value, max) {
+  if (Array.isArray(value)) return value.slice(0, max);
+  if (!value || typeof value !== "object") return [];
+  return Object.keys(value)
+    .sort(compareCollectionKeys)
+    .slice(0, max)
+    .map(key => value[key]);
+}
+
 function normalizeSet(raw, kind = "working") {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const output = { type: kind === "warmup" ? "warmup" : "working" };
@@ -188,15 +208,20 @@ export function normalizeWorkout(raw) {
   ["durationSec", "durationSeconds"].forEach(key => { if (output[key] !== undefined) output[key] = number(output[key]); });
   if (output.programSnapshot) output.programSnapshot = normalizeProgramSnapshot(output.programSnapshot);
   if (raw.generalWarmup && typeof raw.generalWarmup === "object") output.generalWarmup = pick(raw.generalWarmup, ["type", "durationMin", "speedMph", "inclinePercent", "completed"]);
-  const exercises = capList(raw.exercises, TOOL_LIMITS.maxExercises).map(exercise => {
-    if (!exercise || typeof exercise !== "object") return null;
+  const exercises = boundedCollection(raw.exercises, TOOL_LIMITS.maxExercises).map(exercise => {
+    if (!exercise || typeof exercise !== "object" || Array.isArray(exercise)) return null;
     const item = pick(exercise, ["id", "name", "type", "machine", "loadType", "unit", "rest", "planned", "completed", "substitution", "unilateral", "exerciseNote", "prescribed"]);
     ["id", "name", "type", "machine", "loadType", "unit", "substitution", "exerciseNote"].forEach(key => { if (item[key] !== undefined) item[key] = text(item[key], key === "exerciseNote" ? 1000 : 200); });
     if (item.rest !== undefined) item.rest = number(item.rest);
     ["planned", "completed", "unilateral"].forEach(key => { if (item[key] !== undefined) item[key] = Boolean(item[key]); });
     if (exercise.prescribed && typeof exercise.prescribed === "object") item.prescribed = normalizeProgramSnapshot({ exercises: [exercise.prescribed] }).exercises[0];
-    const warmups = capList(exercise.warmups ?? exercise.warmupSets, TOOL_LIMITS.maxSets).map(set => normalizeSet(set, "warmup")).filter(Boolean);
-    const working = capList(exercise.workingSets ?? exercise.sets, TOOL_LIMITS.maxSets).map(set => normalizeSet(set, "working")).filter(Boolean);
+    const warmups = boundedCollection(exercise.warmups ?? exercise.warmupSets, TOOL_LIMITS.maxSets).map(set => normalizeSet(set, "warmup")).filter(Boolean);
+    const workingSource = exercise.actual !== undefined
+      ? exercise.actual
+      : exercise.workingSets !== undefined
+        ? exercise.workingSets
+        : (Array.isArray(exercise.sets) || (exercise.sets && typeof exercise.sets === "object") ? exercise.sets : []);
+    const working = boundedCollection(workingSource, TOOL_LIMITS.maxSets).map(set => normalizeSet(set, "working")).filter(Boolean);
     if (warmups.length) item.warmups = warmups;
     if (working.length) item.workingSets = working;
     return item.name ? item : null;
