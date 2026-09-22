@@ -161,5 +161,7 @@ test("session mismatch returns to account choice without performing a lookup", a
   const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
   assert.match(html, /signed-in account changed/);
   assert.match(html, /sameAccount\(lookupState\.accountKey/);
+  assert.match(html, /confirmAccountButton\.textContent = "Continue as " \+ identity/);
+  assert.match(html, /confirmAccountButton\.textContent = "Account selected"/);
   assert.match(html, /confirmAccountButton\.textContent = "Account confirmed"/);
 });
