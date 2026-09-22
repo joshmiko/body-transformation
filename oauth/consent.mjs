@@ -20,7 +20,7 @@ export function safeOAuthError(error, fallback = "Supabase could not complete th
   if (!raw) return fallback;
   return raw
     .replace(/https?:\/\/\S+/gi, "[redacted URL]")
-    .replace(/\b(?:access_token|refresh_token|client_secret|authorization_code|code|state)=\S+/gi, "$&".replace(/=.*/, "=[redacted]"))
+    .replace(/\b(access_token|refresh_token|client_secret|authorization_code|code|state)=\S+/gi, (_match, key) => key + "=[redacted]")
     .replace(/\b[A-Za-z0-9_-]{48,}\b/g, "[redacted]")
     .slice(0, 240);
 }
