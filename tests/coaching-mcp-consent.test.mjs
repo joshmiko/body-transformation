@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl, isStaleAuthorizationError, getAuthorizationDetailsOnce } from "../oauth/consent.mjs";
+import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl, isStaleAuthorizationError, getAuthorizationDetailsOnce, accountIdentity, sameAccount } from "../oauth/consent.mjs";
 
 test("consent requires authorization_id and preserves it through sign-in fallback", () => {
   assert.throws(() => readConsentParams("?state=abc"), /authorization_id/);
@@ -146,4 +146,20 @@ test("pre-confirm switch then new-account confirmation performs one details look
   await getAuthorizationDetailsOnce(client, "auth_new_user", state);
   await assert.rejects(() => getAuthorizationDetailsOnce(client, "auth_new_user", state), /already started/);
   assert.deepEqual(calls, ["auth_new_user"]);
+});
+
+test("session mismatch returns to account choice without performing a lookup", async () => {
+  const calls = [];
+  const client = { auth: { oauth: { getAuthorizationDetails: async id => { calls.push(id); return { data: { authorization_id: id } }; } } } };
+  const state = { accountConfirmed: true, detailsLookupStarted: false };
+  assert.equal(accountIdentity({ user: { id: "account-a" } }), "account-a");
+  assert.equal(sameAccount("account-a", { user: { id: "account-a" } }), true);
+  assert.equal(sameAccount("account-a", { user: { id: "account-b" } }), false);
+  state.accountConfirmed = false;
+  await assert.rejects(() => getAuthorizationDetailsOnce(client, "auth_after_mismatch", state), /Confirm the signed-in account/);
+  assert.deepEqual(calls, []);
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  assert.match(html, /signed-in account changed/);
+  assert.match(html, /sameAccount\(lookupState\.accountKey/);
+  assert.match(html, /confirmAccountButton\.textContent = "Account confirmed"/);
 });
