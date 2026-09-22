@@ -156,7 +156,12 @@ function normalizeSet(raw, kind = "working") {
     if (key === "planned" || key === "added" || key === "skipped") {
       const value = bool(raw[key]);
       if (value !== undefined) output[key] = value;
-    } else if (["weight", "reps", "repsPerSide", "seconds", "rest", "prescribedRestSec", "actualRestSec", "setNumber", "order"].includes(key)) {
+    } else if (["prescribedRestSec", "actualRestSec"].includes(key)) {
+      if (Object.prototype.hasOwnProperty.call(raw, key)) {
+        const value = raw[key] == null || raw[key] === "" ? null : number(raw[key]);
+        if (value !== undefined || raw[key] == null || raw[key] === "") output[key] = value;
+      }
+    } else if (["weight", "reps", "repsPerSide", "seconds", "rest", "setNumber", "order"].includes(key)) {
       const value = number(raw[key]);
       if (value !== undefined) output[key] = value;
     } else if (key === "completedAt") {
@@ -172,8 +177,10 @@ function normalizeSet(raw, kind = "working") {
     if (feel !== undefined) output.feel = feel;
     const effort = text(raw.effort ?? raw.feel, 40);
     if (effort !== undefined) output.effort = effort;
-    const rir = number(raw.rir);
-    if (rir !== undefined) output.rir = rir;
+    if (Object.prototype.hasOwnProperty.call(raw, "rir")) {
+      const rir = raw.rir == null || raw.rir === "" ? null : number(raw.rir);
+      if (rir !== undefined || raw.rir == null || raw.rir === "") output.rir = rir;
+    }
   }
   return output;
 }
