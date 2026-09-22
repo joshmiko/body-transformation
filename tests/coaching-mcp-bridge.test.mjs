@@ -55,6 +55,33 @@ test("workout normalization keeps program snapshots, warmups, working sets and r
   assert.equal(row.data.programSnapshot.exercises[0].name, "Squat");
 });
 
+test("workout normalization handles numeric-keyed app exercises and actual working sets", () => {
+  const normalized = normalizeWorkout({
+    programDay: "Monday",
+    exercises: {
+      "10": { name: "Tenth", type: "accessory", actual: { "1": { weight: 30, reps: 10 }, "0": { weight: 25, reps: 12 } } },
+      "2": { name: "Second", type: "row", warmups: { "0": { weight: 20, reps: 8 } }, actual: [{ weight: 40, reps: 8 }] },
+      "0": { name: "First", type: "compound", warmupSets: [{ weight: 45, reps: 8 }], actual: { "0": { weight: 100, reps: 5 } }, sets: 3 },
+      "ignored": { name: "Ignored", actual: [{ weight: 1, reps: 1 }] }
+    }
+  });
+  assert.deepEqual(normalized.exercises.map(exercise => exercise.name), ["First", "Second", "Tenth", "Ignored"]);
+  assert.deepEqual(normalized.exercises[0].warmups.map(set => [set.weight, set.reps]), [[45, 8]]);
+  assert.deepEqual(normalized.exercises[0].workingSets.map(set => [set.weight, set.reps]), [[100, 5]]);
+  assert.deepEqual(normalized.exercises[1].workingSets.map(set => [set.weight, set.reps]), [[40, 8]]);
+  assert.deepEqual(normalized.exercises[2].workingSets.map(set => [set.weight, set.reps]), [[25, 12], [30, 10]]);
+  assert.equal(normalized.exercises[0].workingSets[0].type, "working");
+  assert.equal(normalized.exercises[0].warmups[0].type, "warmup");
+});
+
+test("legacy array exercises and workingSets remain readable", () => {
+  const normalized = normalizeWorkout({
+    exercises: [{ name: "Bench", workingSets: [{ weight: 135, reps: 8 }], warmups: [{ weight: 45, reps: 10 }] }]
+  });
+  assert.deepEqual(normalized.exercises[0].workingSets[0].weight, 135);
+  assert.equal(normalized.exercises[0].warmups[0].type, "warmup");
+});
+
 test("deleted and unknown records are not visible", () => {
   assert.equal(sanitizeCanonicalRow({ record_type: "progress_photo", source_record_id: "p", payload: {} }), null);
   assert.equal(sanitizeCanonicalRow({ record_type: "workout_session", source_record_id: "gone", payload: { __deleted: true } }), null);
