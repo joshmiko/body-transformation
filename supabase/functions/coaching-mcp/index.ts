@@ -177,7 +177,7 @@ async function existingByIdempotency(supabase, userId, idempotencyKey) {
   return data || null;
 }
 
-function registerTools(server, supabase) {
+function registerTools(server, supabase, jwtClaims) {
   server.registerTool(
     "list_recent_workouts",
     {
@@ -319,16 +319,16 @@ function registerTools(server, supabase) {
       }),
       annotations: WRITE_DRAFT
     },
-    async (input, context) => {
-      const clientId = requireOAuthClient(context.jwtClaims);
-      const userId = userIdFromClaims(context.jwtClaims);
+    async input => {
+      const clientId = requireOAuthClient(jwtClaims);
+      const userId = userIdFromClaims(jwtClaims);
       const update = validatedUpdate(input);
       const expectedWatermark = input.expectedWatermark === undefined
         ? null
         : normalizeExpectedWatermark(input.expectedWatermark);
-      await assertWatermark(context.supabase, expectedWatermark);
+      await assertWatermark(supabase, expectedWatermark);
       const hash = requestHash(update, expectedWatermark);
-      const existing = await existingByIdempotency(context.supabase, userId, input.idempotencyKey);
+      const existing = await existingByIdempotency(supabase, userId, input.idempotencyKey);
       if (existing) {
         if (existing.payload_hash !== hash) fail("IDEMPOTENCY_CONFLICT: idempotencyKey already represents a different coach update.");
         return result({ request: safeRequest(existing), idempotent: true });
@@ -346,19 +346,19 @@ function registerTools(server, supabase) {
         status: "draft",
         requested_by_client_id: clientId
       };
-      const inserted = await context.supabase
+      const inserted = await supabase
         .from("coaching_update_requests")
         .insert(row)
         .select("*")
         .single();
       if (inserted.error) {
         if (/duplicate|unique/i.test(inserted.error.message || "")) {
-          const raced = await existingByIdempotency(context.supabase, userId, input.idempotencyKey);
+          const raced = await existingByIdempotency(supabase, userId, input.idempotencyKey);
           if (raced && raced.payload_hash === hash) return result({ request: safeRequest(raced), idempotent: true });
         }
         fail("Unable to queue coach update draft: " + inserted.error.message);
       }
-      await recordAudit(context.supabase, inserted.data, "draft_created", clientId);
+      await recordAudit(supabase, inserted.data, "draft_created", clientId);
       return result({ request: safeRequest(inserted.data), idempotent: false });
     }
   );
@@ -374,8 +374,8 @@ function registerTools(server, supabase) {
       }),
       annotations: WRITE_SUBMIT
     },
-    async (input, context) => {
-      const clientId = requireOAuthClient(context.jwtClaims);
+    async input => {
+      const clientId = requireOAuthClient(jwtClaims);
       const requestedExpected = input.expectedWatermark === undefined
         ? undefined
         : normalizeExpectedWatermark(input.expectedWatermark);
@@ -401,9 +401,9 @@ function registerTools(server, supabase) {
         targetGuidance: row.target_guidance === null ? undefined : row.target_guidance
       });
       if (requestHash(update, storedExpected) !== row.payload_hash) fail("Coach-update draft integrity check failed.");
-      await assertWatermark(context.supabase, storedExpected);
+      await assertWatermark(supabase, storedExpected);
       const now = new Date().toISOString();
-      const updated = await context.supabase
+      const updated = await supabase
         .from("coaching_update_requests")
         .update({ status: "submitted", submitted_at: now, request_version: Number(row.request_version || 1) + 1 })
         .eq("id", row.id)
@@ -412,7 +412,7 @@ function registerTools(server, supabase) {
         .select("*")
         .single();
       if (updated.error) fail("Unable to submit coach-update draft: " + updated.error.message);
-      await recordAudit(context.supabase, updated.data, "submitted", clientId);
+      await recordAudit(supabase, updated.data, "submitted", clientId);
       return result({ request: safeRequest(updated.data), idempotent: false });
     }
   );
