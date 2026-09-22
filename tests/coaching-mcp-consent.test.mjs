@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { buildSignInReturnUrl, readConsentParams, safeClientSummary } from "../oauth/consent.mjs";
+import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl } from "../oauth/consent.mjs";
 
 test("consent requires authorization_id and preserves it through sign-in fallback", () => {
   assert.throws(() => readConsentParams("?state=abc"), /authorization_id/);
@@ -41,4 +41,70 @@ test("signed-out consent registers sign-in before the initial session check can 
   assert.equal((html.match(/createClient\(/g)||[]).length,1,"reuse one Supabase client through sign-in");
   assert.match(html,/signInWithPassword/);
   assert.match(html,/await loadRequest\(\)/);
+});
+
+test("OAuth completion accepts registered HTTPS and localhost callbacks", () => {
+  const https = "https://chatgpt.com/callback?code=abc123&state=xyz";
+  const local = "http://localhost:3000/oauth/callback?code=abc123";
+  assert.equal(redirectUrlFromApproval({ data: { redirect_url: https } }), https);
+  assert.equal(redirectUrlFromApproval({ data: { redirect_url: local } }), local);
+  assert.deepEqual(classifyAuthorizationDetails({ authorization_id: "auth_123", client: { name: "ChatGPT" } }).kind, "consent");
+  assert.deepEqual(classifyAuthorizationDetails({ redirect_url: local }).kind, "redirect");
+  assert.throws(() => validateCompletionUrl("javascript:alert(1)"), /unsafe completion URL/);
+  assert.throws(() => validateCompletionUrl("http://evil.example/callback"), /unsafe completion URL/);
+});
+
+test("OAuth Supabase errors are surfaced without leaking callback credentials", () => {
+  assert.throws(
+    () => redirectUrlFromApproval({ error: { message: "authorization failed code=secret-code access_token=secret-token" } }),
+    error => error.message.includes("authorization failed") &&
+      !error.message.includes("secret-code") &&
+      !error.message.includes("secret-token")
+  );
+  assert.throws(() => redirectUrlFromApproval({ data: {} }), /completion URL/);
+  assert.equal(safeOAuthError({ message: "request failed https://client.example/callback?code=private-code" }).includes("private-code"), false);
+});
+
+test("already-approved OAuth responses redirect safely rather than silently approving", () => {
+  const result = classifyAuthorizationDetails({ redirect_url: "https://chatgpt.com/callback?code=already-approved" });
+  assert.equal(result.kind, "redirect");
+  assert.equal(result.redirectUrl.startsWith("https://chatgpt.com/"), true);
+  assert.equal(classifyAuthorizationDetails({ authorization_id: "auth_123" }).kind, "consent");
+});
+
+test("consent identifies the signed-in account and offers local account switching", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  assert.match(html, /Signed in as/);
+  assert.match(html, /safeIdentityLabel/);
+  assert.match(html, /signOut\(\{ scope: "local" \}\)/);
+  assert.match(html, /Use another account/);
+  assert.equal(safeIdentityLabel({ user: { email: "testuser@example.com" } }), "testuser@example.com");
+  assert.equal(safeIdentityLabel({ user: { id: "opaque-id" } }), "Signed-in account");
+});
+
+test("consent source never prints authorization codes or tokens in user-facing error paths", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  assert.match(html, /safeOAuthError/);
+  assert.doesNotMatch(html, /textContent\s*=\s*error\.message/);
+  assert.doesNotMatch(html, /innerHTML\s*=\s*.*redirect_url/);
+  assert.equal(/access_token|refresh_token|client_secret|authorization_code/.test(html), false);
+});
+
+test("already-approved response requires explicit account confirmation before redirect", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  const result = classifyAuthorizationDetails({ redirect_url: "https://chatgpt.com/callback?code=already-approved" });
+  assert.equal(result.kind, "redirect");
+  assert.match(html, /id="continue-approved"/);
+  assert.match(html, /Review the signed-in account before continuing/);
+  assert.match(html, /continueApprovedButton\.onclick/);
+  assert.match(html, /Continue as /);
+});
+
+test("sign-in and load failures use the same redacted error path", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  assert.match(html, /safeOAuthError\(signInError/);
+  assert.match(html, /safeOAuthError\(error, "Unable to load authorization/);
+  assert.doesNotMatch(html, /status\(signInError\.message/);
+  assert.doesNotMatch(html, /status\(error\.message/);
+  assert.match(html, /other devices remain signed in/);
 });
