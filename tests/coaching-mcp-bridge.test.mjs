@@ -86,6 +86,8 @@ test("workout normalization preserves session rest, feel and performed identity 
         weight: 205,
         reps: 6,
         feel: "Good",
+        rir: 2,
+        status: "completed",
         prescribedRestSec: 150,
         actualRestSec: 142,
         completedAt: "2026-09-19T15:00:00Z"
@@ -93,6 +95,8 @@ test("workout normalization preserves session rest, feel and performed identity 
         weight: 205,
         reps: 5,
         feel: "Easy",
+        rir: null,
+        status: "skipped",
         actualRestSec: null
       }],
       warmups: [{ weight: 45, reps: 8, feel: "Easy" }]
@@ -104,9 +108,14 @@ test("workout normalization preserves session rest, feel and performed identity 
   assert.equal(exercise.performedExercise.name, "Safety Bar Squat");
   assert.equal(exercise.workingSets[0].feel, "Good");
   assert.equal(exercise.workingSets[0].effort, "Good");
+  assert.equal(exercise.workingSets[0].rir, 2);
+  assert.equal(exercise.workingSets[0].status, "completed");
   assert.equal(exercise.workingSets[0].prescribedRestSec, 150);
   assert.equal(exercise.workingSets[0].actualRestSec, 142);
-  assert.equal("actualRestSec" in exercise.workingSets[1], false);
+  assert.equal(exercise.workingSets[1].feel, "Easy");
+  assert.equal(exercise.workingSets[1].rir, null);
+  assert.equal(exercise.workingSets[1].status, "skipped");
+  assert.equal(exercise.workingSets[1].actualRestSec, null);
   assert.equal("feel" in exercise.warmups[0], false);
 });
 
