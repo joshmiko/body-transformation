@@ -79,9 +79,9 @@ test("workout normalization preserves session rest, feel and performed identity 
   const normalized = normalizeWorkout({
     exercises: [{
       name: "Squat",
-      planned: true,
-      prescribedExercise: { name: "Back Squat", type: "barbell", sets: 3, min: 5, max: 8 },
-      performedExercise: { name: "Safety Bar Squat", type: "barbell", substitution: "shoulder comfort" },
+      planned: { sets: 3, min: 5, max: 8, unit: "reps", rest: 150, unilateral: false },
+      prescribedExercise: "Back Squat",
+      performedExercise: "Safety Bar Squat",
       actual: [{
         weight: 205,
         reps: 6,
@@ -103,9 +103,9 @@ test("workout normalization preserves session rest, feel and performed identity 
     }]
   });
   const exercise = normalized.exercises[0];
-  assert.equal(exercise.planned, true);
-  assert.equal(exercise.prescribedExercise.name, "Back Squat");
-  assert.equal(exercise.performedExercise.name, "Safety Bar Squat");
+  assert.deepEqual(exercise.planned, { sets: 3, min: 5, max: 8, unit: "reps", rest: 150, unilateral: false });
+  assert.equal(exercise.prescribedExercise, "Back Squat");
+  assert.equal(exercise.performedExercise, "Safety Bar Squat");
   assert.equal(exercise.workingSets[0].feel, "Good");
   assert.equal(exercise.workingSets[0].effort, "Good");
   assert.equal(exercise.workingSets[0].rir, 2);
@@ -117,6 +117,25 @@ test("workout normalization preserves session rest, feel and performed identity 
   assert.equal(exercise.workingSets[1].status, "skipped");
   assert.equal(exercise.workingSets[1].actualRestSec, null);
   assert.equal("feel" in exercise.warmups[0], false);
+});
+
+
+test("workout normalization preserves nested general warm-up planning and treadmill actuals", () => {
+  const normalized = normalizeWorkout({
+    generalWarmup: {
+      planned: { type: "treadmill", durationMin: 8, speedMph: 2.8, inclinePercent: 3, unit: "min" },
+      actual: { type: "treadmill", durationMin: 8, speedMph: 3.1, inclinePercent: 4, completed: true, status: "completed" },
+      status: "completed",
+      completedAt: "2026-09-19T14:05:00Z"
+    },
+    exercises: []
+  });
+  assert.equal(normalized.generalWarmup.planned.speedMph, 2.8);
+  assert.equal(normalized.generalWarmup.actual.speedMph, 3.1);
+  assert.equal(normalized.generalWarmup.actual.inclinePercent, 4);
+  assert.equal(normalized.generalWarmup.actual.completed, true);
+  assert.equal(normalized.generalWarmup.status, "completed");
+  assert.equal(normalized.generalWarmup.completedAt, "2026-09-19T14:05:00.000Z");
 });
 
 test("legacy array exercises and workingSets remain readable", () => {
