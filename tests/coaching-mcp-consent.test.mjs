@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl, isStaleAuthorizationError } from "../oauth/consent.mjs";
+import { buildSignInReturnUrl, readConsentParams, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, validateCompletionUrl, isStaleAuthorizationError, getAuthorizationDetailsOnce } from "../oauth/consent.mjs";
 
 test("consent requires authorization_id and preserves it through sign-in fallback", () => {
   assert.throws(() => readConsentParams("?state=abc"), /authorization_id/);
@@ -131,4 +131,19 @@ test("account switching preserves the request and stale authorizations stop with
   assert.equal(isStaleAuthorizationError({ message: "OAuth authorization request expired" }), true);
   assert.equal(isStaleAuthorizationError({ message: "temporary network failure" }), false);
   assert.match(html, /authorization_id/);
+});
+
+test("stale authorization matcher covers Supabase processing-state failures", () => {
+  assert.equal(isStaleAuthorizationError({ message: "authorization request cannot be processed" }), true);
+});
+
+test("pre-confirm switch then new-account confirmation performs one details lookup", async () => {
+  const calls = [];
+  const client = { auth: { oauth: { getAuthorizationDetails: async id => { calls.push(id); return { data: { authorization_id: id } }; } } } };
+  const state = { accountConfirmed: false, detailsLookupStarted: false };
+  await assert.rejects(() => getAuthorizationDetailsOnce(client, "auth_new_user", state), /Confirm the signed-in account/);
+  state.accountConfirmed = true;
+  await getAuthorizationDetailsOnce(client, "auth_new_user", state);
+  await assert.rejects(() => getAuthorizationDetailsOnce(client, "auth_new_user", state), /already started/);
+  assert.deepEqual(calls, ["auth_new_user"]);
 });
