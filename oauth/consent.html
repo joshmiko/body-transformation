@@ -16,7 +16,7 @@ main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,tr
 <h1>Connect coaching data</h1>
 <p id="intro">A coaching assistant is requesting access to your Body Transformation coaching data.</p>
 <div id="summary" class="summary hidden"></div>
-<div id="account" class="account hidden"><div><strong id="account-label">Signed-in account</strong><small>Confirm this account before the request is inspected or approved.</small></div><div class="account-actions"><button id="confirm-account" class="primary" type="button">Continue as account</button><button id="switch-account" class="secondary" type="button">Use another account</button></div></div>
+<div id="account" class="account hidden"><div><strong id="account-label">Signed-in account</strong><small id="account-note">Confirm this account before the request is inspected or approved.</small></div><div class="account-actions"><button id="confirm-account" class="primary" type="button">Continue as account</button><button id="switch-account" class="secondary" type="button">Use another account</button></div></div>
 <div id="approved" class="approved hidden"><strong>Already approved</strong><p>This connection is already approved for the account above. Review the account before continuing.</p><button id="continue-approved" class="primary" type="button">Continue</button></div>
 <div id="auth" class="hidden">
 <p>You are signed out. Sign in to review this request. Keep this authorization request open; it will stay attached after sign-in.</p>
@@ -41,7 +41,7 @@ main{width:min(100%,440px)}.card{background:color-mix(in srgb,var(--card) 94%,tr
 <script src="../env.js"></script>
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { readConsentParams, buildSignInReturnUrl, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, isStaleAuthorizationError } from "./consent.mjs";
+import { readConsentParams, buildSignInReturnUrl, safeClientSummary, redirectUrlFromApproval, classifyAuthorizationDetails, safeOAuthError, safeIdentityLabel, isStaleAuthorizationError, getAuthorizationDetailsOnce } from "./consent.mjs";
 
 const config = window.__BT_CONFIG__ || {};
 const supabaseUrl = String(config.supabaseUrl || "https://ncvtnlrogpngaelqgvvt.supabase.co").replace(/\/$/, "");
@@ -53,6 +53,7 @@ const summaryEl = document.getElementById("summary");
 const accountEl = document.getElementById("account");
 const accountLabelEl = document.getElementById("account-label");
 const confirmAccountButton = document.getElementById("confirm-account");
+const accountNoteEl = document.getElementById("account-note");
 const switchAccountButton = document.getElementById("switch-account");
 const approvedEl = document.getElementById("approved");
 const continueApprovedButton = document.getElementById("continue-approved");
@@ -60,6 +61,7 @@ const signInForm = document.getElementById("sign-in");
 const openAppLink = document.getElementById("open-app");
 const client = publishableKey ? createClient(supabaseUrl, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
 let request;
+let lookupState = { accountConfirmed: false, detailsLookupStarted: false };
 if (client) window.__BT_OAUTH_CLIENT__ = client;
 
 function status(message, error = false) {
@@ -84,9 +86,13 @@ async function loadAuthorizationDetails() {
   }
   const identity = safeIdentityLabel(sessionData.session);
   accountLabelEl.textContent = "Signed in as " + identity;
+  lookupState.accountConfirmed = true;
+  switchAccountButton.disabled = true;
+  switchAccountButton.textContent = "Account selected";
+  accountNoteEl.textContent = "This request is now tied to this account. Start a new authentication to change accounts.";
   confirmAccountButton.disabled = true;
   status("Loading connection details…");
-  const { data, error } = await client.auth.oauth.getAuthorizationDetails(request.authorizationId);
+  const { data, error } = await getAuthorizationDetailsOnce(client, request.authorizationId, lookupState);
   confirmAccountButton.disabled = false;
   if (error) {
     if (isStaleAuthorizationError(error)) {
@@ -166,8 +172,12 @@ async function loadRequest() {
   }
   const identity = safeIdentityLabel(sessionData.session);
   accountLabelEl.textContent = "Signed in as " + identity;
+  lookupState = { accountConfirmed: false, detailsLookupStarted: false };
+  accountNoteEl.textContent = "Confirm this account before the request is inspected or approved.";
   confirmAccountButton.textContent = "Continue as " + identity;
   confirmAccountButton.disabled = false;
+  switchAccountButton.disabled = false;
+  switchAccountButton.textContent = "Use another account";
   confirmAccountButton.onclick = () => loadAuthorizationDetails().catch(error => status(safeOAuthError(error, "Unable to load authorization."), true));
   show(accountEl, true);
   show(authEl, false);
