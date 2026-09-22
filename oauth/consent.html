@@ -88,6 +88,7 @@ async function loadAuthorizationDetails() {
   accountLabelEl.textContent = "Signed in as " + identity;
   if (!sameAccount(lookupState.accountKey, sessionData.session)) {
     lookupState = { accountConfirmed: false, detailsLookupStarted: false, accountKey: accountIdentity(sessionData.session) };
+    confirmAccountButton.textContent = "Continue as " + identity;
     confirmAccountButton.disabled = false;
     switchAccountButton.disabled = false;
     switchAccountButton.textContent = "Use another account";
@@ -102,7 +103,8 @@ async function loadAuthorizationDetails() {
   confirmAccountButton.disabled = true;
   status("Loading connection details…");
   const { data, error } = await getAuthorizationDetailsOnce(client, request.authorizationId, lookupState);
-  confirmAccountButton.disabled = false;
+  confirmAccountButton.disabled = true;
+  confirmAccountButton.textContent = "Account selected";
   if (error) {
     if (isStaleAuthorizationError(error)) {
       show(accountEl, false);
