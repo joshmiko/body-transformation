@@ -52,6 +52,13 @@ test("valid payload with targetGuidance succeeds", () => {
   assert.equal(out.targetGuidance.preferredZone2Day, "Wednesday");
 });
 
+test("valid payload with reviewed weightEntries succeeds", () => {
+  const out = context.validateCoachUpdatePayload({ ...minimal(), weightEntries: [{ date: "2026-09-20", weightLb: 205.5 }] });
+  assert.deepEqual(out.weightEntries, [{ date: "2026-09-20", weightLb: 205.5, note: "" }]);
+});
+test("malformed weightEntries reports a path-level error", () => {
+  assert.throws(() => context.validateCoachUpdatePayload({ ...minimal(), weightEntries: [{ date: "2026-02-30", weightLb: 205 }] }), /weightEntries\[0\]\.date/);
+});
 test("valid payload with both optional fields succeeds", () => {
   assert.ok(context.validateCoachUpdatePayload({ ...minimal(), nextWeekProgram: plan(), targetGuidance: { calories: 2350, protein: 200 } }));
 });
