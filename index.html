@@ -696,6 +696,30 @@ function validateCoachTargetGuidance(value){
  if(value.preferredZone2Day!==undefined)coachNonEmptyString(value.preferredZone2Day,"targetGuidance.preferredZone2Day");
  return value
 }
+const COACH_WEIGHT_MIN_LB=50,COACH_WEIGHT_MAX_LB=1000,COACH_MAX_WEIGHT_ENTRIES=14;
+function coachISODate(value,path){
+ if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value))coachValidationError(path,"must be an ISO date (YYYY-MM-DD).");
+ const [year,month,day]=value.split("-").map(Number),date=new Date(Date.UTC(year,month-1,day));
+ if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)coachValidationError(path,"must be a real calendar date.");
+ return value;
+}
+function validateCoachWeightEntries(value){
+ if(!Array.isArray(value))coachValidationError("weightEntries","must be an array.");
+ if(value.length>COACH_MAX_WEIGHT_ENTRIES)coachValidationError("weightEntries","cannot contain more than "+COACH_MAX_WEIGHT_ENTRIES+" entries.");
+ const seen=new Set(),output=value.map((entry,index)=>{
+  const path="weightEntries["+index+"]";
+  if(!entry||typeof entry!=="object"||Array.isArray(entry))coachValidationError(path,"must be an object.");
+  const date=coachISODate(entry.date,path+".date");
+  if(seen.has(date))coachValidationError(path+".date","duplicates another weight entry date.");
+  seen.add(date);
+  const weightLb=coachFiniteNumber(entry.weightLb,path+".weightLb",COACH_WEIGHT_MIN_LB);
+  if(weightLb>COACH_WEIGHT_MAX_LB)coachValidationError(path+".weightLb","must be <= "+COACH_WEIGHT_MAX_LB+".");
+  const note=entry.note===undefined||entry.note===null?"":coachNonEmptyString(entry.note,path+".note");
+  if(note.length>500)coachValidationError(path+".note","must be 500 characters or fewer.");
+  return {date,weightLb,note};
+ });
+ return output.sort((a,b)=>a.date.localeCompare(b.date));
+}
 function validateCoachProgram(p){
  if(!p||typeof p!=="object"||Array.isArray(p)||!Object.keys(p).length)coachValidationError("nextWeekProgram","must be an object with workout-day keys.");
  for(const [day,plan] of Object.entries(p)){
@@ -727,6 +751,7 @@ function validateCoachUpdatePayload(data){
  if(data.coachSummary.length>4000)coachValidationError("coachSummary","must be 4,000 characters or fewer.");
  if(data.nextWeekProgram!==undefined)validateCoachProgram(data.nextWeekProgram);
  validateCoachTargetGuidance(data.targetGuidance);
+ if(data.weightEntries!==undefined)data.weightEntries=validateCoachWeightEntries(data.weightEntries);
  return data
 }
 function validateCoachImport(){
