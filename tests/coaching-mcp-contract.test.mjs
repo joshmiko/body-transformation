@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 test("bridge contract is user-scoped, read-only, and program-state aware", async () => {
-  const [server, rest, migration, writeMigration, config, writeBridge] = await Promise.all([
+  const [server, rest, migration, writeMigration, weightMigration, config, writeBridge] = await Promise.all([
     readFile(new URL("../supabase/functions/coaching-mcp/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/supabase-rest.js", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/202609170001_program_state_canonical.sql", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/202609190001_coaching_bridge_write_queue.sql", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/migrations/202609220001_coaching_weight_entries.sql", import.meta.url), "utf8"),
     readFile(new URL("../supabase/config.toml", import.meta.url), "utf8"),
     readFile(new URL("../supabase/functions/coaching-mcp/write-bridge.mjs", import.meta.url), "utf8")
   ]);
@@ -37,6 +38,11 @@ test("bridge contract is user-scoped, read-only, and program-state aware", async
   assert.ok(writeMigration.includes("block oauth clients from legacy data"));
   assert.ok(writeMigration.includes("auth.jwt() ->> 'client_id'"));
   assert.ok(writeMigration.includes("bt_guard_coaching_update_request"));
+  assert.ok(weightMigration.includes("add column if not exists weight_entries"));
+  assert.ok(weightMigration.includes("old.weight_entries is distinct from new.weight_entries"));
+  assert.ok(server.includes("weightEntries"));
+  assert.ok(server.includes("weight_entries: update.weightEntries || null"));
+  assert.ok(writeBridge.includes("COACH_MAX_WEIGHT_ENTRIES"));
   assert.ok(rest.includes("listCoachUpdateRequests"));
   assert.ok(writeBridge.includes("validateCoachUpdate"));
   assert.ok(rest.includes("setCanonicalProgramState"));
