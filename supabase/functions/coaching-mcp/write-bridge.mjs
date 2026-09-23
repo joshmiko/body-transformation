@@ -42,7 +42,7 @@ function rangeOrNumber(value, path) {
 }
 
 function strictISODate(value, path) {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) invalid(path, "must be an ISO date (YYYY-MM-DD).");
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) invalid(path, "must be an ISO date (YYYY-MM-DD).");
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) invalid(path, "must be a real calendar date.");
