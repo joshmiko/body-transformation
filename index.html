@@ -714,7 +714,7 @@ function validateCoachWeightEntries(value){
   seen.add(date);
   const weightLb=coachFiniteNumber(entry.weightLb,path+".weightLb",COACH_WEIGHT_MIN_LB);
   if(weightLb>COACH_WEIGHT_MAX_LB)coachValidationError(path+".weightLb","must be <= "+COACH_WEIGHT_MAX_LB+".");
-  const note=entry.note===undefined||entry.note===null?"":coachNonEmptyString(entry.note,path+".note");
+  const note=entry.note===undefined||entry.note===null||entry.note===""?"":coachNonEmptyString(entry.note,path+".note");
   if(note.length>500)coachValidationError(path+".note","must be 500 characters or fewer.");
   return {date,weightLb,note};
  });
