@@ -890,45 +890,81 @@ function coachRequestWarnings(row){
  if(minutes>60)warnings.push("The proposed plan estimates more than 60 minutes. Review the session length before applying.");
  return warnings;
 }
+function coachRequestWeightEntries(row){
+ const value=row?.weight_entries??row?.weightEntries;
+ return Array.isArray(value)?value:[];
+}
+function coachRequestWeightMarkup(row){
+ const entries=coachRequestWeightEntries(row);
+ if(!entries.length)return "";
+ return '<div style="margin-top:10px"><b>Weigh-ins to add</b><div class="coach-update-weight-list">'+entries.map(entry=>'<div class="coach-update-weight-row"><span>'+escapeHtml(dateLabel(entry.date||""))+(entry.note?' · '+escapeHtml(entry.note):"")+'</span><strong>'+escapeHtml(String(entry.weightLb))+' lb</strong></div>').join("")+'</div><div class="small" style="margin-top:6px">These are weight-only check-ins. Existing same-date values are never overwritten.</div></div>';
+}
 function coachRequestCard(row){
- const warnings=coachRequestWarnings(row),status=String(row.status||"submitted"),program=row.next_week_program||null,guidance=row.target_guidance||null;
+ const warnings=coachRequestWarnings(row),status=String(row.status||"submitted"),program=row.next_week_program||row.nextWeekProgram||null,guidance=row.target_guidance||row.targetGuidance||null;
  const canApprove=status==="submitted",canApply=status==="approved";
  const action=canApprove?"reviewCoachRequest('"+escapeHtml(row.id)+"','approve')":canApply?"reviewCoachRequest('"+escapeHtml(row.id)+"','apply')":"";
- return "<div class=card style=\"margin-top:10px\"><div class=ey>COACH UPDATE</div><h3>"+escapeHtml(row.coach_summary||"Proposed coaching update")+"</h3><div class=small>Status: <b>"+escapeHtml(status)+"</b> • Effective: "+escapeHtml(dateLabel(nextMonday()))+"</div>"+(row.expected_watermark?"<div class=muted style=\"margin-top:5px\">Based on data through "+escapeHtml(dateLabel(row.expected_watermark))+"</div>":"")+(program?"<div style=\"margin-top:10px\"><b>Training changes</b>"+coachRequestProgramMarkup(program)+"</div>":"")+(guidance?"<div style=\"margin-top:10px\"><b>Target guidance</b>"+coachTargetGuidanceMarkup(guidance)+"</div>":"")+(warnings.length?"<div class=\"card\" style=\"margin-top:8px;background:var(--amber2);color:var(--text)\"><b>Review warnings</b>"+warnings.map(x=>"<div class=small>"+escapeHtml(x)+"</div>").join("")+"</div>":"")+(canApprove||canApply?"<button class=primary style=\"width:100%;margin-top:10px\" onclick=\""+action+"\">"+(canApprove?"Approve & apply":"Finish applying update")+"</button>":"")+(status==="submitted"?"<button class=secondary style=\"width:100%;margin-top:8px\" onclick=\"reviewCoachRequest('"+escapeHtml(row.id)+"','reject')\">Reject / keep current plan</button>":"")+"</div>";
+ return "<div class=card style=\"margin-top:10px\"><div class=ey>COACH UPDATE</div><h3>"+escapeHtml(row.coach_summary||row.coachSummary||"Proposed coaching update")+"</h3><div class=small>Status: <b>"+escapeHtml(status)+"</b> • Effective: "+escapeHtml(dateLabel(nextMonday()))+"</div>"+(row.expected_watermark||row.expectedWatermark?"<div class=muted style=\"margin-top:5px\">Based on data through "+escapeHtml(dateLabel(row.expected_watermark||row.expectedWatermark))+"</div>":"")+(program?"<div style=\"margin-top:10px\"><b>Training changes</b>"+coachRequestProgramMarkup(program)+"</div>":"")+(guidance?"<div style=\"margin-top:10px\"><b>Target guidance</b>"+coachTargetGuidanceMarkup(guidance)+"</div>":"")+coachRequestWeightMarkup(row)+(warnings.length?"<div class=\"card\" style=\"margin-top:8px;background:var(--amber2);color:var(--text)\"><b>Review warnings</b>"+warnings.map(x=>"<div class=small>"+escapeHtml(x)+"</div>").join("")+"</div>":"")+(canApprove||canApply?"<button class=primary style=\"width:100%;margin-top:10px\" onclick=\""+action+"\">"+(canApprove?"Approve & apply":"Finish applying update")+"</button>":"")+(status==="submitted"?"<button class=secondary style=\"width:100%;margin-top:8px\" onclick=\"reviewCoachRequest('"+escapeHtml(row.id)+"','reject')\">Reject / keep current plan</button>":"")+"</div>";
 }
 let coachInboxRows=[];
 async function loadCoachInbox(){
  const el=document.getElementById("coach-inbox-card");if(!el)return;
- if(!window.btSupabase?.sessionActive?.()){el.innerHTML="<h3>Coach updates</h3><p class=small>Sign in to receive reviewed coaching updates.</p>";return}
+ if(!window.btSupabase?.sessionActive?.()){el.innerHTML="<h3>Coach updates</h3><p class=small>Sign in to receive reviewed coaching proposals. ChatGPT can propose changes; you review and approve them here.</p>";return}
  el.innerHTML="<h3>Coach updates</h3><p class=small>Checking for reviewed proposals…</p>";
  try{
   const rows=await window.btSupabase.listCoachUpdateRequests();
   coachInboxRows=Array.isArray(rows)?rows:[];
   const actionable=coachInboxRows.filter(x=>["submitted","approved"].includes(x.status));
-  el.innerHTML="<h3>Coach updates</h3>"+(actionable.length?"<p class=small>"+actionable.length+" update"+(actionable.length===1?"":"s")+" awaiting your review.</p>"+actionable.map(coachRequestCard).join(""):"<p class=small>No coaching updates awaiting review.</p>");
+  el.innerHTML="<h3>Coach updates</h3>"+(actionable.length?"<p class=small>"+actionable.length+" proposal"+(actionable.length===1?"":"s")+" awaiting your review.</p>"+actionable.map(coachRequestCard).join(""):"<p class=small>No proposals right now. ChatGPT can propose updates; you review and approve before anything changes.</p>");
  }catch(error){
-  el.innerHTML="<h3>Coach updates</h3><p class=small style=\"color:var(--red)\">Could not check coach updates. Your workouts remain safe.</p><button class=secondary style=\"width:100%\" onclick=\"loadCoachInbox()\">Retry</button>";
+  el.innerHTML="<h3>Coach updates</h3><p class=small style=\"color:var(--red)\">Could not check coach proposals. Your workouts remain safe.</p><button class=secondary style=\"width:100%\" onclick=\"loadCoachInbox()\">Retry</button>";
  }
 }
+function prepareCoachWeightEntries(row){
+ const entries=validateCoachWeightEntries(coachRequestWeightEntries(row)),existing=Array.isArray(db.checkins)?db.checkins:[],conflicts=[],duplicates=[],missing=[];
+ const requestId=String(row.id||row.sourcePackageId||row.source_package_id||"coach");
+ for(const entry of entries){
+  const stableId="coach_weight:"+requestId+":"+entry.date;
+  const stable=existing.find(x=>x.coachWeightEntryId===stableId||x.sourceRecordId===stableId);
+  const sameDate=existing.find(x=>String(x.date||"").slice(0,10)===entry.date);
+  const existingWeight=sameDate?Number(sameDate.weight):NaN;
+  if(sameDate&&Number.isFinite(existingWeight)&&existingWeight!==entry.weightLb){conflicts.push({date:entry.date,existing:existingWeight,proposed:entry.weightLb});continue}
+  if(stable||sameDate){duplicates.push(entry);continue}
+  missing.push({...entry,stableId});
+ }
+ return {entries,conflicts,duplicates,missing};
+}
+function applyCoachWeightEntries(row){
+ const prepared=prepareCoachWeightEntries(row);
+ if(prepared.conflicts.length){
+  const detail=prepared.conflicts.map(x=>x.date+" ("+x.existing+" lb already logged, "+x.proposed+" lb proposed)").join(", ");
+  throw new Error("Weight conflict: "+detail+". Nothing was applied; review the existing check-in before retrying.");
+ }
+ db.checkins=Array.isArray(db.checkins)?db.checkins:[];
+ const now=new Date().toISOString();
+ prepared.missing.forEach(entry=>db.checkins.push({id:entry.stableId,sourceRecordId:entry.stableId,coachWeightEntryId:entry.stableId,weightEntrySource:"coach_review",date:entry.date,createdAt:now,updatedAt:now,weight:entry.weightLb,notes:entry.note,note:entry.note}));
+ return {added:prepared.missing.length,duplicates:prepared.duplicates.length,conflicts:[]};
+}
 function applyCoachRequestLocally(row){
- const program=row.next_week_program;
+ const weightResult=applyCoachWeightEntries(row);
+ const program=row.next_week_program||row.nextWeekProgram;
  if(program){db.nextWeekProgram=cloneValue(program);db.nextWeekProgramEffectiveDate=nextMonday();}
- if(row.target_guidance){
-  const guidance=row.target_guidance;
+ const guidance=row.target_guidance||row.targetGuidance;
+ if(guidance){
   db.nutrition=db.nutrition&&typeof db.nutrition==="object"?db.nutrition:{targets:{}};
   db.nutrition.targets=db.nutrition.targets&&typeof db.nutrition.targets==="object"?db.nutrition.targets:{};
   ["calories","protein"].forEach(key=>{if(guidance[key]!==undefined)db.nutrition.targets[key]=cloneValue(guidance[key]);});
-  const state=coachSyncState();state.targetGuidance=cloneValue(guidance);
+  const guidanceState=coachSyncState();guidanceState.targetGuidance=cloneValue(guidance);
  }
  const state=coachSyncState();
  state.appliedRequests=Array.isArray(state.appliedRequests)?state.appliedRequests:[];
  if(!state.appliedRequests.includes(row.id))state.appliedRequests.push(row.id);
  save();
+ return weightResult;
 }
 async function reviewCoachRequest(id,action){
  const row=coachInboxRows.find(x=>String(x.id)===String(id));if(!row)return;
  const warnings=coachRequestWarnings(row);
- if(warnings.some(x=>x.includes("older coaching watermark"))){const el=document.getElementById("coach-inbox-card");if(el)el.insertAdjacentHTML("afterbegin","<div class=\"card\" style=\"color:var(--red)\">This update is stale. Refresh the Coach updates section before applying it.</div>");return;}
+ if(warnings.some(x=>x.includes("older coaching watermark"))){const el=document.getElementById("coach-inbox-card");if(el)el.insertAdjacentHTML("afterbegin","<div class=\"card\" style=\"color:var(--red)\">This proposal is stale. Refresh the Coach updates section before applying it.</div>");return;}
  try{
   let current=row;
   if(action==="reject"){
