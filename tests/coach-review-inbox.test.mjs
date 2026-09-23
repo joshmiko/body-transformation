@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 test("coach review inbox is review-gated and preserves the manual fallback", async () => {
-  const [index, rest, migration, server] = await Promise.all([
+  const [index, rest, migration, weightMigration, server] = await Promise.all([
     readFile(new URL("../index.html", import.meta.url), "utf8"),
     readFile(new URL("../src/supabase-rest.js", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/202609200001_coaching_review_transitions.sql", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/migrations/202609220001_coaching_weight_entries.sql", import.meta.url), "utf8"),
     readFile(new URL("../supabase/functions/coaching-mcp/index.ts", import.meta.url), "utf8")
   ]);
   assert.match(index, /loadCoachInbox/);
@@ -30,7 +31,7 @@ test("coach review inbox is review-gated and preserves the manual fallback", asy
   assert.match(migration, /Coach-update proposal is immutable after submission/);
   assert.match(migration, /direct sessions read coach update requests/);
   assert.match(migration, /direct sessions review coach update requests/);
-  assert.match(migration, /weight_entries/);
+  assert.match(weightMigration, /weight_entries/);
   assert.match(server, /requestVersion/);
   assert.match(server, /request_version: Number\(row\.request_version/);
 });
