@@ -54,7 +54,7 @@ test("valid payload with targetGuidance succeeds", () => {
 
 test("valid payload with reviewed weightEntries succeeds", () => {
   const out = context.validateCoachUpdatePayload({ ...minimal(), weightEntries: [{ date: "2026-09-20", weightLb: 205.5 }] });
-  assert.deepEqual(out.weightEntries, [{ date: "2026-09-20", weightLb: 205.5, note: "" }]);
+  assert.equal(JSON.stringify(out.weightEntries), JSON.stringify([{ date: "2026-09-20", weightLb: 205.5, note: "" }]));
 });
 test("malformed weightEntries reports a path-level error", () => {
   assert.throws(() => context.validateCoachUpdatePayload({ ...minimal(), weightEntries: [{ date: "2026-02-30", weightLb: 205 }] }), /weightEntries\[0\]\.date/);
