@@ -9,7 +9,7 @@ test("Coach and Progress stay usable in a narrow mobile layout", () => {
   assert.match(index, /min-width:44px;min-height:44px/);
   assert.match(index, /min-height:44px;display:flex;align-items:center/);
   assert.match(index, /ChatGPT can propose changes from your signed-in data/);
-  assert.match(index, /you review and approve every proposal/);
+  assert.match(index, /You review and approve every proposal/);
   assert.doesNotMatch(index, /broader coaching is a manual ChatGPT handoff/);
   assert.equal((index.match(/id="coach-inbox-card"/g) || []).length, 1);
   assert.match(index, /<summary>Automatic workout decisions<\/summary>/);
