@@ -61,7 +61,7 @@ function validateWeightEntries(value) {
     seen.add(date);
     const weightLb = finiteNumber(entry.weightLb, path + ".weightLb", COACH_WEIGHT_MIN_LB);
     if (weightLb > COACH_WEIGHT_MAX_LB) invalid(path + ".weightLb", "must be <= " + COACH_WEIGHT_MAX_LB + ".");
-    const note = entry.note === undefined || entry.note === null ? "" : nonEmptyString(entry.note, path + ".note", 500);
+    const note = entry.note === undefined || entry.note === null || entry.note === "" ? "" : nonEmptyString(entry.note, path + ".note", 500);
     return { date, weightLb, note };
   });
   return output.sort((a, b) => a.date.localeCompare(b.date));
