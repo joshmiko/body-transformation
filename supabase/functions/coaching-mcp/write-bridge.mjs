@@ -9,6 +9,9 @@ export const COACH_GUIDANCE_NUMERIC_FIELDS = Object.freeze([
   "zone2DurationMin",
   "zone2DurationMax"
 ]);
+export const COACH_WEIGHT_MIN_LB = 50;
+export const COACH_WEIGHT_MAX_LB = 1000;
+export const COACH_MAX_WEIGHT_ENTRIES = 14;
 
 function invalid(path, message) {
   throw new Error(path + " " + message);
@@ -36,6 +39,32 @@ function rangeOrNumber(value, path) {
     return output;
   }
   return finiteNumber(value, path);
+}
+
+function strictISODate(value, path) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) invalid(path, "must be an ISO date (YYYY-MM-DD).");
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) invalid(path, "must be a real calendar date.");
+  return value;
+}
+
+function validateWeightEntries(value) {
+  if (!Array.isArray(value)) invalid("weightEntries", "must be an array.");
+  if (value.length > COACH_MAX_WEIGHT_ENTRIES) invalid("weightEntries", "cannot contain more than " + COACH_MAX_WEIGHT_ENTRIES + " entries.");
+  const seen = new Set();
+  const output = value.map((entry, index) => {
+    const path = "weightEntries[" + index + "]";
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) invalid(path, "must be an object.");
+    const date = strictISODate(entry.date, path + ".date");
+    if (seen.has(date)) invalid(path + ".date", "duplicates another weight entry date.");
+    seen.add(date);
+    const weightLb = finiteNumber(entry.weightLb, path + ".weightLb", COACH_WEIGHT_MIN_LB);
+    if (weightLb > COACH_WEIGHT_MAX_LB) invalid(path + ".weightLb", "must be <= " + COACH_WEIGHT_MAX_LB + ".");
+    const note = entry.note === undefined || entry.note === null || entry.note === "" ? "" : nonEmptyString(entry.note, path + ".note", 500);
+    return { date, weightLb, note };
+  });
+  return output.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function validateTargetGuidance(value) {
@@ -116,6 +145,7 @@ export function validateCoachUpdate(payload) {
   };
   if (payload.nextWeekProgram !== undefined) output.nextWeekProgram = validateProgram(payload.nextWeekProgram);
   if (payload.targetGuidance !== undefined) output.targetGuidance = validateTargetGuidance(payload.targetGuidance);
+  if (payload.weightEntries !== undefined) output.weightEntries = validateWeightEntries(payload.weightEntries);
   return output;
 }
 

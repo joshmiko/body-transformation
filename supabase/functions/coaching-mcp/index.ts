@@ -91,6 +91,7 @@ function safeRequest(row) {
     coachSummary: row.coach_summary,
     nextWeekProgram: row.next_week_program || null,
     targetGuidance: row.target_guidance || null,
+    weightEntries: row.weight_entries || null,
     payloadHash: row.payload_hash,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -145,7 +146,8 @@ function validatedUpdate(input) {
     sourcePackageId: input.sourcePackageId,
     coachSummary: input.coachSummary,
     nextWeekProgram: input.nextWeekProgram,
-    targetGuidance: input.targetGuidance
+    targetGuidance: input.targetGuidance,
+    weightEntries: input.weightEntries
   });
 }
 
@@ -314,6 +316,7 @@ function registerTools(server, supabase, jwtClaims) {
         coachSummary: z.string().min(1).max(4000),
         nextWeekProgram: z.unknown().optional(),
         targetGuidance: z.unknown().optional(),
+        weightEntries: z.unknown().optional(),
         expectedWatermark: z.string().nullable().optional(),
         confirm: z.literal(true)
       }),
@@ -342,6 +345,7 @@ function registerTools(server, supabase, jwtClaims) {
         coach_summary: update.coachSummary,
         next_week_program: update.nextWeekProgram || null,
         target_guidance: update.targetGuidance || null,
+        weight_entries: update.weightEntries || null,
         payload_hash: hash,
         status: "draft",
         requested_by_client_id: clientId
@@ -398,7 +402,8 @@ function registerTools(server, supabase, jwtClaims) {
         sourcePackageId: row.source_package_id,
         coachSummary: row.coach_summary,
         nextWeekProgram: row.next_week_program === null ? undefined : row.next_week_program,
-        targetGuidance: row.target_guidance === null ? undefined : row.target_guidance
+        targetGuidance: row.target_guidance === null ? undefined : row.target_guidance,
+        weightEntries: row.weight_entries === null ? undefined : row.weight_entries
       });
       if (requestHash(update, storedExpected) !== row.payload_hash) fail("Coach-update draft integrity check failed.");
       await assertWatermark(supabase, storedExpected);
