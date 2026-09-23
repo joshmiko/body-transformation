@@ -15,6 +15,13 @@ test("coach review inbox is review-gated and preserves the manual fallback", asy
   assert.match(index, /Advanced \/ backup coaching/);
   assert.match(index, /applyCoachRequestLocally/);
   assert.match(index, /reviewedWatermark/);
+  assert.equal((index.match(/id="coach-inbox-card"/g) || []).length, 1);
+  assert.match(index, /ChatGPT can propose changes from your signed-in data/);
+  assert.match(index, /progress-primary/);
+  const progressStart = index.indexOf("function progress()");
+  const progressEnd = index.indexOf("function focusWeightCheckin", progressStart);
+  assert.doesNotMatch(index.slice(progressStart, progressEnd), /coach-inbox-card/);
+  assert.doesNotMatch(index, /broader coaching is a manual ChatGPT handoff/);
   assert.match(rest, /request_version=eq/);
   assert.match(rest, /Coach update changed elsewhere/);
   assert.match(migration, /add column if not exists request_version/);
@@ -23,6 +30,7 @@ test("coach review inbox is review-gated and preserves the manual fallback", asy
   assert.match(migration, /Coach-update proposal is immutable after submission/);
   assert.match(migration, /direct sessions read coach update requests/);
   assert.match(migration, /direct sessions review coach update requests/);
+  assert.match(migration, /weight_entries/);
   assert.match(server, /requestVersion/);
   assert.match(server, /request_version: Number\(row\.request_version/);
 });
