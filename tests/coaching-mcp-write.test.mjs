@@ -36,6 +36,7 @@ const program = {
     exercises: [{ name: "Dead Hang", type: "hang", sets: 2, min: 20, max: 45, rest: 60, unit: "sec" }]
   }
 };
+const weightEntries = [{ date: "2026-09-20", weightLb: 205.4 }, { date: "2026-09-19", weightLb: 206.1, note: "Morning" }];
 const guidance = {
   calories: { min: 2200, max: 2400 },
   protein: 180,
@@ -53,6 +54,19 @@ test("nextWeekProgram validates with supported workout and exercise fields", () 
   const value = validateCoachUpdate({ ...minimal, nextWeekProgram: program });
   assert.equal(value.nextWeekProgram.Monday.exercises[0].name, "Squat");
   assert.equal(value.nextWeekProgram.Saturday.exercises[0].unit, "sec");
+});
+test("weightEntries validates, sorts by date, and normalizes missing notes", () => {
+  const value = validateCoachUpdate({ ...minimal, weightEntries });
+  assert.deepEqual(value.weightEntries, [
+    { date: "2026-09-19", weightLb: 206.1, note: "Morning" },
+    { date: "2026-09-20", weightLb: 205.4, note: "" }
+  ]);
+});
+test("weightEntries rejects malformed dates, unrealistic values, duplicate dates, and over-limit requests", () => {
+  assert.throws(() => validateCoachUpdate({ ...minimal, weightEntries: [{ date: "2026-02-30", weightLb: 200 }] }), /weightEntries\[0\]\.date/);
+  assert.throws(() => validateCoachUpdate({ ...minimal, weightEntries: [{ date: "2026-09-20", weightLb: 49 }] }), /weightEntries\[0\]\.weightLb/);
+  assert.throws(() => validateCoachUpdate({ ...minimal, weightEntries: [{ date: "2026-09-20", weightLb: 200 }, { date: "2026-09-20", weightLb: 201 }] }), /duplicates/);
+  assert.throws(() => validateCoachUpdate({ ...minimal, weightEntries: Array.from({ length: 15 }, (_, i) => ({ date: "2026-09-"+String(i + 1).padStart(2, "0"), weightLb: 200 })) }), /weightEntries/);
 });
 test("targetGuidance validates", () => {
   const value = validateCoachUpdate({ ...minimal, targetGuidance: guidance });
