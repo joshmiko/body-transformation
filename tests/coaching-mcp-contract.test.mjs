@@ -3,12 +3,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 test("bridge contract is user-scoped, read-only, and program-state aware", async () => {
-  const [server, rest, migration, writeMigration, weightMigration, config, writeBridge] = await Promise.all([
+  const [server, rest, migration, writeMigration, weightMigration, effectiveDateMigration, config, writeBridge] = await Promise.all([
     readFile(new URL("../supabase/functions/coaching-mcp/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/supabase-rest.js", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/202609170001_program_state_canonical.sql", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/202609190001_coaching_bridge_write_queue.sql", import.meta.url), "utf8"),
     readFile(new URL("../supabase/migrations/202609220001_coaching_weight_entries.sql", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/migrations/202609240001_coach_program_effective_date.sql", import.meta.url), "utf8"),
     readFile(new URL("../supabase/config.toml", import.meta.url), "utf8"),
     readFile(new URL("../supabase/functions/coaching-mcp/write-bridge.mjs", import.meta.url), "utf8")
   ]);
@@ -42,6 +43,10 @@ test("bridge contract is user-scoped, read-only, and program-state aware", async
   assert.ok(weightMigration.includes("old.weight_entries is distinct from new.weight_entries"));
   assert.ok(server.includes("weightEntries"));
   assert.ok(server.includes("weight_entries: update.weightEntries || null"));
+  assert.ok(server.includes("program_effective_date: update.programEffectiveDate || null"));
+  assert.ok(server.includes("currentProgramEffectiveDate: currentProgramEffectiveDateFrom(records)"));
+  assert.ok(writeBridge.includes("programEffectiveDate"));
+  assert.ok(effectiveDateMigration.includes("add column if not exists program_effective_date date"));
   assert.ok(writeBridge.includes("COACH_MAX_WEIGHT_ENTRIES"));
   assert.ok(rest.includes("listCoachUpdateRequests"));
   assert.ok(writeBridge.includes("validateCoachUpdate"));
