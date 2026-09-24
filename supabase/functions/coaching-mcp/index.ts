@@ -68,6 +68,12 @@ function currentProgramFrom(records) {
   return latest?.currentProgram || latest?.nextWeekProgram || null;
 }
 
+function currentProgramEffectiveDateFrom(records) {
+  const states = records.filter(item => item.recordType === "program_state");
+  states.sort((a, b) => Date.parse(b.updatedAt || "") - Date.parse(a.updatedAt || ""));
+  return states[0]?.data?.programEffectiveDate || null;
+}
+
 const WRITE_DRAFT = Object.freeze({
   readOnlyHint: false,
   destructiveHint: false,
@@ -272,6 +278,7 @@ function registerTools(server, supabase, jwtClaims) {
         nutritionTarget: targetRows.at(-1)?.data || null,
         recoveryActivities,
         currentProgram: currentProgramFrom(records),
+        currentProgramEffectiveDate: currentProgramEffectiveDateFrom(records),
         coachingState: state,
         updatedAt: records.map(item => item.updatedAt).filter(Boolean).sort().at(-1) || null
       });
