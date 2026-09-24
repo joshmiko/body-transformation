@@ -1,0 +1,110 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import vm from "node:vm";
+
+const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const formStart = html.indexOf("function nutritionFormValue");
+const formEnd = html.indexOf("function nutritionImportSheet", formStart);
+assert.ok(formStart >= 0 && formEnd > formStart, "nutrition form helpers must exist");
+const helperContext = {
+  nutritionEditingId: "existing",
+  nutritionNumber(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  },
+  nutritionBounds(value) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === "number") return { min: value, max: value };
+    if (typeof value === "object" && Number.isFinite(value.min) && Number.isFinite(value.max)) return value;
+    return null;
+  },
+  escapeHtml(value) {
+    return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
+  },
+};
+vm.createContext(helperContext);
+vm.runInContext(html.slice(formStart, formEnd), helperContext);
+
+test("food entry accepts exact calorie/protein values when optional max fields are blank", () => {
+  assert.equal(helperContext.nutritionEntryRange("2150", "", "Calories"), 2150);
+  assert.equal(helperContext.nutritionEntryRange("185", "", "Protein"), 185);
+});
+
+test("food entry keeps ranges, and collapses equal endpoints to exact values", () => {
+  assert.deepEqual(JSON.parse(JSON.stringify(helperContext.nutritionEntryRange("2100", "2300", "Calories"))), { min: 2100, max: 2300 });
+  assert.equal(helperContext.nutritionEntryRange("190", "190", "Protein"), 190);
+});
+
+test("food entry rejects missing, negative, and reversed calorie/protein ranges", () => {
+  assert.throws(() => helperContext.nutritionEntryRange("", "", "Calories"), /Calories is required/);
+  assert.throws(() => helperContext.nutritionEntryRange("-1", "", "Protein"), /non-negative/);
+  assert.throws(() => helperContext.nutritionEntryRange("2300", "2200", "Calories"), /maximum must be at least/);
+  assert.throws(() => helperContext.nutritionEntryRange("200", "-1", "Protein"), /maximum must be at least/);
+});
+
+test("editing an entry pre-fills both ends of existing calorie and protein ranges", () => {
+  const entry = { id: "existing", name: "Dinner", calories: { min: 650, max: 850 }, protein: { min: 45, max: 60 }, carbs: 40, fat: 20 };
+  const markup = helperContext.nutritionFoodSheet({ entries: [entry] });
+  assert.match(markup, /value="650"/);
+  assert.match(markup, /value="850"/);
+  assert.match(markup, /value="45"/);
+  assert.match(markup, /value="60"/);
+  assert.match(markup, /<summary>Optional macros<\/summary>/);
+  assert.match(markup, /Max \(optional\)/);
+});
+
+test("Quick add uses an accessible sheet and keeps Edit/Add actions available", () => {
+  const start = html.indexOf("function nutritionQuickSheet");
+  const end = html.indexOf("function nutritionPresetSheet", start);
+  assert.ok(start >= 0 && end > start);
+  const quickSheet = html.slice(start, end);
+  assert.match(quickSheet, /role="dialog" aria-modal="true"/);
+  assert.match(quickSheet, /aria-label="Close Quick add"/);
+  assert.match(quickSheet, /editNutritionPreset/);
+  assert.match(quickSheet, /quickAddNutrition/);
+  assert.match(html, /nutritionSheet==="quick"\?nutritionQuickSheet\(store\)/);
+});
+
+test("quick-add preset saves one entry, closes the sheet, and rerenders entries", () => {
+  const start = html.indexOf("function quickAddNutrition");
+  const end = html.indexOf("function editNutritionTargets", start);
+  assert.ok(start >= 0 && end > start);
+  const store = { presets: [{ id: "shake", name: "Protein shake", calories: 120, protein: 24, carbs: 3, fat: 2 }], entries: [] };
+  let saves = 0;
+  let renders = 0;
+  const ctx = {
+    nutritionStore: () => store,
+    nutritionNumber: helperContext.nutritionNumber,
+    nutritionSelectedDate: "2026-09-23",
+    nutritionSheet: "quick",
+    nutritionQuickOpen: true,
+    nutritionFocusReturnId: null,
+    save: () => saves++,
+    nutrition: () => renders++,
+  };
+  vm.createContext(ctx);
+  vm.runInContext(html.slice(start, end), ctx);
+  ctx.quickAddNutrition("shake");
+  assert.equal(store.entries.length, 1);
+  assert.equal(store.entries[0].date, "2026-09-23");
+  assert.equal(store.entries[0].calories, 120);
+  assert.equal(store.entries[0].protein, 24);
+  assert.equal(ctx.nutritionSheet, null);
+  assert.equal(ctx.nutritionQuickOpen, false);
+  assert.equal(saves, 1);
+  assert.equal(renders, 1);
+});
+
+test("Nutrition imports are under Advanced / backup and same-page renders preserve scroll", () => {
+  const renderStart = html.indexOf("function nutrition(){");
+  const renderEnd = html.indexOf("function toggleNutritionQuick", renderStart);
+  const render = html.slice(renderStart, renderEnd);
+  assert.match(render, /<h3>Weekly adherence<\/h3>[\s\S]*<summary>Advanced \/ backup<\/summary>/);
+  assert.match(render, /aria-haspopup="dialog"/);
+  assert.match(render, /resetScroll=!hadNutrition\|\|nutritionResetScroll/);
+  assert.match(render, /nutritionResetScroll=true;nutrition\(\)/);
+  assert.match(render, /else window\.scrollTo\(0,scrollTop\)/);
+  assert.doesNotMatch(render, /window\.scrollTo\(0,0\);document\.body/);
+});
