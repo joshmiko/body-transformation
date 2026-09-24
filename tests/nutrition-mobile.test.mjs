@@ -5,7 +5,9 @@ import vm from "node:vm";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const formStart = html.indexOf("function nutritionFormValue");
-const formEnd = html.indexOf("function nutrition(){", formStart);\nconst rangeStart = html.indexOf("function nutritionEntryRange");\nconst rangeEnd = html.indexOf("function nutritionImportSheet", rangeStart);
+const formEnd = html.indexOf("function nutrition(){", formStart);
+const rangeStart = html.indexOf("function nutritionEntryRange");
+const rangeEnd = html.indexOf("function nutritionImportSheet", rangeStart);
 assert.ok(formStart >= 0 && formEnd > formStart && rangeStart >= 0 && rangeEnd > rangeStart, "nutrition form helpers must exist");
 const helperContext = {
   nutritionEditingId: "existing",
@@ -25,7 +27,8 @@ const helperContext = {
   },
 };
 vm.createContext(helperContext);
-vm.runInContext(html.slice(formStart, formEnd), helperContext);\nvm.runInContext(html.slice(rangeStart, rangeEnd), helperContext);
+vm.runInContext(html.slice(formStart, formEnd), helperContext);
+vm.runInContext(html.slice(rangeStart, rangeEnd), helperContext);
 
 test("food entry accepts exact calorie/protein values when optional max fields are blank", () => {
   assert.equal(helperContext.nutritionEntryRange("2150", "", "Calories"), 2150);
