@@ -141,6 +141,15 @@ export function isPastProgramEffectiveDate(value, todayISO = new Date().toISOStr
   return effectiveDate < currentDate;
 }
 
+export function isDefinitelyPastProgramEffectiveDate(value, utcTodayISO = new Date().toISOString().slice(0, 10)) {
+  const effectiveDate = strictISODate(value, "programEffectiveDate");
+  const utcToday = strictISODate(utcTodayISO, "today");
+  const [year, month, day] = utcToday.split("-").map(Number);
+  const earliestLocalToday = new Date(Date.UTC(year, month - 1, day) - 86400000);
+  const earliestLocalTodayISO = earliestLocalToday.toISOString().slice(0, 10);
+  return effectiveDate < earliestLocalTodayISO;
+}
+
 export function validateCoachUpdate(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) invalid("$", "must be an object.");
   if (payload.schema !== COACH_UPDATE_SCHEMA) invalid("schema", "must equal " + COACH_UPDATE_SCHEMA + ".");
