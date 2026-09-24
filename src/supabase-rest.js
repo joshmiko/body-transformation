@@ -475,7 +475,7 @@ export function defaultProgramEffectiveDate() {
   return [value.getFullYear(), String(value.getMonth() + 1).padStart(2, "0"), String(value.getDate()).padStart(2, "0")].join("-");
 }
 
-function mergeCanonicalRecords(localDb, rows = [], options = {}) {
+export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
   const merged = ensureDbIdentities(localDb && typeof localDb === "object" ? localDb : {});
   const meta = readCanonicalMeta();
   const pending = options.pendingRows || readCanonicalQueue();
