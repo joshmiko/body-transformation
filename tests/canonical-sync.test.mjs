@@ -56,9 +56,19 @@ test("canonical program state rehydrates its effective date without rewriting sa
     sessions: { "session-1": { ...baseSession, programSnapshot: historicalSnapshot } },
     checkins: [],
     nutrition: { entries: [], dailySummaries: [] },
-    recoveryActivities: []
+    recoveryActivities: [],
+    nextWeekProgram: {
+      Monday: { title: "Existing Monday", exercises: [] },
+      Wednesday: { title: "Existing Wednesday", exercises: [] },
+      Friday: { title: "Old Friday", exercises: [] },
+      Saturday: { title: "Existing Saturday", exercises: [] }
+    },
+    nextWeekProgramEffectiveDate: "2026-09-21"
   };
-  const proposedProgram = { Friday: { title: "Updated Friday", exercises: [] } };
+  const proposedProgram = {
+    Friday: { title: "Updated Friday", exercises: [] },
+    Saturday: { title: "Updated Saturday", exercises: [] }
+  };
   const merged = supabase.mergeCanonicalRecords(local, [{
     record_type: "program_state",
     source_record_id: "current",
@@ -70,7 +80,10 @@ test("canonical program state rehydrates its effective date without rewriting sa
     },
     updated_at: "2026-09-24T12:00:00.000Z"
   }]);
-  assert.deepEqual(merged.nextWeekProgram, proposedProgram);
+  assert.equal(merged.nextWeekProgram.Monday.title, "Existing Monday");
+  assert.equal(merged.nextWeekProgram.Wednesday.title, "Existing Wednesday");
+  assert.equal(merged.nextWeekProgram.Friday.title, "Updated Friday");
+  assert.equal(merged.nextWeekProgram.Saturday.title, "Updated Saturday");
   assert.equal(merged.nextWeekProgramEffectiveDate, "2026-09-25");
   assert.equal(merged.nextWeekProgramUpdatedAt, "2026-09-24T12:00:00.000Z");
   assert.deepEqual(merged.sessions["session-1"].programSnapshot, historicalSnapshot);
