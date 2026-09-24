@@ -17,7 +17,7 @@ import {
 } from "./bridge.mjs";
 import {
   COACH_UPDATE_SCHEMA,
-  isPastProgramEffectiveDate,
+  isDefinitelyPastProgramEffectiveDate,
   normalizeExpectedWatermark,
   payloadHash,
   validateCoachUpdate
@@ -412,8 +412,8 @@ function registerTools(server, supabase, jwtClaims) {
         programEffectiveDate: row.program_effective_date === null ? undefined : row.program_effective_date
       });
       if (requestHash(update, storedExpected) !== row.payload_hash) fail("Coach-update draft integrity check failed.");
-      if (update.nextWeekProgram && update.programEffectiveDate && isPastProgramEffectiveDate(update.programEffectiveDate)) {
-        fail("programEffectiveDate must be today or a future local calendar date.");
+      if (update.nextWeekProgram && update.programEffectiveDate && isDefinitelyPastProgramEffectiveDate(update.programEffectiveDate)) {
+        fail("programEffectiveDate is too far in the past to be a current local calendar date. The app will also validate against your exact local date before approval.");
       }
       await assertWatermark(supabase, storedExpected);
       const now = new Date().toISOString();
