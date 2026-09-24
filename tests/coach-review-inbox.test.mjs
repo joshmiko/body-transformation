@@ -47,7 +47,7 @@ test("coach review inbox is review-gated and preserves the manual fallback", asy
   assert.match(effectiveDateMigration, /old\.program_effective_date is distinct from new\.program_effective_date/);
   assert.match(server, /programEffectiveDate: row\.program_effective_date/);
   assert.match(server, /program_effective_date: update\.programEffectiveDate/);
-  assert.match(server, /isPastProgramEffectiveDate\(update\.programEffectiveDate\)/);
+  assert.match(server, /isDefinitelyPastProgramEffectiveDate\(update\.programEffectiveDate\)/);
   assert.match(server, /requestVersion/);
   assert.match(server, /request_version: Number\(row\.request_version/);
 });
