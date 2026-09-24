@@ -58,6 +58,43 @@ test("editing an entry pre-fills both ends of existing calorie and protein range
   assert.match(markup, /Max \(optional\)/);
 });
 
+
+test("Save food persists exact values when max fields are blank", () => {
+  const start = html.indexOf("function saveNutritionEntry");
+  const end = html.indexOf("function editNutritionEntry", start);
+  assert.ok(start >= 0 && end > start);
+  const store = { entries: [] };
+  const fields = { "nutrition-name": "Lunch", "nutrition-calories": "640", "nutrition-calories-max": "", "nutrition-protein": "48", "nutrition-protein-max": "", "nutrition-meal": "Lunch", "nutrition-carbs": "", "nutrition-fat": "" };
+  const ctx = { document: { getElementById: (id) => fields[id] === undefined ? null : { value: fields[id] } }, nutritionNumber: helperContext.nutritionNumber, nutritionEntryRange: helperContext.nutritionEntryRange, nutritionStore: () => store, nutritionSelectedDate: "2026-09-23", nutritionEditingId: null, nutritionSheet: "food", nutritionQuickOpen: false, nutritionFocusReturnId: null, save() {}, nutrition() {} };
+  vm.createContext(ctx);
+  vm.runInContext(html.slice(start, end), ctx);
+  ctx.saveNutritionEntry();
+  assert.equal(store.entries.length, 1);
+  assert.equal(store.entries[0].calories, 640);
+  assert.equal(store.entries[0].protein, 48);
+  assert.equal(store.entries[0].carbs, null);
+  assert.equal(store.entries[0].fat, null);
+});
+
+test("Save food preserves existing calorie/protein ranges and unrelated entry metadata", () => {
+  const start = html.indexOf("function saveNutritionEntry");
+  const end = html.indexOf("function editNutritionEntry", start);
+  const existing = { id: "saved", name: "Dinner", calories: { min: 700, max: 850 }, protein: { min: 50, max: 65 }, sourcePackageId: "prior-import", createdAt: "2026-09-22T20:00:00Z", customNote: "keep" };
+  const store = { entries: [existing] };
+  const fields = { "nutrition-name": "Dinner update", "nutrition-calories": "700", "nutrition-calories-max": "850", "nutrition-protein": "50", "nutrition-protein-max": "65", "nutrition-meal": "Dinner", "nutrition-carbs": "", "nutrition-fat": "" };
+  const ctx = { document: { getElementById: (id) => fields[id] === undefined ? null : { value: fields[id] } }, nutritionNumber: helperContext.nutritionNumber, nutritionEntryRange: helperContext.nutritionEntryRange, nutritionStore: () => store, nutritionSelectedDate: "2026-09-23", nutritionEditingId: "saved", nutritionSheet: "food", nutritionQuickOpen: false, nutritionFocusReturnId: null, save() {}, nutrition() {} };
+  vm.createContext(ctx);
+  vm.runInContext(html.slice(start, end), ctx);
+  ctx.saveNutritionEntry();
+  assert.equal(store.entries.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(existing.calories)), { min: 700, max: 850 });
+  assert.deepEqual(JSON.parse(JSON.stringify(existing.protein)), { min: 50, max: 65 });
+  assert.equal(existing.sourcePackageId, "prior-import");
+  assert.equal(existing.createdAt, "2026-09-22T20:00:00Z");
+  assert.equal(existing.customNote, "keep");
+  assert.equal(existing.name, "Dinner update");
+});
+
 test("Quick add uses an accessible sheet and keeps Edit/Add actions available", () => {
   const start = html.indexOf("function nutritionQuickSheet");
   const end = html.indexOf("function nutritionPresetSheet", start);
