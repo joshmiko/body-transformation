@@ -524,8 +524,9 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
       merged.programState = value;
       const plan = value.currentProgram || value.nextWeekProgram;
       if (plan) {
-        const sameProgram = JSON.stringify(merged.nextWeekProgram || null) === JSON.stringify(plan);
-        merged.nextWeekProgram = plan;
+        const existingProgram = merged.nextWeekProgram || {};
+        const sameProgram = JSON.stringify(existingProgram) === JSON.stringify(plan);
+        merged.nextWeekProgram = { ...existingProgram, ...plan };
         merged.nextWeekProgramEffectiveDate = value.programEffectiveDate || (sameProgram ? merged.nextWeekProgramEffectiveDate : null) || defaultProgramEffectiveDate();
         if (value.updatedAt) merged.nextWeekProgramUpdatedAt = value.updatedAt;
       }
