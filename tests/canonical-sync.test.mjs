@@ -87,6 +87,7 @@ test("canonical program state rehydrates its effective date without rewriting sa
   assert.equal(merged.nextWeekProgramEffectiveDate, "2026-09-25");
   assert.equal(merged.nextWeekProgramUpdatedAt, "2026-09-24T12:00:00.000Z");
   assert.deepEqual(merged.sessions["session-1"].programSnapshot, historicalSnapshot);
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_meta_v2", "user-1"));
 });
 
 test("sync writes every local domain with stable idempotency keys", async () => {
