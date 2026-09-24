@@ -561,7 +561,7 @@ function formatDuration(seconds){const n=Math.max(0,Math.floor(Number(seconds)||
 function updateSessionClock(){const el=document.getElementById("bt-session-clock");if(el&&activeWorkoutDay){const s=getSession(activeWorkoutDay);el.textContent=formatDuration(elapsedSeconds(s))}}
 function startSessionClockTicker(){if(sessionClockTimer)return;updateSessionClock();sessionClockTimer=setInterval(updateSessionClock,1000)}
 function exerciseRecord(session,i,e){const key=String(i);if(!session.exercises[key])session.exercises[key]={name:e.name,prescribedExercise:e.name,performedExercise:e.name,substitution:false,unit:e.unit||"reps",planned:{sets:e.sets,min:e.min,max:e.max,unit:e.unit||"reps",rest:e.rest,unilateral:!!e.unilateral},actual:[],warmups:[],warmupsInitialized:false};const ex=session.exercises[key];ex.name=ex.name||e.name;ex.prescribedExercise=ex.prescribedExercise||e.name;ex.performedExercise=ex.performedExercise||ex.name||e.name;ex.substitution=!!(ex.substitution||ex.performedExercise!==ex.prescribedExercise);ex.unit=ex.unit||e.unit||"reps";ex.planned=ex.planned||{sets:e.sets,min:e.min,max:e.max,unit:e.unit||"reps",rest:e.rest,unilateral:!!e.unilateral};ex.planned.unit=ex.planned.unit||e.unit||"reps";ex.planned.rest=ex.planned.rest??e.rest;ex.planned.unilateral=!!(ex.planned.unilateral||e.unilateral);ex.actual=Array.isArray(ex.actual)?ex.actual:[];ex.warmups=Array.isArray(ex.warmups)?ex.warmups:[];ex.warmupsSkipped=!!ex.warmupsSkipped;ex.warmups.forEach(x=>{migrateSet(x,"warmup");x.type="warmup"});return ex}
-function nextMonday(){const x=new Date();const offset=((8-x.getDay())%7)||7;x.setDate(x.getDate()+offset);return x.toISOString().slice(0,10)}
+function nextMonday(){const x=new Date();const offset=((8-x.getDay())%7)||7;x.setDate(x.getDate()+offset);return localDateKey(x)}
 function planForDay(d,date=today()){return db.nextWeekProgram&&db.nextWeekProgramEffectiveDate&&date>=db.nextWeekProgramEffectiveDate?(db.nextWeekProgram[d]||PROGRAM[d]):PROGRAM[d]}
 function sessionProgram(d){return getSession(d).programSnapshot||planForDay(d)}
 function clearActiveSessionPointer(){delete db.activeSessionId;delete db.activeProgramDay;delete db.currentExerciseIndex;delete db.currentSetIndex}
@@ -680,7 +680,7 @@ function completeStats(s){s.stats={workingSets:0,completedSets:0};Object.values(
 function coachSyncState(){db.coachSync=db.coachSync&&typeof db.coachSync==="object"?db.coachSync:{pendingPackages:[],imports:[],reviewedWatermark:null};db.coachSync.pendingPackages=Array.isArray(db.coachSync.pendingPackages)?db.coachSync.pendingPackages:[];db.coachSync.imports=Array.isArray(db.coachSync.imports)?db.coachSync.imports:[];return db.coachSync}
 function packageId(){return "coach_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
 function weeklyContext(){const x=latestCheckinByMeasurementDate(db.checkins||[]),has=(key)=>Object.prototype.hasOwnProperty.call(x,key),recoveryActivities=currentWeekRecoveryActivities();return {proteinTargetDays:has("proteinTargetDays")?numericOrNull(x.proteinTargetDays):null,calorieTargetDays:has("calorieTargetDays")?numericOrNull(x.calorieTargetDays):null,averageSteps:has("averageSteps")?numericOrNull(x.averageSteps):null,hockeySessions:has("hockeySessions")?numericOrNull(x.hockeySessions):null,yogaCompleted:recoveryActivities.length?true:(has("yogaCompleted")?!!x.yogaCompleted:null),recoveryActivities,averageSleep:has("averageSleep")?numericOrNull(x.averageSleep):null,sorenessRecovery:x.sorenessRecovery?String(x.sorenessRecovery):null}}
-function coachCurrentProgram(){const current=cloneValue(db.nextWeekProgram||PROGRAM);current.activities=cloneValue(PROGRAM.activities||{});globalThis.__BT_PROGRAM_STATE__={schemaVersion:1,source:"app",currentProgram:cloneValue(current),updatedAt:db.nextWeekProgramUpdatedAt||null};return current}
+function coachCurrentProgram(){const current=cloneValue(db.nextWeekProgram||PROGRAM);current.activities=cloneValue(PROGRAM.activities||{});globalThis.__BT_PROGRAM_STATE__={schemaVersion:1,source:"app",currentProgram:cloneValue(current),programEffectiveDate:db.nextWeekProgram?db.nextWeekProgramEffectiveDate||null:null,updatedAt:db.nextWeekProgramUpdatedAt||null};return current}
 function normalizedCheckin(x){const has=(key)=>Object.prototype.hasOwnProperty.call(x,key);return {date:x.date||null,createdAt:x.createdAt||null,weight:has("weight")?numericOrNull(x.weight):null,waist:has("waist")?numericOrNull(x.waist):null,proteinTargetDays:has("proteinTargetDays")?numericOrNull(x.proteinTargetDays):null,calorieTargetDays:has("calorieTargetDays")?numericOrNull(x.calorieTargetDays):null,averageSteps:has("averageSteps")?numericOrNull(x.averageSteps):null,hockeySessions:has("hockeySessions")?numericOrNull(x.hockeySessions):null,yogaCompleted:has("yogaCompleted")?!!x.yogaCompleted:null,averageSleep:has("averageSleep")?numericOrNull(x.averageSleep):null,sorenessRecovery:x.sorenessRecovery?String(x.sorenessRecovery):null,notes:x.notes||""}}
 function exportWarmupSet(x,e){const timed=e?.unit==="sec",out={type:"warmup",status:"completed",added:!!x.added,weight:numericOrNull(x.weight),completedAt:x.completedAt||null,note:x.note||""};if(timed){out.seconds=numericOrNull(x.seconds)}else{out.reps=numericOrNull(x.reps)}return out}
 function exportWorkingSet(x,e){const timed=e?.unit==="sec",unilateral=!!e?.unilateral,out={type:"working",status:x.status||((x.done)?"completed":"planned"),added:!!x.added,weight:numericOrNull(x.weight),unilateral,rir:normalizeRir(x.rir),feel:normalizeFeel(x.feel??x.effort),prescribedRestSec:numericOrNull(x.prescribedRestSec??x.restSeconds??e?.rest),actualRestSec:numericOrNull(x.actualRestSec),completedAt:x.completedAt||null,note:x.note||""};if(out.actualRestSec===0)out.actualRestSec=null;if(timed){out.seconds=numericOrNull(x.seconds)}else if(unilateral){out.repsPerSide=numericOrNull(x.reps)}else{out.reps=numericOrNull(x.reps)}return out}
@@ -943,13 +943,25 @@ function coachRequestProgramMarkup(program){
  });
  return rows.join("")||"<div class=small>No training changes proposed.</div>";
 }
+function coachProgramEffectiveDate(row){return row?.program_effective_date??row?.programEffectiveDate??nextMonday()}
+function coachEffectiveDateIssue(row){
+ const value=coachProgramEffectiveDate(row);
+ if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value))return "The program effective date is invalid. Refresh the Coach update before reviewing it.";
+ const [year,month,day]=value.split("-").map(Number),parsed=new Date(year,month-1,day);
+ if(parsed.getFullYear()!==year||parsed.getMonth()!==month-1||parsed.getDate()!==day)return "The program effective date is not a real calendar date.";
+ if(value<today())return "This program effective date is in the past. Ask Coach to submit a new update with a current or future local date.";
+ return "";
+}
 function coachRequestWarnings(row){
  const warnings=[];
  const state=coachSyncState(),expected=Date.parse(row?.expected_watermark||"");
  const reviewed=Date.parse(state.reviewedWatermark||"");
  if(expected&&reviewed&&expected<reviewed)warnings.push("This proposal is based on an older coaching watermark. Refresh before applying it.");
+ const effectiveDate=coachProgramEffectiveDate(row),dateIssue=coachEffectiveDateIssue(row);
+ if((row?.next_week_program||row?.nextWeekProgram)&&dateIssue)warnings.push(dateIssue);
+ else if((row?.program_effective_date||row?.programEffectiveDate)&&(row?.next_week_program||row?.nextWeekProgram)&&new Date(...effectiveDate.split("-").map(Number).map((value,index)=>index===1?value-1:value)).getDay()!==1)warnings.push("This update starts mid-week on "+dateLabel(effectiveDate)+". Only workouts on or after that local date use the proposed plan; earlier dates and saved workout snapshots stay unchanged.");
  let minutes=0;
- Object.values(row?.next_week_program||{}).forEach(plan=>(plan?.exercises||[]).forEach(ex=>{minutes+=(Number(ex.sets)||0)*((Number(ex.rest)||0)/60+0.75)}));
+ Object.values(row?.next_week_program||row?.nextWeekProgram||{}).forEach(plan=>(plan?.exercises||[]).forEach(ex=>{minutes+=(Number(ex.sets)||0)*((Number(ex.rest)||0)/60+0.75)}));
  if(minutes>60)warnings.push("The proposed plan estimates more than 60 minutes. Review the session length before applying.");
  return warnings;
 }
@@ -964,9 +976,11 @@ function coachRequestWeightMarkup(row){
 }
 function coachRequestCard(row){
  const warnings=coachRequestWarnings(row),status=String(row.status||"submitted"),program=row.next_week_program||row.nextWeekProgram||null,guidance=row.target_guidance||row.targetGuidance||null;
- const canApprove=status==="submitted",canApply=status==="approved";
+ const effectiveDate=coachProgramEffectiveDate(row),explicitDate=!!(row.program_effective_date||row.programEffectiveDate);
+ const hasProgram=!!program,canApprove=status==="submitted"&&(!hasProgram||!coachEffectiveDateIssue(row)),canApply=status==="approved"&&(!hasProgram||!coachEffectiveDateIssue(row));
  const action=canApprove?"reviewCoachRequest('"+escapeHtml(row.id)+"','approve')":canApply?"reviewCoachRequest('"+escapeHtml(row.id)+"','apply')":"";
- return "<div class=card style=\"margin-top:10px\"><div class=ey>COACH UPDATE</div><h3>"+escapeHtml(row.coach_summary||row.coachSummary||"Proposed coaching update")+"</h3><div class=small>Status: <b>"+escapeHtml(status)+"</b> • Effective: "+escapeHtml(dateLabel(nextMonday()))+"</div>"+(row.expected_watermark||row.expectedWatermark?"<div class=muted style=\"margin-top:5px\">Based on data through "+escapeHtml(dateLabel(row.expected_watermark||row.expectedWatermark))+"</div>":"")+(program?"<div style=\"margin-top:10px\"><b>Training changes</b>"+coachRequestProgramMarkup(program)+"</div>":"")+(guidance?"<div style=\"margin-top:10px\"><b>Target guidance</b>"+coachTargetGuidanceMarkup(guidance)+"</div>":"")+coachRequestWeightMarkup(row)+(warnings.length?"<div class=\"card\" style=\"margin-top:8px;background:var(--amber2);color:var(--text)\"><b>Review warnings</b>"+warnings.map(x=>"<div class=small>"+escapeHtml(x)+"</div>").join("")+"</div>":"")+(canApprove||canApply?"<button class=primary style=\"width:100%;margin-top:10px\" onclick=\""+action+"\">"+(canApprove?"Approve & apply":"Finish applying update")+"</button>":"")+(status==="submitted"?"<button class=secondary style=\"width:100%;margin-top:8px\" onclick=\"reviewCoachRequest('"+escapeHtml(row.id)+"','reject')\">Reject / keep current plan</button>":"")+"</div>";
+ const effectiveLabel=explicitDate?"Effective date (local calendar): ":"Effective date (default, next Monday): ";
+ return "<div class=card style=\"margin-top:10px\"><div class=ey>COACH UPDATE</div><h3>"+escapeHtml(row.coach_summary||row.coachSummary||"Proposed coaching update")+"</h3><div class=small>Status: <b>"+escapeHtml(status)+"</b> • "+effectiveLabel+escapeHtml(dateLabel(effectiveDate))+"</div>"+(row.expected_watermark||row.expectedWatermark?"<div class=muted style=\"margin-top:5px\">Based on data through "+escapeHtml(dateLabel(row.expected_watermark||row.expectedWatermark))+"</div>":"")+(program?"<div style=\"margin-top:10px\"><b>Training changes</b>"+coachRequestProgramMarkup(program)+"</div>":"")+(guidance?"<div style=\"margin-top:10px\"><b>Target guidance</b>"+coachTargetGuidanceMarkup(guidance)+"</div>":"")+coachRequestWeightMarkup(row)+(warnings.length?"<div class=\"card\" style=\"margin-top:8px;background:var(--amber2);color:var(--text)\"><b>Review warnings</b>"+warnings.map(x=>"<div class=small>"+escapeHtml(x)+"</div>").join("")+"</div>":"")+(canApprove||canApply?"<button class=primary style=\"width:100%;margin-top:10px\" onclick=\""+action+"\">"+(canApprove?"Approve & apply":"Finish applying update")+"</button>":"")+(status==="submitted"?"<button class=secondary style=\"width:100%;margin-top:8px\" onclick=\"reviewCoachRequest('"+escapeHtml(row.id)+"','reject')\">Reject / keep current plan</button>":"")+"</div>";
 }
 let coachInboxRows=[];
 async function loadCoachInbox(){
@@ -1010,7 +1024,7 @@ function applyCoachWeightEntries(row){
 function applyCoachRequestLocally(row){
  const weightResult=applyCoachWeightEntries(row);
  const program=row.next_week_program||row.nextWeekProgram;
- if(program){db.nextWeekProgram=cloneValue(program);db.nextWeekProgramEffectiveDate=nextMonday();}
+ if(program){const dateIssue=coachEffectiveDateIssue(row);if(dateIssue)throw new Error(dateIssue);db.nextWeekProgram=cloneValue(program);db.nextWeekProgramEffectiveDate=coachProgramEffectiveDate(row);db.nextWeekProgramUpdatedAt=new Date().toISOString();}
  const guidance=row.target_guidance||row.targetGuidance;
  if(guidance){
   db.nutrition=db.nutrition&&typeof db.nutrition==="object"?db.nutrition:{targets:{}};
@@ -1027,6 +1041,7 @@ function applyCoachRequestLocally(row){
 async function reviewCoachRequest(id,action){
  const row=coachInboxRows.find(x=>String(x.id)===String(id));if(!row)return;
  const warnings=coachRequestWarnings(row);
+ if(action!=="reject"&&(row.next_week_program||row.nextWeekProgram)&&coachEffectiveDateIssue(row)){const el=document.getElementById("coach-inbox-card");if(el)el.insertAdjacentHTML("afterbegin","<div class=\"card\" style=\"color:var(--red)\">"+escapeHtml(coachEffectiveDateIssue(row))+"</div>");return;}
  if(warnings.some(x=>x.includes("older coaching watermark"))){const el=document.getElementById("coach-inbox-card");if(el)el.insertAdjacentHTML("afterbegin","<div class=\"card\" style=\"color:var(--red)\">This proposal is stale. Refresh the Coach updates section before applying it.</div>");return;}
  try{
   let current=row;
@@ -1038,11 +1053,11 @@ async function reviewCoachRequest(id,action){
    if(action==="approve"&&row.status==="submitted"){
     const approved=await window.btSupabase.reviewCoachUpdateRequest(row.id,{status:"approved",reviewedAt:new Date().toISOString(),expectedVersion:Number(row.request_version)||1});
     current=Array.isArray(approved)?approved[0]:approved;
-    await window.btSupabase.appendCoachUpdateAudit({request_id:row.id,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:"approved",actor_type:"app",details:{effectiveDate:nextMonday()}});
+    await window.btSupabase.appendCoachUpdateAudit({request_id:row.id,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:"approved",actor_type:"app",details:{effectiveDate:coachProgramEffectiveDate(current)}});
    }
    applyCoachRequestLocally(current);
    const applied=await window.btSupabase.reviewCoachUpdateRequest(row.id,{status:"applied",appliedAt:new Date().toISOString(),expectedVersion:Number(current.request_version)||2});
-   await window.btSupabase.appendCoachUpdateAudit({request_id:row.id,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:"applied",actor_type:"app",details:{effectiveDate:nextMonday()}});
+   await window.btSupabase.appendCoachUpdateAudit({request_id:row.id,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:"applied",actor_type:"app",details:{effectiveDate:coachProgramEffectiveDate(current)}});
    const appliedState=coachSyncState();
    if(current.expected_watermark)appliedState.reviewedWatermark=current.expected_watermark;
    save();
