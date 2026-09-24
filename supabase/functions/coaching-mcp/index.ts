@@ -17,6 +17,7 @@ import {
 } from "./bridge.mjs";
 import {
   COACH_UPDATE_SCHEMA,
+  isPastProgramEffectiveDate,
   normalizeExpectedWatermark,
   payloadHash,
   validateCoachUpdate
@@ -92,6 +93,7 @@ function safeRequest(row) {
     nextWeekProgram: row.next_week_program || null,
     targetGuidance: row.target_guidance || null,
     weightEntries: row.weight_entries || null,
+    programEffectiveDate: row.program_effective_date || null,
     payloadHash: row.payload_hash,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -147,7 +149,8 @@ function validatedUpdate(input) {
     coachSummary: input.coachSummary,
     nextWeekProgram: input.nextWeekProgram,
     targetGuidance: input.targetGuidance,
-    weightEntries: input.weightEntries
+    weightEntries: input.weightEntries,
+    programEffectiveDate: input.programEffectiveDate
   });
 }
 
@@ -309,7 +312,7 @@ function registerTools(server, supabase, jwtClaims) {
   server.registerTool(
     "create_coach_update_draft",
     {
-      description: "Create an idempotent draft of a reviewed coach update. This never changes workouts, history, canonical program state, nutrition history, or photos. The Body Transformation app must review and apply it.",
+      description: "Create an idempotent draft of a reviewed coach update. Set programEffectiveDate to YYYY-MM-DD in the user's local calendar for a non-Monday start; when omitted, the app defaults to next Monday. This never changes workouts, history, canonical program state, nutrition history, or photos. The Body Transformation app must review and apply it.",
       inputSchema: z.object({
         idempotencyKey: z.string().min(8).max(120),
         sourcePackageId: z.string().min(1).max(160),
@@ -317,6 +320,7 @@ function registerTools(server, supabase, jwtClaims) {
         nextWeekProgram: z.unknown().optional(),
         targetGuidance: z.unknown().optional(),
         weightEntries: z.unknown().optional(),
+        programEffectiveDate: z.string().optional(),
         expectedWatermark: z.string().nullable().optional(),
         confirm: z.literal(true)
       }),
@@ -346,6 +350,7 @@ function registerTools(server, supabase, jwtClaims) {
         next_week_program: update.nextWeekProgram || null,
         target_guidance: update.targetGuidance || null,
         weight_entries: update.weightEntries || null,
+        program_effective_date: update.programEffectiveDate || null,
         payload_hash: hash,
         status: "draft",
         requested_by_client_id: clientId
@@ -403,9 +408,13 @@ function registerTools(server, supabase, jwtClaims) {
         coachSummary: row.coach_summary,
         nextWeekProgram: row.next_week_program === null ? undefined : row.next_week_program,
         targetGuidance: row.target_guidance === null ? undefined : row.target_guidance,
-        weightEntries: row.weight_entries === null ? undefined : row.weight_entries
+        weightEntries: row.weight_entries === null ? undefined : row.weight_entries,
+        programEffectiveDate: row.program_effective_date === null ? undefined : row.program_effective_date
       });
       if (requestHash(update, storedExpected) !== row.payload_hash) fail("Coach-update draft integrity check failed.");
+      if (update.nextWeekProgram && update.programEffectiveDate && isPastProgramEffectiveDate(update.programEffectiveDate)) {
+        fail("programEffectiveDate must be today or a future local calendar date.");
+      }
       await assertWatermark(supabase, storedExpected);
       const now = new Date().toISOString();
       const updated = await supabase
