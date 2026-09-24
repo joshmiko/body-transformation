@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   COACH_UPDATE_SCHEMA,
+  isDefinitelyPastProgramEffectiveDate,
   isPastProgramEffectiveDate,
   normalizeExpectedWatermark,
   payloadHash,
@@ -56,10 +57,12 @@ test("programEffectiveDate accepts a real ISO local calendar date", () => {
   assert.throws(() => validateCoachUpdate({ ...minimal, programEffectiveDate: "2026-02-30" }), /programEffectiveDate.*real calendar date/);
   assert.throws(() => validateCoachUpdate({ ...minimal, programEffectiveDate: "09/25/2026" }), /programEffectiveDate.*ISO date/);
 });
-test("programEffectiveDate submission check compares date-only values deterministically", () => {
+test("programEffectiveDate past-date checks are deterministic and timezone-safe", () => {
   assert.equal(isPastProgramEffectiveDate("2026-09-25", "2026-09-24"), false);
   assert.equal(isPastProgramEffectiveDate("2026-09-24", "2026-09-24"), false);
   assert.equal(isPastProgramEffectiveDate("2026-09-23", "2026-09-24"), true);
+  assert.equal(isDefinitelyPastProgramEffectiveDate("2026-09-23", "2026-09-24"), false);
+  assert.equal(isDefinitelyPastProgramEffectiveDate("2026-09-22", "2026-09-24"), true);
 });
 test("nextWeekProgram validates with supported workout and exercise fields", () => {
   const value = validateCoachUpdate({ ...minimal, nextWeekProgram: program });
