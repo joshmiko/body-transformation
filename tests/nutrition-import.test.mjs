@@ -65,8 +65,9 @@ test("daily progress uses actual range totals and prompts when targets are missi
   assert.deepEqual(JSON.parse(JSON.stringify(totals.calories)), { min: 2000, max: 2200 });
   assert.match(context.nutritionProgressRow("Calories", totals.calories, 2500, "cal", "calories"), /2,000–2,200 cal/);
   context.nutritionStore = () => ({ targets: { calories: null, protein: null }, entries: [], dailySummaries: [] });
-  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /calorie \\+ protein targets missing/);
-  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /Suggested/);\n  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /Set targets/);
+  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /calorie \+ protein targets missing/);
+  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /Suggested/);
+  assert.match(context.nutritionTargetPrompt(context.nutritionStore()), /Set targets/);
 });
 
 
