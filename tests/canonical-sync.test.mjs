@@ -49,6 +49,33 @@ test("canonical merge preserves programDay and prefers newer cloud records", () 
   assert.equal(merged.sessions["session-1"].sessionNote, "synced from iPhone");
 });
 
+
+test("canonical program state rehydrates its effective date without rewriting saved snapshots", () => {
+  const historicalSnapshot = { Monday: { title: "Historical Monday", exercises: [] } };
+  const local = {
+    sessions: { "session-1": { ...baseSession, programSnapshot: historicalSnapshot } },
+    checkins: [],
+    nutrition: { entries: [], dailySummaries: [] },
+    recoveryActivities: []
+  };
+  const proposedProgram = { Friday: { title: "Updated Friday", exercises: [] } };
+  const merged = supabase.mergeCanonicalRecords(local, [{
+    record_type: "program_state",
+    source_record_id: "current",
+    payload: {
+      schemaVersion: 1,
+      currentProgram: proposedProgram,
+      programEffectiveDate: "2026-09-25",
+      updatedAt: "2026-09-24T12:00:00.000Z"
+    },
+    updated_at: "2026-09-24T12:00:00.000Z"
+  }]);
+  assert.deepEqual(merged.nextWeekProgram, proposedProgram);
+  assert.equal(merged.nextWeekProgramEffectiveDate, "2026-09-25");
+  assert.equal(merged.nextWeekProgramUpdatedAt, "2026-09-24T12:00:00.000Z");
+  assert.deepEqual(merged.sessions["session-1"].programSnapshot, historicalSnapshot);
+});
+
 test("sync writes every local domain with stable idempotency keys", async () => {
   requests = [];
   const db = {
