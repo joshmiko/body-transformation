@@ -17,6 +17,7 @@ test("coach review inbox is review-gated and preserves the manual fallback", asy
   assert.match(index, /Advanced \/ backup coaching/);
   assert.match(index, /applyCoachRequestLocally/);
   assert.match(index, /programEffectiveDate:db\.nextWeekProgram\?db\.nextWeekProgramEffectiveDate/);
+  assert.match(index, /function completeCoachProgram\(program\)/);
   assert.match(index, /coachProgramEffectiveDate\(row\)/);
   assert.match(index, /Effective date \(local calendar\)/);
   assert.match(index, /Effective date \(default, next Monday\)/);
