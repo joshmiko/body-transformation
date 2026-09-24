@@ -944,6 +944,7 @@ function coachRequestProgramMarkup(program){
  return rows.join("")||"<div class=small>No training changes proposed.</div>";
 }
 function coachProgramEffectiveDate(row){return row?.program_effective_date??row?.programEffectiveDate??nextMonday()}
+function coachEffectiveDateIsMonday(value){const [year,month,day]=value.split("-").map(Number);return new Date(year,month-1,day).getDay()===1}
 function coachEffectiveDateIssue(row){
  const value=coachProgramEffectiveDate(row);
  if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value))return "The program effective date is invalid. Refresh the Coach update before reviewing it.";
@@ -959,7 +960,7 @@ function coachRequestWarnings(row){
  if(expected&&reviewed&&expected<reviewed)warnings.push("This proposal is based on an older coaching watermark. Refresh before applying it.");
  const effectiveDate=coachProgramEffectiveDate(row),dateIssue=coachEffectiveDateIssue(row);
  if((row?.next_week_program||row?.nextWeekProgram)&&dateIssue)warnings.push(dateIssue);
- else if((row?.program_effective_date||row?.programEffectiveDate)&&(row?.next_week_program||row?.nextWeekProgram)&&new Date(...effectiveDate.split("-").map(Number).map((value,index)=>index===1?value-1:value)).getDay()!==1)warnings.push("This update starts mid-week on "+dateLabel(effectiveDate)+". Only workouts on or after that local date use the proposed plan; earlier dates and saved workout snapshots stay unchanged.");
+ else if((row?.program_effective_date||row?.programEffectiveDate)&&(row?.next_week_program||row?.nextWeekProgram)&&!coachEffectiveDateIsMonday(effectiveDate))warnings.push("This update starts mid-week on "+dateLabel(effectiveDate)+". Only workouts on or after that local date use the proposed plan; earlier dates and saved workout snapshots stay unchanged.");
  let minutes=0;
  Object.values(row?.next_week_program||row?.nextWeekProgram||{}).forEach(plan=>(plan?.exercises||[]).forEach(ex=>{minutes+=(Number(ex.sets)||0)*((Number(ex.rest)||0)/60+0.75)}));
  if(minutes>60)warnings.push("The proposed plan estimates more than 60 minutes. Review the session length before applying.");
