@@ -469,6 +469,12 @@ function mergeRecord(local, row) {
   return merged;
 }
 
+export function defaultProgramEffectiveDate() {
+  const value = new Date();
+  value.setDate(value.getDate() + (((8 - value.getDay()) % 7) || 7));
+  return [value.getFullYear(), String(value.getMonth() + 1).padStart(2, "0"), String(value.getDate()).padStart(2, "0")].join("-");
+}
+
 export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
   const merged = ensureDbIdentities(localDb && typeof localDb === "object" ? localDb : {});
   const meta = readCanonicalMeta();
@@ -517,7 +523,13 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
     else if (row.record_type === "program_state") {
       merged.programState = value;
       const plan = value.currentProgram || value.nextWeekProgram;
-      if (plan) merged.nextWeekProgram = plan;
+      if (plan) {
+        const existingProgram = merged.nextWeekProgram || {};
+        const sameProgram = JSON.stringify(existingProgram) === JSON.stringify(plan);
+        merged.nextWeekProgram = { ...existingProgram, ...plan };
+        merged.nextWeekProgramEffectiveDate = value.programEffectiveDate || (sameProgram ? merged.nextWeekProgramEffectiveDate : null) || defaultProgramEffectiveDate();
+        if (value.updatedAt) merged.nextWeekProgramUpdatedAt = value.updatedAt;
+      }
     }
     meta.records[key] = { fingerprint: fingerprint(value), updated_at: row.updated_at || new Date().toISOString(), deleted: false };
   });
