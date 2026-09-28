@@ -60,9 +60,9 @@ test("Tuesday core is explicit recovery guidance, not a lifting session", () => 
 
 test("new exercise defaults do not invent load and progression increments remain explicit", () => {
   const defaultsStart = html.indexOf("const defaults=");
-  const defaultsEnd = html.indexOf(";\nconst inc=", defaultsStart);
+  const defaultsEnd = html.slice(defaultsStart).search(/;\r?\nconst inc=/) + defaultsStart;
   const incStart = html.indexOf("const inc=", defaultsEnd);
-  const incEnd = html.indexOf(";\nfunction cloneValue", incStart);
+  const incEnd = html.slice(incStart).search(/;\r?\nfunction cloneValue/) + incStart;
   const defaults = JSON.parse(html.slice(defaultsStart + "const defaults=".length, defaultsEnd));
   const increments = JSON.parse(html.slice(incStart + "const inc=".length, incEnd));
   assert.equal(defaults["Rope Overhead Cable Triceps Extension"], "");

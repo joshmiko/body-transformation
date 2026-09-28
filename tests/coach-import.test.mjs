@@ -46,6 +46,12 @@ test("minimal Coach Update v1 payload succeeds", () => {
 test("valid payload with nextWeekProgram succeeds", () => {
   assert.equal(context.validateCoachUpdatePayload({ ...minimal(), nextWeekProgram: plan() }).nextWeekProgram.Monday.exercises[0].sets, 3);
 });
+test("client accepts approved base and conditional load but rejects incomplete condition", () => {
+  const withLoad=plan();withLoad.Monday.exercises[0].coachLoad={weightLb:165,optionalWeightLb:170,condition:"Warm-ups feel solid",machine:"rack"};
+  assert.equal(context.validateCoachUpdatePayload({...minimal(),nextWeekProgram:withLoad}).nextWeekProgram.Monday.exercises[0].coachLoad.weightLb,165);
+  delete withLoad.Monday.exercises[0].coachLoad.condition;
+  assert.throws(()=>context.validateCoachUpdatePayload({...minimal(),nextWeekProgram:withLoad}),/coachLoad\.condition/);
+});
 
 test("valid payload with targetGuidance succeeds", () => {
   const out = context.validateCoachUpdatePayload({ ...minimal(), targetGuidance: { calories: { min: 2300, max: 2400 }, protein: 200, stepsAverageTarget: 9000, zone2SessionsPerWeek: 2, zone2DurationMin: 25, zone2DurationMax: 35, preferredZone2Day: "Wednesday" } });

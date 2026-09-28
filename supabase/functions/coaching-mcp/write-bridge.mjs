@@ -111,6 +111,22 @@ function validateExercise(exercise, path) {
       if (!Number.isInteger(output[key])) invalid(path + "." + key, "must be a whole number.");
     }
   });
+  if (exercise.coachLoad !== undefined) {
+    const load = exercise.coachLoad;
+    if (!load || typeof load !== "object" || Array.isArray(load)) invalid(path + ".coachLoad", "must be an object.");
+    if (output.unit === "sec" || output.loadType === "bodyweight") invalid(path + ".coachLoad", "is not supported for timed or bodyweight exercises.");
+    const weightLb = finiteNumber(load.weightLb, path + ".coachLoad.weightLb", 1);
+    if (weightLb > 1500) invalid(path + ".coachLoad.weightLb", "must be <= 1500.");
+    output.coachLoad = { weightLb };
+    if (load.optionalWeightLb !== undefined) {
+      const optionalWeightLb = finiteNumber(load.optionalWeightLb, path + ".coachLoad.optionalWeightLb", weightLb);
+      if (optionalWeightLb > 1500 || optionalWeightLb === weightLb) invalid(path + ".coachLoad.optionalWeightLb", "must be greater than the base load and <= 1500.");
+      output.coachLoad.optionalWeightLb = optionalWeightLb;
+      output.coachLoad.condition = nonEmptyString(load.condition, path + ".coachLoad.condition", 200);
+    } else if (load.condition !== undefined) invalid(path + ".coachLoad.condition", "requires optionalWeightLb.");
+    if (load.machine !== undefined) output.coachLoad.machine = nonEmptyString(load.machine, path + ".coachLoad.machine", 100);
+    if (output.machine && output.coachLoad.machine && output.machine !== output.coachLoad.machine) invalid(path + ".coachLoad.machine", "must match the prescribed machine.");
+  }
   return output;
 }
 
