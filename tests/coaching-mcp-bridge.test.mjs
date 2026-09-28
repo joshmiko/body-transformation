@@ -155,12 +155,15 @@ test("program_state normalizes a full weekly program without mutating historical
   const state = normalizeProgramState({
     schemaVersion: 1,
     source: "app",
+    programEffectiveDate: "2026-09-28",
     currentProgram: {
-      Monday: { title: "Monday", exercises: [{ name: "Squat", sets: 3, min: 5, max: 8, rest: 150 }] },
+      Monday: { title: "Monday", exercises: [{ name: "Squat", sets: 3, min: 5, max: 8, rest: 150, coachLoad: { weightLb: 215, optionalWeightLb: 220, condition: "Warm-ups feel solid" } }] },
       Saturday: { title: "Saturday", exercises: [{ name: "Dead Hang", sets: 2, min: 20, max: 45, unit: "sec" }] }
     }
   });
   assert.equal(state.currentProgram.Monday.exercises[0].name, "Squat");
+  assert.equal(state.currentProgram.Monday.exercises[0].coachLoad.weightLb, 215);
+  assert.equal(state.programEffectiveDate, "2026-09-28");
   assert.equal(state.currentProgram.Saturday.exercises[0].unit, "sec");
   const snapshot = normalizeWorkout({
     programSnapshot: { title: "Old Monday", exercises: [{ name: "Squat", sets: 3 }] },
