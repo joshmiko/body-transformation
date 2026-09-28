@@ -8,12 +8,13 @@ export function evaluateProgression(exercise, workoutExercise, options = {}) {
   const hold = reason => ({ decision: "hold", reason, suggestedWeightLb: null });
   if (!Number.isInteger(plannedSets) || plannedSets < 1 || prescribed.length !== plannedSets) return hold("Incomplete prescribed set data.");
   if (workoutExercise?.substitution || (workoutExercise?.performedExercise && workoutExercise.performedExercise !== exercise.name)) return hold("A substitution needs its own load history.");
-  if (exercise.machine && options.performedMachine && exercise.machine !== options.performedMachine) return hold("The machine changed.");
+  if (exercise.machine && exercise.machine !== options.performedMachine) return hold("The machine identity is missing or changed.");
+  if (exercise.unilateral && options.bothSidesConfirmed !== true) return hold("Both sides were not confirmed independently.");
   if (options.painOrInjuryConcern) return hold("Pain or injury concern needs a human review.");
   if (prescribed.some(row => row.status !== "completed" || row.done === false)) return hold("A prescribed working set was not completed.");
   if (prescribed.some(row => row.feel === "Failed")) return { decision: "review-reduction", reason: "A working set failed; review recovery and load before repeating.", suggestedWeightLb: null };
   if (prescribed.some(row => !["Easy", "Good"].includes(row.feel))) return hold("Hard or missing effort feedback; repeat the load and build quality.");
-  if (prescribed.some(row => Number(row.reps ?? row.seconds) < Number(exercise.max))) return hold("Not all prescribed sets reached the top of the range.");
+  if (prescribed.some(row => { const achieved = exercise.unit === "sec" ? Number(row.seconds) : Number(row.reps); return !Number.isFinite(achieved) || achieved < Number(exercise.max); })) return hold("Not all prescribed sets reached the top of the range.");
   const rest = Number(exercise.rest);
   if (rest > 0 && prescribed.slice(1).some(row => row.actualRestSec != null && Number(row.actualRestSec) > rest * 1.5)) return hold("Longer rest makes this result non-comparable; Coach should review.");
   if (exercise.unit === "sec") return { decision: "review-duration", reason: "Duration reached the top of the range; review the next duration target.", suggestedWeightLb: null };

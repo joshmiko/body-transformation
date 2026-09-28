@@ -15,6 +15,7 @@ test("holds skipped, missing, hard, mixed-load, and long-rest sets", () => {
     [goodSet, { ...goodSet, status: "planned" }],
     [goodSet],
     [goodSet, { ...goodSet, feel: "Hard" }],
+    [goodSet, { ...goodSet, reps: undefined }],
     [goodSet, { ...goodSet, weight: 295 }],
     [goodSet, { ...goodSet, actualRestSec: 440 }]
   ]) assert.equal(evaluateProgression(exercise, record(sets), { incrementLb: 5 }).decision, "hold");
@@ -29,4 +30,8 @@ test("substitutions and different machines never borrow the planned load", () =>
 test("bodyweight and oversized jumps need review", () => {
   assert.equal(evaluateProgression({ ...exercise, loadType: "bodyweight" }, record([goodSet, goodSet]), { incrementLb: 5 }).decision, "review-bodyweight");
   assert.equal(evaluateProgression(exercise, record([goodSet, goodSet]), { incrementLb: 40 }).decision, "hold");
+});
+test("unilateral work needs both sides confirmed before an increase", () => {
+  assert.equal(evaluateProgression({ ...exercise, unilateral: true }, record([goodSet, goodSet]), { incrementLb: 5 }).decision, "hold");
+  assert.equal(evaluateProgression({ ...exercise, unilateral: true }, record([goodSet, goodSet]), { incrementLb: 5, bothSidesConfirmed: true }).decision, "propose-increase");
 });
