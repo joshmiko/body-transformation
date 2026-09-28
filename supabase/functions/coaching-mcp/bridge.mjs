@@ -247,6 +247,19 @@ export function normalizeProgramSnapshot(raw) {
   const exercises = capList(raw.exercises, TOOL_LIMITS.maxExercises).map(exercise => {
     if (!exercise || typeof exercise !== "object") return null;
     const item = pick(exercise, ["name", "type", "sets", "min", "max", "rest", "warm", "unilateral", "substitution", "unit", "machine", "loadType", "sides", "analyticsSets", "cue"]);
+    if (exercise.coachLoad && typeof exercise.coachLoad === "object" && !Array.isArray(exercise.coachLoad)) {
+      const load = exercise.coachLoad;
+      const weightLb = number(load.weightLb);
+      if (weightLb !== null && weightLb > 0 && weightLb <= 1500) {
+        item.coachLoad = { weightLb };
+        const optionalWeightLb = number(load.optionalWeightLb);
+        if (optionalWeightLb !== null && optionalWeightLb > weightLb && optionalWeightLb <= 1500) {
+          item.coachLoad.optionalWeightLb = optionalWeightLb;
+          item.coachLoad.condition = text(load.condition, 200);
+        }
+        if (load.machine) item.coachLoad.machine = text(load.machine, 100);
+      }
+    }
     ["name", "type", "warm", "substitution", "unit", "machine", "loadType", "cue"].forEach(key => { if (item[key] !== undefined) item[key] = text(item[key], 300); });
     ["sets", "min", "max", "rest", "sides", "analyticsSets"].forEach(key => { if (item[key] !== undefined) item[key] = number(item[key]); });
     if (item.unilateral !== undefined) item.unilateral = Boolean(item.unilateral);
@@ -355,7 +368,8 @@ function normalizeRecoveryActivity(raw) {
 
 export function normalizeProgramState(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const output = pick(raw, ["schemaVersion", "source", "updatedAt", "currentProgram", "nextWeekProgram", "activities"]);
+  const output = pick(raw, ["schemaVersion", "source", "updatedAt", "currentProgram", "nextWeekProgram", "activities", "programEffectiveDate"]);
+  if (output.programEffectiveDate !== undefined) output.programEffectiveDate = dateOrNull(output.programEffectiveDate);
   if (output.source !== undefined) output.source = text(output.source, 100);
   if (output.updatedAt !== undefined) output.updatedAt = timestampOrNull(output.updatedAt);
   if (output.currentProgram) output.currentProgram = normalizeProgramSnapshot(output.currentProgram);

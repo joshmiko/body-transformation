@@ -569,12 +569,13 @@ function currentActiveSession(){const id=db.activeSessionId,s=id?db.sessions[id]
 function activeSessionForDay(d){const s=currentActiveSession();return s&&((s.programDay||s.day)===d)?s:null}
 function createWorkoutSession(d,performedDate=today()){const now=new Date().toISOString(),id="session_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,9),p=cloneValue(planForDay(d)||null),s={schemaVersion:3,sessionId:id,id,programDay:d,day:d,performedDate,date:performedDate,status:"draft",startedAt:now,started:now,endedAt:null,finished:null,durationSec:null,timezone:localTimezone(),sessionNote:"",programSnapshot:p,generalWarmup:p?.generalWarmup?{type:p.generalWarmup.type||"treadmill",status:"planned",planned:cloneValue(p.generalWarmup),actual:{durationMin:null,speedMph:null,inclinePercent:null},completedAt:null}:null,pausedTotalSec:0,currentExerciseIndex:0,currentSetIndex:0,exercises:{}};db.sessions[id]=s;db.activeSessionId=id;db.activeProgramDay=d;db.currentExerciseIndex=0;db.currentSetIndex=0;save();return s}
 function getSession(d,options={}){const active=activeSessionForDay(d);if(active)return active;const draft=latestDraftForDay(d);if(draft)return draft;const latest=latestSessionForDay(d);if(latest&&(latest.status==="review"||latest.status==="saved"))return latest;if(options.create===false)return latest||null;return createWorkoutSession(d)}
-function sets(d,i,n){const e=sessionProgram(d).exercises[i],s=getSession(d),ex=exerciseRecord(s,i,e);while(ex.actual.length<n)ex.actual.push({type:"working",status:"planned",added:false,weight:"",reps:"",seconds:"",feel:null,rir:null,note:"",done:false,prescribedRestSec:e.rest,actualRestSec:null,completedAt:null});ex.actual.forEach(x=>{migrateSet(x,"working");if(x.prescribedRestSec==null)x.prescribedRestSec=e.rest});return ex.actual}
+function sets(d,i,n){const e=sessionProgram(d).exercises[i],s=getSession(d),ex=exerciseRecord(s,i,e);while(ex.actual.length<n)ex.actual.push({type:"working",status:"planned",added:false,weight:e.coachLoad?.weightLb??"",reps:"",seconds:"",feel:null,rir:null,note:"",done:false,prescribedRestSec:e.rest,actualRestSec:null,completedAt:null});ex.actual.forEach(x=>{migrateSet(x,"working");if(x.prescribedRestSec==null)x.prescribedRestSec=e.rest});return ex.actual}
 const HISTORY=window.__BT_HISTORY__||{exercises:{},meta:{rows:0,date_min:null,date_max:null}};
 function hist(name){let a=HISTORY.exercises[name]||[];return a.length?a.at(-1):null}
-function previousActual(name){let out=[],programExercise=Object.values(PROGRAM).flatMap(p=>p.exercises||[]).find(x=>x.name===name),timed=programExercise?.unit==="sec";Object.values(db.sessions).forEach(s=>Object.values(s.exercises||{}).forEach(e=>{if(e.name===name)(e.actual||[]).forEach(x=>{if(!x.done)return;if((timed||e.unit==="sec"||e.planned?.unit==="sec"||e.unit==="seconds")&&x.seconds)out.push({date:s.date,w:null,r:null,seconds:+x.seconds,feel:x.feel||""});else if(x.weight&&x.reps)out.push({date:s.date,w:+x.weight,r:+x.reps,seconds:null,feel:x.feel||""})})}));return out.sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(-10)}
-function startWeight(e,s){if(e.unit==="sec"){let x=s.find(z=>z.seconds);return x?+x.seconds:(defaults[e.name]??"")}let x=s.find(z=>z.weight);return x?+x.weight:(previousActual(e.name).at(-1)?.w??hist(e.name)?.weight??defaults[e.name]??"")}
-function target(e,s){let timed=e.unit==="sec",done=s.filter(x=>x.done&&(timed?x.seconds:(x.weight&&x.reps))),last=done.at(-1),base=startWeight(e,s),step=inc[e.name]||5;if(!last)return{w:timed?"":base,r:timed?base:e.min,why:"Preloaded from your current reference."};let r=timed?+last.seconds:+last.reps,f=last.feel;if(f==="Hard")return{w:timed?"":+last.weight,r:timed?Math.max(e.min,r):e.min,why:timed?"Hard → repeat the duration and build quality.":"Hard → repeat the load and build quality."};if(r>=e.max&&f!=="Hard")return{w:timed?"":+last.weight+step,r:timed?r+step:e.min,why:"Top of range → progress next session."};return{w:timed?"":+last.weight,r:Math.min(e.max,r+1),why:timed?"Build duration before increasing.":"Build reps before increasing load."}}
+function previousActual(name,machine){let out=[],programExercise=Object.values(PROGRAM).flatMap(p=>p.exercises||[]).find(x=>x.name===name),timed=programExercise?.unit==="sec";Object.values(db.sessions).forEach(s=>Object.entries(s.exercises||{}).forEach(([index,e])=>{if(e.name!==name||e.performedExercise&&e.performedExercise!==name)return;const performedMachine=s.programSnapshot?.exercises?.[Number(index)]?.machine;if(machine&&performedMachine&&machine!==performedMachine)return;(e.actual||[]).forEach(x=>{if(!x.done||x.status==="skipped")return;if((timed||e.unit==="sec"||e.planned?.unit==="sec"||e.unit==="seconds")&&x.seconds)out.push({date:s.date,w:null,r:null,seconds:+x.seconds,feel:x.feel||""});else if(x.weight&&x.reps)out.push({date:s.date,w:+x.weight,r:+x.reps,seconds:null,feel:x.feel||""})})}));return out.sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(-10)}
+function startWeight(e,s){if(e.unit==="sec"){let x=s.find(z=>z.seconds);return x?+x.seconds:(defaults[e.name]??"")}let x=s.find(z=>z.weight);return x?+x.weight:(e.coachLoad?.weightLb??previousActual(e.name,e.machine).at(-1)?.w??hist(e.name)?.weight??defaults[e.name]??"")}
+function target(e,s){const timed=e.unit==="sec",done=s.filter(x=>x.done&&x.status!=="skipped"&&(timed?x.seconds:(x.weight&&x.reps))),last=done.at(-1),base=startWeight(e,s);if(!last)return{w:timed?"":base,r:timed?base:e.min,why:e.coachLoad?"Approved Coach load. Edit any set to suit today's form.":"Reference load; Coach has not approved a new weight."};return{w:timed?"":(+last.weight||base),r:timed?Math.max(e.min,+last.seconds||e.min):e.min,why:"Keep the current load for this session; progression is reviewed after the workout."}}
+function useOptionalCoachLoad(d,i){const e=sessionProgram(d).exercises[i],weight=e.coachLoad?.optionalWeightLb;if(!weight||getSession(d).pausedAt)return;sets(d,i,e.sets).forEach(x=>{if(!x.done&&!x.weightEdited)x.weight=weight});save();render(d,i)}
 function plateLoad(value){return Math.max(45,Math.round(value/5)*5)}
 function warmups(e,w){if(!w)return[];const n=e.name,load=Number(w);if(!Number.isFinite(load)||load<=0)return[];if(n==="Back Squat"){const mid=plateLoad(Math.min(load-35,Math.max(95,load*.65))),top=plateLoad(Math.min(load-20,Math.max(mid+20,load*.83)));return[[45,load>45?9:5],[mid,5],[top,3]]}if(n==="Barbell Bench Press"){const mid=plateLoad(Math.min(load-35,Math.max(75,load*.6))),top=plateLoad(Math.min(load-15,Math.max(mid+20,load*.85)));return[[45,8],[mid,5],[top,3]]}if(n==="Deadlift"){const floor=load>=225?135:45,vals=[floor,plateLoad(load*.67),plateLoad(load*.82),plateLoad(load*.93)].map((v,i)=>Math.min(load-5*(4-i),v));let out=[];vals.forEach((v,i)=>{const x=Math.max(floor,plateLoad(v));if(!out.length||x>out.at(-1)[0])out.push([x,[5,3,2,1][i]])});return out}if(n==="Barbell Romanian Deadlift"){const first=plateLoad(Math.max(45,Math.min(load-35,load*.62))),second=plateLoad(Math.max(first+20,Math.min(load-15,load*.87)));return first<load&&second<load?[[first,5],[second,3]]:[[first,5]]}if(e.warm==="legpress"){const base=Number(e.machineBaseWeight)||0,added=Math.max(0,load-base),ramp=Math.max(base,base+Math.round(added*.6/10)*10);return[[ramp,8]]}return[]}
 function warmupCanBeAdded(e){return ["squat","bench","deadlift","barbell","legpress"].includes(String(e?.warm||"").toLowerCase())}
@@ -602,7 +603,7 @@ function rowAction(d,i,j,type){const session=getSession(d);if(session.pausedAt)r
 function consumeSwipeAction(button){const row=button.closest(".swipe-row");if(row?.dataset.swipeGesture){delete row.dataset.swipeGesture;return true}return false}
 function swipeRowShell(content,label,action){const guarded='if(!consumeSwipeAction(this)){'+action+'}';return '<div class="swipe-row" data-swipe-row><div class="swipe-reveal"><button type="button" onclick="'+guarded+'">'+label+'</button></div><div class="swipe-content">'+content+'</div><button type="button" class="swipe-fallback" onclick="'+guarded+'" aria-label="'+label+' set">'+label+'</button></div>'}
 function bindSwipeRows(){document.querySelectorAll("[data-swipe-row]").forEach(row=>{let g=null;const begin=(x,y,id,source)=>{g={x,y,id,source,horizontal:false}};const move=(x,y,ev)=>{if(!g)return;const dx=x-g.x,dy=y-g.y;if(!g.horizontal&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)+5)g.horizontal=true;if(!g.horizontal)return;if(ev?.cancelable)ev.preventDefault();if(dx<=-42)row.classList.add("swipe-open");if(dx>=28)row.classList.remove("swipe-open")};const finish=(x,y)=>{if(!g)return;const dx=x-g.x,dy=y-g.y;if(g.horizontal&&Math.abs(dx)>Math.abs(dy)){if(dx<=-42)row.classList.add("swipe-open");if(dx>=28)row.classList.remove("swipe-open");row.dataset.swipeGesture="1";setTimeout(()=>delete row.dataset.swipeGesture,350)}g=null};row.addEventListener("pointerdown",ev=>{begin(ev.clientX,ev.clientY,ev.pointerId,"pointer");try{row.setPointerCapture(ev.pointerId)}catch(e){}});row.addEventListener("pointermove",ev=>{if(g?.source==="pointer")move(ev.clientX,ev.clientY,ev)});row.addEventListener("pointerup",ev=>{if(g?.source==="pointer")finish(ev.clientX,ev.clientY)});row.addEventListener("pointercancel",()=>{g=null});row.addEventListener("touchstart",ev=>{if(g?.source==="pointer")return;const t=ev.changedTouches[0];if(t)begin(t.clientX,t.clientY,t.identifier,"touch")},{passive:true});row.addEventListener("touchmove",ev=>{const t=[...ev.changedTouches].find(x=>x.identifier===g?.id);if(g?.source==="touch"&&t)move(t.clientX,t.clientY,ev)},{passive:false});row.addEventListener("touchend",ev=>{const t=[...ev.changedTouches].find(x=>x.identifier===g?.id);if(g?.source==="touch"&&t)finish(t.clientX,t.clientY)},{passive:true});row.addEventListener("touchcancel",()=>{g=null},{passive:true})})}
-function edit(d,i,j,f,v){if(getSession(d).pausedAt)return;const e=sessionProgram(d).exercises[i],x=sets(d,i,e.sets)[j];if(!x||x.status==="skipped")return;x[f]=v;x.status=x.status==="completed"?"completed":"planned";save()}
+function edit(d,i,j,f,v){if(getSession(d).pausedAt)return;const e=sessionProgram(d).exercises[i],x=sets(d,i,e.sets)[j];if(!x||x.status==="skipped")return;x[f]=v;if(f==="weight")x.weightEdited=true;x.status=x.status==="completed"?"completed":"planned";save()}
 function addSet(d,i,type){if(getSession(d).pausedAt)return;const e=sessionProgram(d).exercises[i];if(type==="warmup"){addWarmup(d,i);return}const a=sets(d,i,e.sets);a.push({type:"working",status:"added",added:true,weight:"",reps:"",seconds:"",feel:null,rir:null,note:"",done:false,prescribedRestSec:e.rest,actualRestSec:null,completedAt:null});save();render(d,i)}
 function deleteSet(d,i,j){rowAction(d,i,j,"working")}
 function undoSetFromButton(button){undoSet(button.dataset.day,Number(button.dataset.exercise),Number(button.dataset.set))}
@@ -753,6 +754,19 @@ function validateCoachProgram(p){
    coachFiniteNumber(exercise.rest,path+".rest");
    for(const key of COACH_PROGRAM_STRING_FIELDS)if(exercise[key]!==undefined&&exercise[key]!==null&&typeof exercise[key]!=="string")coachValidationError(path+"."+key,"must be a string when provided.");
    if(exercise.unilateral!==undefined&&typeof exercise.unilateral!=="boolean")coachValidationError(path+".unilateral","must be true or false.");
+   if(exercise.coachLoad!==undefined){
+    const load=exercise.coachLoad,loadPath=path+".coachLoad";
+    if(!load||typeof load!=="object"||Array.isArray(load))coachValidationError(loadPath,"must be an object.");
+    if(exercise.unit==="sec"||exercise.loadType==="bodyweight")coachValidationError(loadPath,"is not supported for timed or bodyweight exercises.");
+    const weight=coachFiniteNumber(load.weightLb,loadPath+".weightLb",1);
+    if(weight>1500)coachValidationError(loadPath+".weightLb","must be <= 1500.");
+    if(load.optionalWeightLb!==undefined){
+     const optional=coachFiniteNumber(load.optionalWeightLb,loadPath+".optionalWeightLb",weight);
+     if(optional===weight||optional>1500)coachValidationError(loadPath+".optionalWeightLb","must be above base weight and <= 1500.");
+     if(typeof load.condition!=="string"||!load.condition.trim()||load.condition.length>200)coachValidationError(loadPath+".condition","must explain when to use the optional load in 200 characters or fewer.");
+    }else if(load.condition!==undefined)coachValidationError(loadPath+".condition","requires optionalWeightLb.");
+    if(load.machine!==undefined){if(typeof load.machine!=="string"||!load.machine.trim()||load.machine.length>100)coachValidationError(loadPath+".machine","must name the machine in 100 characters or fewer.");if(exercise.machine&&exercise.machine!==load.machine)coachValidationError(loadPath+".machine","must match the prescribed machine.")}
+   }
   });
  }
  return p
@@ -937,8 +951,8 @@ function coachRequestProgramMarkup(program){
  Object.entries(program||{}).forEach(([day,plan])=>{
   (plan?.exercises||[]).forEach((exercise,index)=>{
    const old=PROGRAM[day]?.exercises?.[index]||{};
-   const before=(old.name||"New exercise")+" • "+(old.sets||"—")+"×"+(old.min||"—")+"–"+(old.max||"—")+" • "+(old.rest||"—")+"s";
-   const after=(exercise.name||"Exercise")+" • "+(exercise.sets||"—")+"×"+(exercise.min||"—")+"–"+(exercise.max||"—")+" • "+(exercise.rest||"—")+"s";
+   const before=(old.name||"New exercise")+" • "+(old.sets||"—")+"×"+(old.min||"—")+"–"+(old.max||"—")+" • "+(old.rest||"—")+"s"+(old.coachLoad?.weightLb?" • "+old.coachLoad.weightLb+" lb":"");
+   const after=(exercise.name||"Exercise")+" • "+(exercise.sets||"—")+"×"+(exercise.min||"—")+"–"+(exercise.max||"—")+" • "+(exercise.rest||"—")+"s"+(exercise.coachLoad?.weightLb?" • "+exercise.coachLoad.weightLb+" lb":"")+(exercise.coachLoad?.optionalWeightLb?" (optional "+exercise.coachLoad.optionalWeightLb+" lb if "+exercise.coachLoad.condition+")":"");
    if(before!==after)rows.push("<div class=history><b>"+escapeHtml(day)+" • "+escapeHtml(exercise.name||"Exercise")+"</b><div class=muted>"+escapeHtml(before)+" → "+escapeHtml(after)+"</div></div>");
   });
  });
@@ -1198,6 +1212,20 @@ document.getElementById("bt-static-login")?.addEventListener("click",btStaticSig
 window.btStaticPasskey=btStaticPasskey;
 document.getElementById("bt-static-passkey")?.addEventListener("click",btStaticPasskey);
 function validateActiveSessionOnStartup(){const s=db.activeSessionId?db.sessions[db.activeSessionId]:null;if(!s||!["draft","review"].includes(s.status)){clearActiveSessionPointer();return null}db.activeProgramDay=s.programDay||s.day;db.currentExerciseIndex=Number(s.currentExerciseIndex)||0;db.currentSetIndex=Number(s.currentSetIndex)||0;return s}
+const renderWorkoutBase=render;
+render=function(d,i){
+ renderWorkoutBase(d,i);
+ const exercise=sessionProgram(d)?.exercises?.[i],card=document.querySelector(".exercise .target"),label=card?.querySelector(".label");
+ if(!card||!label||!exercise)return;
+ label.textContent=exercise.coachLoad?"Approved Coach load":"Working target";
+ const optional=exercise.coachLoad?.optionalWeightLb;
+ if(optional){
+  const button=document.createElement("button");button.type="button";button.className="secondary";
+  button.style.cssText="margin-top:10px;width:100%;min-height:44px";
+  button.textContent="Use "+optional+" lb instead"+(exercise.coachLoad.condition?" · "+exercise.coachLoad.condition:"");
+  button.onclick=()=>useOptionalCoachLoad(d,i);card.append(button);
+ }
+};
 validateActiveSessionOnStartup();
 if(localStorage.getItem("bt_supabase_session"))btHideLogin();
 try{home()}catch(error){const target=document.getElementById("app");if(target)target.innerHTML=`<div class="card"><h2>Unable to load the app</h2><p class="small">${error?.message||"Please refresh and try again."}</p></div>`;console.error(error)}

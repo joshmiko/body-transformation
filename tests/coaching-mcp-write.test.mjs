@@ -69,6 +69,18 @@ test("nextWeekProgram validates with supported workout and exercise fields", () 
   assert.equal(value.nextWeekProgram.Monday.exercises[0].name, "Squat");
   assert.equal(value.nextWeekProgram.Saturday.exercises[0].unit, "sec");
 });
+test("structured Coach loads survive validation and unsafe values fail", () => {
+  const withLoad = structuredClone(program);
+  withLoad.Monday.exercises[0].coachLoad = { weightLb: 165, optionalWeightLb: 170, condition: "Warm-ups feel solid", machine: "rack" };
+  const valid = validateCoachUpdate({ ...minimal, nextWeekProgram: withLoad });
+  assert.deepEqual(valid.nextWeekProgram.Monday.exercises[0].coachLoad, withLoad.Monday.exercises[0].coachLoad);
+  withLoad.Monday.exercises[0].coachLoad = { weightLb: 165, optionalWeightLb: 170 };
+  assert.throws(() => validateCoachUpdate({ ...minimal, nextWeekProgram: withLoad }), /coachLoad\.condition/);
+  withLoad.Monday.exercises[0].coachLoad = { weightLb: 0 };
+  assert.throws(() => validateCoachUpdate({ ...minimal, nextWeekProgram: withLoad }), /coachLoad\.weightLb/);
+  withLoad.Monday.exercises[0].coachLoad = { weightLb: 165, machine: "different rack" };
+  assert.throws(() => validateCoachUpdate({ ...minimal, nextWeekProgram: withLoad }), /coachLoad\.machine/);
+});
 test("weightEntries validates, sorts by date, and normalizes missing notes", () => {
   const value = validateCoachUpdate({ ...minimal, weightEntries });
   assert.deepEqual(value.weightEntries, [

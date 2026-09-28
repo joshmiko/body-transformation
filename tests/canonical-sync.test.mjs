@@ -66,7 +66,7 @@ test("canonical program state rehydrates its effective date without rewriting sa
     nextWeekProgramEffectiveDate: "2026-09-21"
   };
   const proposedProgram = {
-    Friday: { title: "Updated Friday", exercises: [] },
+    Friday: { title: "Updated Friday", exercises: [{ name: "Deadlift", coachLoad: { weightLb: 285, optionalWeightLb: 290, condition: "Warm-ups feel solid" } }] },
     Saturday: { title: "Updated Saturday", exercises: [] }
   };
   const merged = supabase.mergeCanonicalRecords(local, [{
@@ -83,6 +83,7 @@ test("canonical program state rehydrates its effective date without rewriting sa
   assert.equal(merged.nextWeekProgram.Monday.title, "Existing Monday");
   assert.equal(merged.nextWeekProgram.Wednesday.title, "Existing Wednesday");
   assert.equal(merged.nextWeekProgram.Friday.title, "Updated Friday");
+  assert.equal(merged.nextWeekProgram.Friday.exercises[0].coachLoad.weightLb, 285);
   assert.equal(merged.nextWeekProgram.Saturday.title, "Updated Saturday");
   assert.equal(merged.nextWeekProgramEffectiveDate, "2026-09-25");
   assert.equal(merged.nextWeekProgramUpdatedAt, "2026-09-24T12:00:00.000Z");
