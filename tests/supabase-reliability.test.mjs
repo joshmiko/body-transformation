@@ -72,6 +72,44 @@ test("refresh failure is bounded and reports sign-in required", async () => {
   assert.equal(requests.filter(item => item.url.includes("/auth/v1/token")).length, 1);
 });
 
+test("workout status reports sign-in required after an expired session is rejected", async () => {
+  reset();
+  localStorage.setItem("bt_supabase_session", JSON.stringify({ access_token: "expired-token", user: { id: "user-1" } }));
+  fetchImpl = async (url, options = {}) => {
+    requests.push({ url: String(url), options });
+    return { ok: false, status: 401, json: async () => ({}), text: async () => "expired" };
+  };
+  const workout = { id: "workout-auth-needed", status: "saved" };
+  const result = await supabase.syncLocalDb({ sessions: { [workout.id]: workout }, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] });
+  assert.equal(result.status, "sign-in-needed");
+  assert.deepEqual(supabase.workoutSyncStatus(workout), { state: "sign-in-needed", label: "Sign in to sync" });
+});
+
+test("an in-flight account switch never sends account A records under account B", async () => {
+  reset();
+  localStorage.setItem("bt_supabase_session", JSON.stringify({ access_token: "token-a", user: { id: "user-a" } }));
+  let releaseFirstWrite;
+  fetchImpl = async (url, options = {}) => {
+    requests.push({ url: String(url), options });
+    if (String(url).includes("/user_data_records?") && !releaseFirstWrite) {
+      return await new Promise(resolve => { releaseFirstWrite = () => resolve({ ok: true, status: 200, json: async () => [], text: async () => "" }); });
+    }
+    return { ok: true, status: 200, json: async () => [], text: async () => "" };
+  };
+  const dbA = { sessions: { "workout-a": { id: "workout-a", sessionNote: "belongs to A" } }, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] };
+  const dbB = { sessions: { "workout-b": { id: "workout-b", sessionNote: "belongs to B" } }, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] };
+  const first = supabase.syncLocalDb(dbA);
+  while (!releaseFirstWrite) await new Promise(resolve => setImmediate(resolve));
+  localStorage.setItem("bt_supabase_session", JSON.stringify({ access_token: "token-b", user: { id: "user-b" } }));
+  const second = supabase.syncLocalDb(dbB);
+  releaseFirstWrite();
+  await Promise.all([first, second]);
+  const payloads = requests.filter(item => item.options.method === "POST").map(item => JSON.parse(item.options.body));
+  assert.ok(payloads.some(rows => rows.some(row => row.user_id === "user-a" && row.source_record_id === "workout-a")));
+  assert.ok(payloads.some(rows => rows.some(row => row.user_id === "user-b" && row.source_record_id === "workout-b")));
+  assert.ok(payloads.every(rows => !rows.some(row => row.user_id === "user-b" && row.source_record_id === "workout-a")));
+});
+
 test("pending local edits win over an older cloud record", () => {
   reset();
   const local = {

@@ -133,6 +133,23 @@ test("offline writes queue and retry without creating duplicate keys", async () 
   assert.equal(JSON.parse(posts[0].options.body)[0].source_record_id, JSON.parse(posts[1].options.body)[0].source_record_id);
 });
 
+test("the current local workout wins over an older queued copy with the same ID", async () => {
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_meta_v2", "user-1"));
+  const workout = { ...baseSession, sessionNote: "captured before disconnect" };
+  const db = { sessions: { "session-1": workout }, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] };
+  requests = [];
+  failNextWrite = true;
+  await supabase.syncLocalDb(db);
+  workout.sessionNote = "edited while offline";
+  await supabase.syncLocalDb(db);
+  const posts = requests.filter(x => x.url.includes("/user_data_records?"));
+  assert.equal(posts.length, 2);
+  assert.equal(JSON.parse(posts[1].options.body).find(x => x.record_type === "workout_session").payload.sessionNote, "edited while offline");
+  assert.equal(supabase.workoutSyncStatus(workout).state, "synced");
+  workout.sessionNote = "edited after acknowledgement";
+  assert.equal(supabase.workoutSyncStatus(workout).state, "pending");
+});
+
 test("rehydration pulls canonical records into an empty device cache", async () => {
   const cloudSession = { ...baseSession, sessionNote: "from desktop" };
   globalThis.fetch = async (url, options = {}) => {
