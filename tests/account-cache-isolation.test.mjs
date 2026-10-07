@@ -24,3 +24,13 @@ test("account switching resets the local cache before rehydration", async () => 
   assert.match(rest, /getItem\(canonicalQueueKey\(\)\)/);
   assert.match(rest, /getItem\(canonicalMetaKey\(\)\)/);
 });
+
+test("startup resolves the stored signed-in account before Supabase module initialization", async () => {
+  const index = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const match = index.match(/function btAccountStorageId\(userId\)\{([\s\S]*?)\n\}/);
+  assert.ok(match, "account ID resolver should be present in the main script");
+  const resolveAccountId = new Function("userId", "window", "localStorage", match[1]);
+  const localStorage = { getItem: key => key === "bt_supabase_session" ? JSON.stringify({ user: { id: "archive-smoke-user" } }) : null };
+  assert.equal(resolveAccountId(undefined, {}, localStorage), "archive-smoke-user");
+  assert.equal(resolveAccountId(undefined, { btSupabase: { currentUser: () => ({ id: "module-user" }) } }, localStorage), "module-user");
+});

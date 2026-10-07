@@ -4,6 +4,10 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ## Unreleased
 
+### Workouts
+
+- Added a compact workout archive with per-workout sync status, retry, and JSON backup export. Reviewed workouts remain complete on this device when cloud sync is unavailable.
+
 ### Nutrition
 
 - Replaced empty quick-add placeholders with six verified meal and snack presets from the Nutrition Plan.

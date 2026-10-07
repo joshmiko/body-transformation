@@ -23,8 +23,9 @@ function canonicalMetaKey() {
 let syncInFlight = null;
 let syncRequested = false;
 let latestSyncDb = null;
+let latestSyncAccountId = null;
 let refreshInFlight = null;
-let rehydrateInFlight = null;
+const rehydrateInFlight = new Map();
 let canonicalProgramState = null;
 
 export const supabaseConfigured = Boolean(projectUrl && publishableKey);
@@ -107,6 +108,7 @@ async function refreshSession({ force = false } = {}) {
     }
     const refreshed = { ...current, ...payload, refresh_token: payload.refresh_token || current.refresh_token, user: payload.user || current.user };
     if (payload.expires_in && !payload.expires_at) delete refreshed.expires_at;
+    if (currentAccountId() !== String(current.user?.id || "anonymous")) throw Object.assign(new Error("Account changed during sync"), { code: "ACCOUNT_CHANGED" });
     return writeSession(refreshed);
   })().finally(() => { refreshInFlight = null; });
   return refreshInFlight;
@@ -120,10 +122,11 @@ async function authHeaders() {
 
 async function request(path, options = {}, retryAuth = true) {
   if (!supabaseConfigured) throw new Error("Supabase is not configured");
-  const response = await fetch(projectUrl + "/rest/v1/" + path, {
-    ...options,
-    headers: { ...(await authHeaders()), ...(options.headers || {}) }
-  });
+  const { expectedAccountId, ...requestOptions } = options;
+  const headers = { ...(await authHeaders()), ...(options.headers || {}) };
+  if (expectedAccountId && currentAccountId() !== expectedAccountId) throw Object.assign(new Error("Account changed during sync"), { code: "ACCOUNT_CHANGED" });
+  const response = await fetch(projectUrl + "/rest/v1/" + path, { ...requestOptions, headers });
+  if (expectedAccountId && currentAccountId() !== expectedAccountId) throw Object.assign(new Error("Account changed during sync"), { code: "ACCOUNT_CHANGED" });
   if (response.status === 401 && retryAuth && readSession().refresh_token) {
     try {
       await refreshSession({ force: true });
@@ -272,6 +275,15 @@ function recordKey(row) {
   return String(row.record_type) + ":" + String(row.source_record_id);
 }
 
+// A cloud timestamp alone does not acknowledge later local edits.
+export function workoutSyncStatus(session) {
+  const id = session?.id || session?.sessionId;
+  const known = id && readCanonicalMeta().records["workout_session:" + id];
+  if (known && !known.deleted && known.fingerprint === fingerprint(session)) return { state: "synced", label: "Synced" };
+  if (!sessionActive() || syncStatus.state === "sign-in-needed") return { state: "sign-in-needed", label: "Sign in to sync" };
+  return { state: "pending", label: "Waiting to sync" };
+}
+
 export function isStandaloneWarmupSession(session, sourceRecordId = "") {
   const id = String(sourceRecordId || session?.id || session?.sessionId || "").trim();
   return id.startsWith("warm_")
@@ -338,6 +350,7 @@ async function upsertCanonicalRecords(rows) {
   return request("user_data_records?on_conflict=user_id%2Crecord_type%2Csource_record_id", {
     method: "POST",
     headers: { Prefer: "return=representation,resolution=merge-duplicates" },
+    expectedAccountId: rows[0].user_id,
     body: JSON.stringify(rows.map(({ localRef, _fingerprint, ...row }) => row))
   });
 }
@@ -362,12 +375,14 @@ function mergeRowsByKey(current, queued) {
   (queued || []).forEach(row => {
     const key = recordKey(row);
     const existing = byKey.get(key);
-    if (!existing || (Date.parse(row.updated_at || "") || 0) >= (Date.parse(existing.updated_at || "") || 0)) byKey.set(key, row);
+    // The current device record wins over a stale queued copy of the same ID.
+    if (!existing) byKey.set(key, row);
   });
   return [...byKey.values()];
 }
 
-async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
+async function syncLocalDbInternal(localDb, { skipQueue = false, expectedAccountId = currentAccountId() } = {}) {
+  if (currentAccountId() !== expectedAccountId) return { skipped: true, status: "account-changed" };
   if (!sessionActive()) {
     setSyncStatus("sign-in-needed", "Sign in to sync");
     return { skipped: true, sessions: 0, checkins: 0, records: 0, status: "sign-in-needed" };
@@ -391,6 +406,7 @@ async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
   setSyncStatus("syncing", "Syncing…");
   try {
     await upsertCanonicalRecords(rows);
+    if (currentAccountId() !== expectedAccountId) return { skipped: true, status: "account-changed" };
     const stamp = new Date().toISOString();
     markCanonicalSynced(rows, stamp, meta);
     writeCanonicalMeta(meta);
@@ -405,6 +421,7 @@ async function syncLocalDbInternal(localDb, { skipQueue = false } = {}) {
       status: "synced"
     };
   } catch (error) {
+    if (currentAccountId() !== expectedAccountId || error?.code === "ACCOUNT_CHANGED") return { skipped: true, status: "account-changed" };
     const authFailure = error?.code === "AUTH_REQUIRED" || /\b401\b|sign-in required/i.test(error?.message || "");
     if (!skipQueue) writeCanonicalQueue(rows.map(({ localRef, ...row }) => row));
     setSyncStatus(authFailure ? "sign-in-needed" : "pending", authFailure ? "Sign in to sync" : "Saved offline — will retry");
@@ -544,27 +561,33 @@ export async function pullCanonicalRecords() {
 
 export async function rehydrateLocalDb(localDb) {
   if (!sessionActive()) return localDb;
-  if (rehydrateInFlight) return rehydrateInFlight;
-  rehydrateInFlight = (async () => {
+  const accountId = currentAccountId();
+  if (rehydrateInFlight.has(accountId)) return rehydrateInFlight.get(accountId);
+  const operation = (async () => {
     const db = ensureDbIdentities(localDb);
     try {
       const rows = await pullCanonicalRecords();
+      if (currentAccountId() !== accountId) return db;
       const merged = mergeCanonicalRecords(db, Array.isArray(rows) ? rows : [], { pendingRows: readCanonicalQueue() });
-      await syncLocalDbInternal(merged);
+      await syncLocalDb(merged);
       return merged;
     } catch (error) {
-      if (error?.code === "AUTH_REQUIRED") setSyncStatus("sign-in-needed", "Sign in to sync");
-      else setSyncStatus("pending", "Saved offline — will retry");
+      if (currentAccountId() === accountId) {
+        if (error?.code === "AUTH_REQUIRED") setSyncStatus("sign-in-needed", "Sign in to sync");
+        else setSyncStatus("pending", "Saved offline — will retry");
+      }
       return db;
     } finally {
-      rehydrateInFlight = null;
+      rehydrateInFlight.delete(accountId);
     }
   })();
-  return rehydrateInFlight;
+  rehydrateInFlight.set(accountId, operation);
+  return operation;
 }
 
 export function syncLocalDb(localDb) {
   latestSyncDb = localDb;
+  latestSyncAccountId = currentAccountId();
   if (syncInFlight) {
     syncRequested = true;
     return syncInFlight;
@@ -573,7 +596,7 @@ export function syncLocalDb(localDb) {
     let result;
     do {
       syncRequested = false;
-      result = await syncLocalDbInternal(latestSyncDb);
+      result = await syncLocalDbInternal(latestSyncDb, { expectedAccountId: latestSyncAccountId });
     } while (syncRequested);
     return result;
   })().finally(() => { syncInFlight = null; });
