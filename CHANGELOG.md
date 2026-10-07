@@ -6,6 +6,7 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ### Workouts
 
+- Preserved direct taps on set controls while retaining horizontal set-row swipe actions.
 - Added a compact workout archive with per-workout sync status, retry, and JSON backup export. Reviewed workouts remain complete on this device when cloud sync is unavailable.
 
 ### Nutrition
