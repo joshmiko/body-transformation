@@ -1,51 +1,82 @@
-# Staged Supabase coaching bridge (review release)
+# Body Transformation coaching MCP
 
-This branch adds a review-only bridge for ChatGPT Developer Mode. It is intentionally separate from \`main\`: no Edge Function deployment, production migration, or Supabase dashboard change is performed here.
+The existing authenticated bridge is the integration point for coaching. Registering it in Codex does **not** install it in regular ChatGPT. Each client needs its own connection and user authorization.
 
-## Architecture
+Endpoint:
 
-\`\`\`
-App local/offline cache ↔ Supabase canonical store → coaching/export adapter → reviewed coach update → app
-\`\`\`
+```text
+https://ncvtnlrogpngaelqgvvt.supabase.co/functions/v1/coaching-mcp
+```
 
-When the user is signed in, Supabase remains the canonical store. The app cache can work offline and retries idempotently. The \`coaching-mcp\` Edge Function is a read-only adapter over \`user_data_records\`; it receives a user-scoped Supabase client from OAuth middleware, so every query is evaluated with the caller's RLS policies. The existing manual coaching package remains an advanced fallback/debug export, not a normal workflow.
+Use that complete URL. Do not append `/mcp`, switch authentication off, or put credentials in the URL. See the [access audit](coaching-chatgpt-audit.md) for measured results and verification limits.
 
-## MCP tools
+## Tools and review boundary
 
-- \`list_recent_workouts\`: completed workouts, bounded to 1–100 rows, optional \`since\` date.
-- \`get_workout\`: one normalized workout with program snapshot, exercises, warm-ups, working sets, rest, effort/RIR, notes, and timestamps.
-- \`get_coaching_context\`: bounded date window (maximum 366 days) containing workouts, check-ins, nutrition, recovery, current program, and safe coaching watermark.
-- \`get_changes_since\`: bounded timestamp-based incremental reads with a page cursor.
+| Tool | Capability |
+| --- | --- |
+| `list_recent_workouts` | Read bounded completed workouts |
+| `get_workout` | Read one normalized workout and its recorded snapshot |
+| `get_coaching_context` | Read bounded workout, nutrition, recovery, program and watermark context |
+| `get_changes_since` | Read incremental changes with a cursor |
+| `create_coach_update_draft` | Create an idempotent proposed update in the review queue |
+| `submit_coach_update` | Submit an existing draft for review in the app |
 
-Read tools are annotated read-only. Write tools are explicitly non-destructive and idempotent, require confirmation, validate known optional fields, and write only `coaching_update_requests` plus an audit event. Responses are normalized and capped: progress photos, auth material, sync queues, tombstones, raw pending packages, and unrelated tables are not returned. Unknown fields in canonical payloads are ignored.
+The four read tools are annotated read-only. Both write tools require `confirm: true` and a verified OAuth `client_id`. The authenticated Supabase client enforces user RLS. Repository policies restrict OAuth writes to the review queue and audit events. No MCP tool applies a program, edits completed workouts, or replaces historical `programSnapshot` data.
 
-## Program state and history
+Drafts use idempotency keys and payload hashes; optional coaching watermarks reject stale proposals. Submission changes a draft to `submitted`. Coach in the signed-in app lists submitted/approved requests and requires explicit review before application. ChatGPT's tool confirmation is separate from approval of a program in the app.
 
-\`supabase/migrations/202609170001_program_state_canonical.sql\` adds \`program_state\` to the existing canonical record type check. The app's current/future program can be synced under the stable source id \`current\`; each saved workout still carries its immutable \`programSnapshot\`, so historical workouts do not change when a future plan changes. The migration is forward-compatible and is not applied by this review branch.
+A `401` on unsigned MCP initialization or tool calls is expected: the challenge advertises OAuth discovery. An app login or publishable key alone does not authorize ChatGPT. Never paste browser sessions, bearer tokens, client secrets or service-role keys into a chat.
 
-\`src/supabase-rest.js\` maps \`program_state\` in both directions. If a local \`db.programState\`, \`db.nextWeekProgram\`, or \`globalThis.__BT_PROGRAM_STATE__\` is present, it is queued as a canonical program record. Rehydration restores \`db.nextWeekProgram\` while preserving local unsynced edits.
+## Check ChatGPT eligibility first
 
-## Write boundary and review/apply flow
+[OpenAI's current documentation](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt) describes custom MCP connections as **web-only**, full MCP/write support for Business and Enterprise/Edu, and Pro as read/fetch-only. Business creation/publishing requires an admin or owner; Enterprise/Edu can additionally delegate creation through RBAC. Check your account's current controls because availability changes.
 
-OAuth clients cannot write user_data_records or the legacy workout, nutrition, check-in, or program tables. The staged RLS migration adds a least-privilege queue: OAuth may create a draft and move its own draft to submitted; the signed-in app session is the only actor that can review, approve, reject, and apply it. The app must show a preview and preserve the current program snapshot before applying any program change.
+Set up in **ChatGPT on the web**, not Codex's Plugins/MCP settings. Desktop setup does not prove native iPhone ChatGPT support. Safari is a possible web-client route only if it exposes the supported interface; native-app use remains unverified. A server change cannot override account or platform restrictions.
 
-Every request includes a caller-supplied idempotency key, a payload hash, and an optional expected coaching watermark. Repeating a request with the same key and payload is safe; changing the payload returns an idempotency conflict. A stale expected watermark returns a conflict instead of overwriting a newer review. Audit rows record draft and submit events. No tool can edit or delete a completed workout, nutrition history, progress photo, or immutable workout programSnapshot.
+## Configure the existing OAuth server
 
-The queue migration is intentionally not applied to production in this review release. Before rollout, take a verifiable backup/count snapshot, review Supabase security advisors, apply the migration, deploy the function, and run two-user OAuth/RLS tests. Keep the manual package export/import as an advanced offline/debug fallback until those authenticated tests pass.
+The deployed metadata advertises PKCE `S256`, authorization-code/refresh grants and `offline_access`. During this audit it advertised **no `registration_endpoint` or CIMD support**. Automatic client registration is therefore not discoverable. This does not prove that a previously registered client is broken.
 
-## One-time dashboard steps (future, after review)
+Public discovery URLs (safe to inspect without signing in):
 
-1. Confirm the Supabase project uses an asymmetric JWT signing key (ES256 or RS256). Do not use a service-role key in the browser or MCP.
-2. Enable the Supabase Auth OAuth 2.1 server and dynamic client registration.
-3. Set the Site URL to \`https://joshmiko.github.io/body-transformation\`.
-4. Set the OAuth authorization/consent path to \`https://joshmiko.github.io/body-transformation/oauth/consent.html\`.
-5. Review and apply \`202609170001_program_state_canonical.sql\` after backing up the canonical table.
-6. Deploy the function from a reviewed checkout with \`supabase functions deploy coaching-mcp --no-verify-jwt\`. The middleware performs OAuth discovery and user authentication.
-7. In ChatGPT Developer Mode, add the public function URL: \`https://ncvtnlrogpngaelqgvvt.supabase.co/functions/v1/coaching-mcp\`.
-8. Complete the consent screen, verify the four read tools plus the two queue tools against a test account, and revoke the grant in Supabase Auth when no longer needed.
+- Protected resource: `https://ncvtnlrogpngaelqgvvt.supabase.co/functions/v1/coaching-mcp/oauth-protected-resource`.
+- Authorization server: `https://ncvtnlrogpngaelqgvvt.supabase.co/auth/v1/.well-known/oauth-authorization-server`.
 
-The browser app needs only the publishable key. No OpenAI API key, database password, personal access token, or service-role secret is required for this bridge.
+Choose one route:
 
-## Validation
+1. **Pre-register a dedicated ChatGPT client.** In the Supabase project dashboard, open **Authentication → OAuth Server → OAuth Apps → Add a new client** (the clients list may appear directly on OAuth Server). Name it `Body Transformation Coach — ChatGPT`. Copy the **exact callback URI displayed by ChatGPT for this connection** into allowed redirect URIs. Do not guess an old callback, use wildcards, or reuse a localhost-only Codex redirect. Choose a client/authentication type supported by ChatGPT's OAuth fields. For a confidential client, place its secret only in ChatGPT's secure OAuth configuration. Discovery supports `client_secret_basic`, `client_secret_post`, and public clients using `none`.
+2. **Or enable dynamic client registration.** In **Authentication → OAuth Server**, enable DCR, then verify discovery actually includes `registration_endpoint`. This permits other clients to register too; retain user consent and RLS. A repository edit cannot change that dashboard setting.
 
-Run \`npm run ci\` on the branch. A later supervised rollout should additionally use the MCP Inspector/ChatGPT Developer Mode against a test user and verify that a second user cannot see the first user's records, that OAuth cannot write canonical tables, and that app review/apply is the only activation path. This branch deliberately stops before those external setup steps and before any production write.
+If ChatGPT does not expose the callback until a draft exists, inspect the draft's OAuth/management settings or use functioning DCR. Never invent a callback. See [Supabase client setup](https://supabase.com/docs/guides/auth/oauth-server/getting-started) and [MCP authentication](https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication).
+
+Verify the existing consent configuration without unnecessarily changing the working app's Site URL:
+
+- Intended Site URL: `https://joshmiko.github.io/body-transformation`.
+- Intended relative Authorization Path: `/oauth/consent.html`.
+- Combined consent URL: `https://joshmiko.github.io/body-transformation/oauth/consent.html`.
+- This is **not** ChatGPT's callback. Supabase sends `authorization_id` to the consent page; approval returns to the client's separately registered callback.
+- Preserve supported OIDC scopes requested by ChatGPT and `offline_access` when configuring refresh access. Scopes do not replace user/client RLS policies.
+
+The public consent page is reachable, but its configured dashboard path, client callbacks and completed sign-in are unverified. This audit had no Supabase management credentials and made no dashboard changes.
+
+## Connect in regular ChatGPT
+
+1. Open `https://chatgpt.com` in a browser, select the intended account/workspace, and confirm creation/write permissions.
+2. In the current interface, use **Plugins → + → Add custom MCP server**. Legacy interfaces use **Settings → Apps → Create** or workspace **Apps → Create**; enable Developer Mode only if that interface requires it. These controls belong to ChatGPT, not Codex.
+3. Name it `Body Transformation Coach`, select a public HTTPS connection, enter the complete endpoint above, and keep **OAuth** authentication. Use the pre-registered client ID/secret in secure OAuth fields, or automatic registration if DCR is available.
+4. Review the warning and create the plugin/app. Follow the OAuth prompt, sign in to **Body Transformation**, confirm the displayed account and client, and approve the connection. Restart from ChatGPT if an authorization link expires.
+5. Complete **Scan Tools** if shown and verify all six tool names. A workspace may require an admin to publish the draft and enable both write actions. Refresh the tool list if ChatGPT retained an older four-tool snapshot.
+6. Install/enable it. Start a new chat and select it with `@` or the available app picker. First request only a recent-workout read and confirm it belongs to your account. Do not submit a real proposal merely to test connectivity.
+
+If creation or write actions are missing, resolve plan/workspace permissions first. Do not weaken bridge authentication or substitute a privileged key. An inaccessible native-iPhone custom-MCP interface does not establish that the server failed.
+
+## Verification and deployment
+
+- Run `npm run ci` for repository normalization, payload validation, consent and review/app contracts. Local tests do not prove deployed OAuth or production RLS.
+- Use MCP Inspector or ChatGPT's scan with an authorized account for live initialization, `tools/list` and read calls. Keep only redacted evidence.
+- Use designated test accounts and synthetic fixtures for live draft/submission/app-review and two-user isolation checks. Real coaching submissions require explicit approval.
+- Do not rerun historical migrations or redeploy a working function because a client has no connection. Production function/migration state requires separate evidence.
+- `verify_jwt = false` delegates gateway authentication to the existing `withOAuthProtectedResource()` and `withSupabase({ auth: "user" })` middleware; it does **not** make tools anonymous. Keep both middleware and RLS.
+- No Supabase migration or function deployment was required or performed in this audit.
+
+References: [OpenAI connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt), [OpenAI OAuth guide](https://developers.openai.com/plugins/build/auth).
