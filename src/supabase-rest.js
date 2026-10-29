@@ -539,6 +539,10 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
     } else if (row.record_type === "coaching_state") merged.coachSync = value;
     else if (row.record_type === "program_state") {
       merged.programState = value;
+      merged.temporaryProgram = value.temporaryProgram || null;
+      merged.weeklyPrograms = Array.isArray(value.weeklyPrograms) ? value.weeklyPrograms : (value.temporaryProgram ? [value.temporaryProgram] : []);
+      merged.plannedEvents = Array.isArray(value.plannedEvents) ? value.plannedEvents : [];
+      if (value.updatedAt) merged.programStateUpdatedAt = value.updatedAt;
       const plan = value.currentProgram || value.nextWeekProgram;
       if (plan) {
         const existingProgram = merged.nextWeekProgram || {};

@@ -74,6 +74,18 @@ function currentProgramEffectiveDateFrom(records) {
   return states[0]?.data?.programEffectiveDate || null;
 }
 
+function temporaryProgramFrom(records) {
+  const states = records.filter(item => item.recordType === "program_state");
+  states.sort((a, b) => Date.parse(b.updatedAt || "") - Date.parse(a.updatedAt || ""));
+  return states[0]?.data?.temporaryProgram || null;
+}
+
+function scheduleStateFrom(records) {
+  const states = records.filter(item => item.recordType === "program_state");
+  states.sort((a, b) => Date.parse(b.updatedAt || "") - Date.parse(a.updatedAt || ""));
+  return { weeklyPrograms: states[0]?.data?.weeklyPrograms || [], plannedEvents: states[0]?.data?.plannedEvents || [] };
+}
+
 const WRITE_DRAFT = Object.freeze({
   readOnlyHint: false,
   destructiveHint: false,
@@ -238,7 +250,7 @@ function registerTools(server, supabase, jwtClaims) {
   server.registerTool(
     "get_coaching_context",
     {
-      description: "Read a bounded coaching context for the signed-in user: workouts, check-ins, nutrition, recovery, and current program.",
+      description: "Read a bounded coaching context for the signed-in user: workouts, check-ins, nutrition, recovery, current program, approved weekly schedules, and upcoming hockey games. Use plannedEvents to place weekly workouts around games; propose changes for in-app approval rather than applying them.",
       inputSchema: z.object({
         since: z.string(),
         until: z.string().optional(),
@@ -279,6 +291,8 @@ function registerTools(server, supabase, jwtClaims) {
         recoveryActivities,
         currentProgram: currentProgramFrom(records),
         currentProgramEffectiveDate: currentProgramEffectiveDateFrom(records),
+        temporaryProgram: temporaryProgramFrom(records),
+        ...scheduleStateFrom(records),
         coachingState: state,
         updatedAt: records.map(item => item.updatedAt).filter(Boolean).sort().at(-1) || null
       });
@@ -319,7 +333,7 @@ function registerTools(server, supabase, jwtClaims) {
   server.registerTool(
     "create_coach_update_draft",
     {
-      description: "Create an idempotent draft of a reviewed coach update. Set programEffectiveDate to YYYY-MM-DD in the user's local calendar for a non-Monday start; when omitted, the app defaults to next Monday. This never changes workouts, history, canonical program state, nutrition history, or photos. The Body Transformation app must review and apply it.",
+      description: "Create an idempotent draft of a reviewed coach update. For a hockey-aware weekly schedule, use programEffectiveDate and nextWeekProgram.__temporary.endDate within the same Monday–Sunday week; include every day in that window as a lifting plan, game activity, or recovery activity. Read plannedEvents from get_coaching_context and avoid hard leg work near games. The temporary schedule expires after endDate and preserves the permanent program. This never changes workouts, history, canonical program state, nutrition history, or photos. The Body Transformation app must review and apply it.",
       inputSchema: z.object({
         idempotencyKey: z.string().min(8).max(120),
         sourcePackageId: z.string().min(1).max(160),
