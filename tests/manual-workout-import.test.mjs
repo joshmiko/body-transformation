@@ -36,14 +36,17 @@ function extractFunction(source, name) {
   throw new Error(`Could not extract ${name}`);
 }
 
-const validator = vm.runInNewContext(`(${extractFunction(html, "validateManualWorkoutImport")})`);
+const scheduled = (day, date) => (date === "2026-09-07" && day === "Monday") || (date === "2026-09-08" && day === "Tuesday") || (date === "2026-09-11" && day === "Friday") || (date === "2026-09-12" && day === "Saturday");
+const planForDay = (day, date) => scheduled(day, date) ? { title: `${day} lift`, exercises: [] } : null;
+const validationPlanForDay = (day, date) => scheduled(day, date) ? { exercises: [{ name: "Squat" }] } : null;
+const validator = vm.runInNewContext(`(${extractFunction(html, "validateManualWorkoutImport")})`, { planForDay: validationPlanForDay });
 const importSource = extractFunction(html, "importManualWorkout");
 const importWorkout = vm.runInNewContext(`(${importSource})`, {
   validateManualWorkoutImport: validator,
   PROGRAM: { Monday: { exercises: [] }, Friday: { exercises: [] }, Saturday: { exercises: [] } },
   manualImportKey: payload => JSON.stringify(payload),
   cloneValue: value => JSON.parse(JSON.stringify(value)),
-  planForDay: () => null,
+  planForDay,
   normalizeManualSet: () => ({}),
   numericOrNull: value => value == null ? null : Number(value),
   localTimezone: () => "America/New_York",
@@ -55,28 +58,28 @@ const importWorkout = vm.runInNewContext(`(${importSource})`, {
 test("minimal Monday payload imports successfully", () => {
   const payload = {
     programDay: "Monday",
-    performedDate: "2026-09-08",
+    performedDate: "2026-09-07",
     exercises: []
   };
   const result = importWorkout(payload);
   assert.equal(result.duplicate, false);
   assert.equal(result.session.programDay, "Monday");
-  assert.equal(result.session.performedDate, "2026-09-08");
+  assert.equal(result.session.performedDate, "2026-09-07");
   assert.equal(result.session.status, "saved");
 });
 
-test("validator accepts only the three programmed lifting days", () => {
-  for (const programDay of ["Monday", "Friday", "Saturday"]) {
-    const result = validator({ programDay, performedDate: "2026-09-08" });
+test("validator accepts lifting on the dates prescribed for a flexible week", () => {
+  for (const [programDay, performedDate] of [["Monday", "2026-09-07"], ["Tuesday", "2026-09-08"], ["Friday", "2026-09-11"], ["Saturday", "2026-09-12"]]) {
+    const result = validator({ programDay, performedDate });
     assert.equal(result.programDay, programDay);
-    assert.equal(result.performedDate, "2026-09-08");
+    assert.equal(result.performedDate, performedDate);
   }
 });
 
-test("Tuesday is rejected with a specific programDay error", () => {
+test("a recovery day is rejected even when the weekday name is valid", () => {
   assert.throws(
-    () => validator({ programDay: "Tuesday", performedDate: "2026-09-08" }),
-    /Invalid programDay/
+    () => validator({ programDay: "Wednesday", performedDate: "2026-09-09" }),
+    /No lifting workout was scheduled/
   );
 });
 

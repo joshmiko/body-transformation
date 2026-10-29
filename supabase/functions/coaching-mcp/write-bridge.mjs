@@ -1,6 +1,6 @@
 export const COACH_UPDATE_SCHEMA = "body-transformation-coach-update-v1";
 export const COACH_PROGRAM_DAYS = Object.freeze(["Monday", "Friday", "Saturday", "Tuesday", "Wednesday", "Thursday", "Sunday"]);
-export const COACH_PROGRAM_STRING_FIELDS = Object.freeze(["title", "subtitle", "type", "substitution", "unit", "machine", "loadType", "warm"]);
+export const COACH_PROGRAM_STRING_FIELDS = Object.freeze(["title", "subtitle", "type", "substitution", "unit", "machine", "loadType", "warm", "cue"]);
 export const COACH_GUIDANCE_NUMERIC_FIELDS = Object.freeze([
   "calories",
   "protein",
@@ -136,6 +136,11 @@ function validateProgram(program) {
   }
   const output = {};
   Object.entries(program).forEach(([day, plan]) => {
+    if (day === "__temporary") {
+      if (!plan || typeof plan !== "object" || Array.isArray(plan)) invalid("nextWeekProgram.__temporary", "must be an object.");
+      output.__temporary = { endDate: strictISODate(plan.endDate, "nextWeekProgram.__temporary.endDate") };
+      return;
+    }
     const path = "nextWeekProgram." + day;
     if (!COACH_PROGRAM_DAYS.includes(day)) invalid(path, "is not a supported day.");
     if (!plan || typeof plan !== "object" || Array.isArray(plan)) invalid(path, "must be an object.");
@@ -143,11 +148,26 @@ function validateProgram(program) {
     ["title", "subtitle"].forEach(key => {
       if (plan[key] !== undefined) clean[key] = nonEmptyString(plan[key], path + "." + key, 300);
     });
+    for (const key of ["activityType", "detail"]) {
+      if (plan[key] !== undefined) clean[key] = nonEmptyString(plan[key], path + "." + key, key === "detail" ? 1000 : 40);
+    }
+    if (plan.durationMin !== undefined) clean.durationMin = finiteNumber(plan.durationMin, path + ".durationMin");
+    if (plan.durationMax !== undefined) clean.durationMax = finiteNumber(plan.durationMax, path + ".durationMax");
+    if (plan.generalWarmup !== undefined) {
+      const warmup = plan.generalWarmup;
+      if (!warmup || typeof warmup !== "object" || Array.isArray(warmup)) invalid(path + ".generalWarmup", "must be an object.");
+      clean.generalWarmup = {
+        type: nonEmptyString(warmup.type, path + ".generalWarmup.type", 40),
+        durationMin: finiteNumber(warmup.durationMin, path + ".generalWarmup.durationMin")
+      };
+      if (warmup.detail !== undefined) clean.generalWarmup.detail = nonEmptyString(warmup.detail, path + ".generalWarmup.detail", 300);
+    }
     if (!Array.isArray(plan.exercises)) invalid(path + ".exercises", "must be an array.");
     if (plan.exercises.length > 32) invalid(path + ".exercises", "cannot contain more than 32 exercises.");
     clean.exercises = plan.exercises.map((exercise, index) => validateExercise(exercise, path + ".exercises[" + index + "]"));
     output[day] = clean;
   });
+  if (!Object.keys(output).some(day => day !== "__temporary")) invalid("nextWeekProgram", "must include at least one day.");
   return output;
 }
 
@@ -178,6 +198,21 @@ export function validateCoachUpdate(payload) {
   if (payload.targetGuidance !== undefined) output.targetGuidance = validateTargetGuidance(payload.targetGuidance);
   if (payload.weightEntries !== undefined) output.weightEntries = validateWeightEntries(payload.weightEntries);
   if (payload.programEffectiveDate !== undefined) output.programEffectiveDate = strictISODate(payload.programEffectiveDate, "programEffectiveDate");
+  if (output.nextWeekProgram?.__temporary) {
+    if (!output.programEffectiveDate) invalid("programEffectiveDate", "is required for a temporary program.");
+    if (output.nextWeekProgram.__temporary.endDate < output.programEffectiveDate) invalid("nextWeekProgram.__temporary.endDate", "must not precede programEffectiveDate.");
+    const durationDays = (Date.parse(output.nextWeekProgram.__temporary.endDate + "T00:00:00Z") - Date.parse(output.programEffectiveDate + "T00:00:00Z")) / 86400000;
+    if (durationDays > 6) invalid("nextWeekProgram.__temporary.endDate", "weekly schedules are limited to 7 days.");
+    const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const start = new Date(output.programEffectiveDate + "T00:00:00Z");
+    const end = new Date(output.nextWeekProgram.__temporary.endDate + "T00:00:00Z");
+    const monday = date => date.getTime() - ((date.getUTCDay() + 6) % 7) * 86400000;
+    if (monday(start) !== monday(end)) invalid("nextWeekProgram.__temporary.endDate", "must remain in the same Monday–Sunday week.");
+    for (let cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+      const day = names[cursor.getUTCDay()];
+      if (!output.nextWeekProgram[day]) invalid("nextWeekProgram." + day, "is required for every day in the proposed window, including recovery and game days.");
+    }
+  }
   return output;
 }
 

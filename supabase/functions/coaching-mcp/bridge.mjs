@@ -239,11 +239,11 @@ export function normalizeProgramSnapshot(raw) {
   if (dayKeys.length && !Array.isArray(raw.exercises)) {
     return Object.fromEntries(dayKeys.map(day => [day, normalizeProgramSnapshot(raw[day])]).filter(([, value]) => value));
   }
-  const output = pick(raw, ["schemaVersion", "title", "subtitle", "day", "programDay", "generalWarmup", "notes", "version"]);
+  const output = pick(raw, ["schemaVersion", "title", "subtitle", "day", "programDay", "generalWarmup", "notes", "version", "activityType", "detail", "durationMin", "durationMax"]);
   ["title", "subtitle", "day", "programDay", "notes", "version"].forEach(key => {
     if (output[key] !== undefined) output[key] = text(output[key], 300);
   });
-  if (raw.generalWarmup && typeof raw.generalWarmup === "object") output.generalWarmup = pick(raw.generalWarmup, ["type", "durationMin", "speedMph", "inclinePercent", "notes"]);
+  if (raw.generalWarmup && typeof raw.generalWarmup === "object") output.generalWarmup = pick(raw.generalWarmup, ["type", "durationMin", "speedMph", "inclinePercent", "notes", "detail"]);
   const exercises = capList(raw.exercises, TOOL_LIMITS.maxExercises).map(exercise => {
     if (!exercise || typeof exercise !== "object") return null;
     const item = pick(exercise, ["name", "type", "sets", "min", "max", "rest", "warm", "unilateral", "substitution", "unit", "machine", "loadType", "sides", "analyticsSets", "cue"]);
@@ -374,6 +374,21 @@ export function normalizeProgramState(raw) {
   if (output.updatedAt !== undefined) output.updatedAt = timestampOrNull(output.updatedAt);
   if (output.currentProgram) output.currentProgram = normalizeProgramSnapshot(output.currentProgram);
   if (output.nextWeekProgram) output.nextWeekProgram = normalizeProgramSnapshot(output.nextWeekProgram);
+  if (Array.isArray(raw.weeklyPrograms)) output.weeklyPrograms = raw.weeklyPrograms.slice(-52).map(item => {
+    const startDate = dateOrNull(item?.startDate), endDate = dateOrNull(item?.endDate);
+    if (!startDate || !endDate || endDate < startDate) return null;
+    return {startDate, endDate, days: normalizeProgramSnapshot(item.days), updatedAt: timestampOrNull(item.updatedAt), requestId: text(item.requestId, 120)};
+  }).filter(Boolean);
+  if (Array.isArray(raw.plannedEvents)) output.plannedEvents = raw.plannedEvents.slice(0, 60).map(item => {
+    const date = dateOrNull(item?.date), title = text(item?.title, 120), startTime = text(item?.startTime, 5);
+    if (!date || item?.type !== "hockey" || !title || (startTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime))) return null;
+    return {id: text(item.id, 120), date, type: "hockey", title, startTime: startTime || null};
+  }).filter(Boolean);
+  if (raw.temporaryProgram && typeof raw.temporaryProgram === "object") {
+    const temp = raw.temporaryProgram;
+    const startDate = dateOrNull(temp.startDate), endDate = dateOrNull(temp.endDate);
+    if (startDate && endDate && endDate >= startDate) output.temporaryProgram = {startDate,endDate,days:normalizeProgramSnapshot(temp.days),requestId:text(temp.requestId,120)};
+  }
   if (output.activities && typeof output.activities === "object") {
     output.activities = Object.fromEntries(Object.entries(output.activities).slice(0, 14).map(([day, value]) => [text(day, 30), text(JSON.stringify(value), 2000)]));
   }

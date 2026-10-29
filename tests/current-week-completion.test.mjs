@@ -55,7 +55,7 @@ test("rendered state matrix keeps Home, Workouts, and preview consistent", () =>
   assert.match(html, /function workoutDayState\(/);
   assert.match(html, /state\.kind===\"active\"\?\"Resume Workout\"/);
   assert.match(html, /state\.kind===\"completed\"\?\"Review Workout\"/);
-  assert.match(html, /d===\"Wednesday\"\?currentWeekYogaCompleted\(\):workoutDayState\(d\)\.kind===\"completed\"/);
+  assert.match(html, /complete=activity\?activityCompleted\(d\):workoutDayState\(d\)\.kind==="completed"/);
   assert.deepEqual(visibleState(), { home: "Preview Workout", workouts: "›", preview: "Start workout" });
   assert.deepEqual(visibleState({ complete: true }), { home: "Review Workout", workouts: "COMPLETED", preview: "Review workout" });
   assert.deepEqual(visibleState({ active: true, complete: true }), { home: "Resume Workout", workouts: "IN PROGRESS", preview: "Resume workout" });
