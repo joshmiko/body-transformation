@@ -39,7 +39,7 @@ if (embeddedProgram.Friday.exercises.find(ex => ex.name === "Rope Overhead Cable
 if (embeddedProgram.Saturday.exercises.find(ex => ex.name === "Seated Leg Curl")?.rest !== 75) throw new Error("Saturday trial leg curl rest must remain 75 seconds");
 if (embeddedProgram.Tuesday || embeddedProgram.activities?.Tuesday?.coreGuidance?.name !== "Dead Bug") throw new Error("Tuesday core must remain recovery guidance, not lifting");
 if (!html.includes("50–55 minutes planned; 60-minute maximum")) throw new Error("Session timing guidance is outdated");
-if (!html.includes("__BT_PROGRAM_STATE__")) throw new Error("Program state sync hook is missing");
+if (!html.includes("function stageProgramState()") || !html.includes("stageProgramState();save()")) throw new Error("Explicit program state sync hook is missing");
 for (const tool of ["list_recent_workouts", "get_workout", "get_coaching_context", "get_changes_since"]) {
   if (!mcpServer.includes(tool)) throw new Error("Missing coaching MCP tool: " + tool);
 }

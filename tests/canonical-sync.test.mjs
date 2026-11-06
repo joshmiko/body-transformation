@@ -163,3 +163,95 @@ test("rehydration pulls canonical records into an empty device cache", async () 
   assert.equal(merged.sessions["session-1"].sessionNote, "from desktop");
   assert.equal(merged.sessions["session-1"].programDay, "Monday");
 });
+
+test("an old page preview cannot upload a program while syncing a workout", async () => {
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_meta_v2", "user-1"));
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_queue", "user-1"));
+  supabase.mergeCanonicalRecords({ sessions: {}, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] }, [{ record_type: "program_state", source_record_id: "current", payload: { revision: 1, updatedAt: "2026-10-05T12:19:04Z" }, updated_at: "2026-10-05T12:19:04Z" }]);
+  globalThis.__BT_PROGRAM_STATE__ = { updatedAt: "2026-10-05T12:19:04Z", weeklyPrograms: [] };
+  requests = [];
+  globalThis.fetch = async (url, options = {}) => {
+    requests.push({ url: String(url), options });
+    return { ok: true, status: 200, json: async () => options.method === "POST" ? JSON.parse(options.body) : [], text: async () => "" };
+  };
+  const result = await supabase.syncLocalDb({ sessions: { "session-1": baseSession }, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] });
+  assert.equal(result.status, "synced");
+  const uploaded = requests.filter(x => x.options.method === "POST").flatMap(x => JSON.parse(x.options.body));
+  assert.ok(uploaded.some(x => x.record_type === "workout_session"));
+  assert.ok(!uploaded.some(x => x.record_type === "program_state"));
+  delete globalThis.__BT_PROGRAM_STATE__;
+});
+
+test("a second device receives an approved plan without uploading its older copy", async () => {
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_meta_v2", "user-1"));
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_queue", "user-1"));
+  const oldPlan = { revision: 1, updatedAt: "2026-11-03T18:00:00Z", weeklyPrograms: [], currentProgram: { Friday: { title: "Old Friday" } } };
+  const approvedPlan = { revision: 2, updatedAt: "2026-11-03T18:32:53Z", weeklyPrograms: [{ requestId: "approved-week", startDate: "2026-11-02", endDate: "2026-11-08", days: { Friday: { title: "Hockey-aware Friday" } } }], currentProgram: oldPlan.currentProgram, lastCoachRequestId: "approved-week" };
+  const oldDevice = supabase.mergeCanonicalRecords({ sessions: {}, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] }, [{ record_type: "program_state", source_record_id: "current", payload: oldPlan, updated_at: "2026-11-03T18:00:00Z" }]);
+  oldDevice.sessions["new-workout"] = { ...baseSession, id: "new-workout" };
+  let cloudProgram = approvedPlan;
+  requests = [];
+  globalThis.fetch = async (url, options = {}) => {
+    requests.push({ url: String(url), options });
+    if (options.method === "POST") {
+      const uploaded = JSON.parse(options.body);
+      if (uploaded.some(x => x.record_type === "program_state")) throw new Error("Old program upload attempted");
+      return { ok: true, status: 200, json: async () => uploaded, text: async () => "" };
+    }
+    const rows = [{ record_type: "program_state", source_record_id: "current", payload: cloudProgram, updated_at: "2026-11-03T18:32:53Z" }];
+    return { ok: true, status: 200, json: async () => rows, text: async () => "" };
+  };
+  const merged = await supabase.rehydrateLocalDb(oldDevice);
+  assert.equal(merged.programState.revision, 2);
+  assert.equal(merged.weeklyPrograms[0].requestId, "approved-week");
+  assert.equal(merged.sessions["new-workout"].id, "new-workout");
+  assert.equal(cloudProgram.weeklyPrograms[0].requestId, "approved-week");
+  const uploads = requests.filter(x => x.options.method === "POST").flatMap(x => JSON.parse(x.options.body));
+  assert.ok(uploads.some(x => x.record_type === "workout_session"));
+  assert.ok(!uploads.some(x => x.record_type === "program_state"));
+});
+
+test("a queued unversioned program cannot hide a newer approved cloud plan", async () => {
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_meta_v2", "user-1"));
+  const queueKey = supabase.accountScopedStorageKey("bt_supabase_canonical_sync_queue", "user-1");
+  const oldPlan = { updatedAt: "2026-10-05T12:19:04Z", weeklyPrograms: [] };
+  const approved = { revision: 1, updatedAt: "2026-11-03T18:32:53Z", weeklyPrograms: [{ requestId: "approved-week", startDate: "2026-11-02", endDate: "2026-11-08", days: {} }] };
+  const local = supabase.mergeCanonicalRecords({ sessions: {}, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] }, [{ record_type: "program_state", source_record_id: "current", payload: oldPlan, updated_at: "2026-10-05T12:19:04Z" }]);
+  storage.set(queueKey, JSON.stringify([{ record_type: "program_state", source_record_id: "current", payload: oldPlan, updated_at: "2026-11-05T12:00:00Z" }]));
+  let submitted = [];
+  globalThis.fetch = async (url, options = {}) => {
+    if (options.method === "POST") {
+      submitted.push(...JSON.parse(options.body));
+      return { ok: true, status: 200, json: async () => submitted, text: async () => "" };
+    }
+    return { ok: true, status: 200, json: async () => [{ record_type: "program_state", source_record_id: "current", payload: approved, updated_at: "2026-11-03T18:32:53Z" }], text: async () => "" };
+  };
+  const merged = await supabase.rehydrateLocalDb(local);
+  assert.equal(merged.weeklyPrograms[0].requestId, "approved-week");
+  assert.deepEqual(submitted.filter(x => x.record_type === "program_state").map(x => x.payload.revision), [1]);
+  assert.equal(JSON.parse(storage.get(queueKey)).length, 0);
+});
+
+test("a rejected stale program revision does not block a workout upload", async () => {
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_meta_v2", "user-1"));
+  storage.delete(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_queue", "user-1"));
+  const oldPlan = { revision: 1, updatedAt: "2026-11-03T18:00:00Z", weeklyPrograms: [] };
+  const oldDevice = supabase.mergeCanonicalRecords({ sessions: {}, checkins: [], nutrition: { entries: [], dailySummaries: [] }, recoveryActivities: [] }, [{ record_type: "program_state", source_record_id: "current", payload: oldPlan, updated_at: "2026-11-03T18:00:00Z" }]);
+  oldDevice.programState = { ...oldPlan, revision: 2, updatedAt: "2026-11-03T19:00:00Z", plannedEvents: [{ id: "new-game" }] };
+  oldDevice.sessions["new-workout"] = { ...baseSession, id: "new-workout" };
+  let workoutUploaded = false;
+  globalThis.fetch = async (url, options = {}) => {
+    if (options.method === "POST") {
+      const uploaded = JSON.parse(options.body);
+      if (uploaded.some(x => x.record_type === "program_state")) return { ok: false, status: 409, text: async () => "PROGRAM_REVISION_CONFLICT" };
+      workoutUploaded = uploaded.some(x => x.record_type === "workout_session");
+      return { ok: true, status: 200, json: async () => uploaded, text: async () => "" };
+    }
+    return { ok: true, status: 200, json: async () => [], text: async () => "" };
+  };
+  const result = await supabase.syncLocalDb(oldDevice);
+  assert.equal(result.errorCode, "PROGRAM_CONFLICT");
+  assert.equal(workoutUploaded, true);
+  const queued = JSON.parse(storage.get(supabase.accountScopedStorageKey("bt_supabase_canonical_sync_queue", "user-1")));
+  assert.deepEqual(queued.map(x => x.record_type), ["program_state"]);
+});

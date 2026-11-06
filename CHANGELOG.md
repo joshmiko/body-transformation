@@ -4,6 +4,11 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ## Unreleased
 
+### Coach and sync
+
+- Protected approved programs with revision checks so an older device cannot replace a newer Coach plan.
+- Kept workout uploads independent of program conflicts, confirmed Coach updates in the cloud before marking them applied, and preserved the workout screen during background refresh.
+
 ### Workouts
 
 - Preserved direct taps on set controls while retaining horizontal set-row swipe actions.
