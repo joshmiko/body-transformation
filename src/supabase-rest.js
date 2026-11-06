@@ -326,11 +326,17 @@ function canonicalRecordsFromDb(localDb, meta = readCanonicalMeta()) {
   if (db.nutrition.targets && typeof db.nutrition.targets === "object") add("nutrition_target", "default", db.nutrition.targets, null, db.nutrition.targets.updatedAt || db.nutrition.targets.createdAt, db.nutrition.targets);
   db.recoveryActivities.forEach((item, index) => add("recovery_activity", item?.id || stableId("recovery", index), item, item?.performedDate || item?.date, item?.updatedAt || item?.createdAt || item?.performedDate || item?.date, item));
   if (db.coachSync && typeof db.coachSync === "object") add("coaching_state", "state", db.coachSync, null, db.coachSync.updatedAt || db.coachSync.createdAt, db.coachSync);
-  const programState = canonicalProgramState || globalThis.__BT_PROGRAM_STATE__ || db.programState || (db.nextWeekProgram ? { schemaVersion: 1, source: "app", currentProgram: db.nextWeekProgram } : null);
-  if (programState) add("program_state", "current", programState, null, programState.updatedAt, programState);
+  // Only an explicit program edit may create this record. A page's cached program
+  // preview must never overwrite a newer Coach approval during rehydration.
+  const programState = db.programState || null;
+  if (programState) {
+    const { cloudSyncedAt, ...payload } = programState;
+    add("program_state", "current", payload, null, payload.updatedAt, programState);
+  }
   const present = new Set(records.map(recordKey));
   Object.entries(meta.records || {}).forEach(([key, previous]) => {
-    if (present.has(key) || previous.deleted || key.startsWith("workout_session:warm_")) return;
+    // A missing program cache is not a request to delete the approved cloud plan.
+    if (present.has(key) || previous.deleted || key === "program_state:current" || key.startsWith("workout_session:warm_")) return;
     const split = key.indexOf(":");
     if (split < 0) return;
     records.push({
@@ -405,11 +411,16 @@ async function syncLocalDbInternal(localDb, { skipQueue = false, expectedAccount
   }
   setSyncStatus("syncing", "Syncing…");
   try {
-    await upsertCanonicalRecords(rows);
-    if (currentAccountId() !== expectedAccountId) return { skipped: true, status: "account-changed" };
-    const stamp = new Date().toISOString();
-    markCanonicalSynced(rows, stamp, meta);
-    writeCanonicalMeta(meta);
+    // Keep workouts and check-ins independent of a conflicting program revision.
+    // A stale device must not prevent a completed workout from reaching the cloud.
+    const batches = [rows.filter(row => row.record_type !== "program_state"), rows.filter(row => row.record_type === "program_state")];
+    for (const batch of batches) {
+      if (!batch.length) continue;
+      await upsertCanonicalRecords(batch);
+      if (currentAccountId() !== expectedAccountId) return { skipped: true, status: "account-changed" };
+      markCanonicalSynced(batch, new Date().toISOString(), meta);
+      writeCanonicalMeta(meta);
+    }
     if (!skipQueue) writeCanonicalQueue([]);
     setSyncStatus("synced", "Synced to cloud");
     return {
@@ -423,16 +434,18 @@ async function syncLocalDbInternal(localDb, { skipQueue = false, expectedAccount
   } catch (error) {
     if (currentAccountId() !== expectedAccountId || error?.code === "ACCOUNT_CHANGED") return { skipped: true, status: "account-changed" };
     const authFailure = error?.code === "AUTH_REQUIRED" || /\b401\b|sign-in required/i.test(error?.message || "");
-    if (!skipQueue) writeCanonicalQueue(rows.map(({ localRef, ...row }) => row));
-    setSyncStatus(authFailure ? "sign-in-needed" : "pending", authFailure ? "Sign in to sync" : "Saved offline — will retry");
+    const unsynced = rows.filter(row => meta.records[recordKey(row)]?.fingerprint !== row._fingerprint);
+    if (!skipQueue) writeCanonicalQueue(unsynced.map(({ localRef, ...row }) => row));
+    const programConflict = /PROGRAM_REVISION_CONFLICT/.test(error?.message || "");
+    setSyncStatus(authFailure ? "sign-in-needed" : "pending", authFailure ? "Sign in to sync" : programConflict ? "Program changed elsewhere — refresh before editing" : "Saved offline — will retry");
     return {
       skipped: false,
       sessions: 0,
       checkins: 0,
-      records: rows.length,
-      offline: true,
+      records: unsynced.length,
+      offline: !programConflict,
       status: authFailure ? "sign-in-needed" : "pending",
-      errorCode: authFailure ? "AUTH_REQUIRED" : "SYNC_UNAVAILABLE",
+      errorCode: authFailure ? "AUTH_REQUIRED" : programConflict ? "PROGRAM_CONFLICT" : "SYNC_UNAVAILABLE",
       error: error?.message || "Sync unavailable"
     };
   }
@@ -505,13 +518,14 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
     const cloudStamp = Date.parse(row.updated_at || "") || 0;
     const pendingStamp = Date.parse(pendingRow?.updated_at || "") || 0;
     const local = localRowFor(merged, row);
+    const cloudAdvancesProgram = row.record_type === "program_state" && Number(row.payload?.revision || 0) > Number(local?.revision || 0);
     const localFp = local ? fingerprint(local) : null;
     const known = meta.records[key];
     if (known?.deleted && cloudStamp <= (Date.parse(known.updated_at || "") || 0)) return;
-    if (!known && local && !pendingRow && localRecordStamp(local) >= cloudStamp) return;
+    if (!known && local && !pendingRow && !cloudAdvancesProgram && localRecordStamp(local) >= cloudStamp) return;
     const localDirty = Boolean(local && known && !known.deleted && known.fingerprint !== localFp);
-    if (pendingRow && pendingStamp >= cloudStamp) return;
-    if (localDirty) return;
+    if (pendingRow && pendingStamp >= cloudStamp && !cloudAdvancesProgram) return;
+    if (localDirty && !cloudAdvancesProgram) return;
     if (row.payload && row.payload.__deleted) {
       removeLocalRow(merged, row);
       meta.records[key] = { fingerprint: "deleted", updated_at: row.updated_at || new Date().toISOString(), deleted: true };
@@ -561,6 +575,12 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
 export async function pullCanonicalRecords() {
   if (!sessionActive()) return [];
   return request("user_data_records?select=record_type,source_record_id,payload,updated_at,occurred_on&order=updated_at.asc");
+}
+
+export async function getCanonicalProgramState() {
+  if (!sessionActive()) return null;
+  const rows = await request("user_data_records?record_type=eq.program_state&source_record_id=eq.current&select=payload,updated_at&limit=1");
+  return Array.isArray(rows) ? rows[0]?.payload || null : null;
 }
 
 export async function rehydrateLocalDb(localDb) {

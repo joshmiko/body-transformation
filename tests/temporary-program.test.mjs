@@ -80,6 +80,7 @@ test("approving a bounded proposal stores only the temporary slot", () => {
     coachProgramEffectiveDate: row => row.program_effective_date,
     applyCoachWeightEntries: () => ({ added: 0 }),
     cloneValue: value => structuredClone(value),
+    stageProgramState: () => {},
     coachSyncState: () => state,
     save: () => {},
     completeCoachProgram: () => { throw new Error("temporary proposal must not merge into permanent program"); }
