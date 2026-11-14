@@ -75,7 +75,7 @@ async function redirect(result) {
   window.location.assign(target);
 }
 
-const staleRequestMessage = "This authorization link is expired or already processed. Start a new authentication in Codex; do not reuse this link.";
+const staleRequestMessage = "This authorization link is expired or already processed. Start a new connection from your coaching assistant; do not reuse this link.";
 
 async function loadAuthorizationDetails() {
   if (!client || !request) return;
