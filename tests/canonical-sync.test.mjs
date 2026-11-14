@@ -243,7 +243,7 @@ test("a rejected stale program revision does not block a workout upload", async 
   globalThis.fetch = async (url, options = {}) => {
     if (options.method === "POST") {
       const uploaded = JSON.parse(options.body);
-      if (uploaded.some(x => x.record_type === "program_state")) return { ok: false, status: 409, text: async () => "PROGRAM_REVISION_CONFLICT" };
+      if (uploaded.some(x => x.record_type === "program_state")) return { ok: false, status: 400, text: async () => "PROGRAM_REVISION_CONFLICT: refresh the current program before editing" };
       workoutUploaded = uploaded.some(x => x.record_type === "workout_session");
       return { ok: true, status: 200, json: async () => uploaded, text: async () => "" };
     }

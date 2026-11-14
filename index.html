@@ -553,7 +553,7 @@ function updateWorkoutSyncAfterAttempt(result,accountId,value){
  if(result?.status==="synced")try{persistLocalDb()}catch{}
  refreshWorkoutSyncLabels();
  const status=document.getElementById("bt-save-status");
- if(status)status.textContent=result?.status==="sign-in-needed"?"Sign in to sync":result?.errorCode==="PROGRAM_CONFLICT"?"Program changed on another device — refresh before editing":result?.status==="synced"?"Synced to cloud":"Waiting to sync";
+ if(status)status.textContent=result?.status==="sign-in-needed"?"Sign in to sync":result?.errorCode==="PROGRAM_CONFLICT"?"Program changed on another device — refresh before editing":result?.errorCode==="PROGRAM_REJECTED"?"Plan didn't reach the cloud — try again":result?.status==="synced"?"Synced to cloud":"Waiting to sync";
 }
 const save=()=>{
  try{coachCurrentProgram()}catch{}
@@ -1042,25 +1042,23 @@ function coachProgramEndDate(row){return (row?.next_week_program||row?.nextWeekP
 function coachEffectiveDateIsMonday(value){const [year,month,day]=value.split("-").map(Number);return new Date(year,month-1,day).getDay()===1}
 function coachEffectiveDateIssue(row){
  const value=coachProgramEffectiveDate(row);
- if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value))return "The program effective date is invalid. Refresh the Coach update before reviewing it.";
+ if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value))return "The program effective date is invalid. Refresh Coach before reviewing this plan.";
  const [year,month,day]=value.split("-").map(Number),parsed=new Date(year,month-1,day);
  if(parsed.getFullYear()!==year||parsed.getMonth()!==month-1||parsed.getDate()!==day)return "The program effective date is not a real calendar date.";
- if(value<today())return "This program effective date is in the past. Ask Coach to submit a new update with a current or future local date.";
+ if(value<today())return "This program effective date is in the past. Ask Coach for a new plan with a current or future local date.";
   const end=coachProgramEndDate(row);
-  if(end){if(!validCalendarDate(end)||end<value||Date.parse(end+"T00:00:00Z")-Date.parse(value+"T00:00:00Z")>6*86400000||weekStart(value).getTime()!==weekStart(end).getTime())return "The weekly schedule must stay within one Monday–Sunday week.";const program=row?.next_week_program||row?.nextWeekProgram||{};for(let cursor=new Date(value+"T12:00:00");localDateKey(cursor)<=end;cursor.setDate(cursor.getDate()+1))if(!program[calendarDayName(cursor)])return "The weekly schedule is missing a day. Ask Coach to include workouts, games and recovery days.";if(end<today())return "This temporary program has already expired. Ask Coach for a new update.";}
+  if(end){if(!validCalendarDate(end)||end<value||Date.parse(end+"T00:00:00Z")-Date.parse(value+"T00:00:00Z")>6*86400000||weekStart(value).getTime()!==weekStart(end).getTime())return "The weekly schedule must stay within one Monday–Sunday week.";const program=row?.next_week_program||row?.nextWeekProgram||{};for(let cursor=new Date(value+"T12:00:00");localDateKey(cursor)<=end;cursor.setDate(cursor.getDate()+1))if(!program[calendarDayName(cursor)])return "The weekly schedule is missing a day. Ask Coach to include workouts, games and recovery days.";if(end<today())return "This temporary plan has already expired. Ask Coach for a new plan.";}
  return "";
 }
 function coachRequestWarnings(row){
  const warnings=[];
- const state=coachSyncState(),expected=Date.parse(row?.expected_watermark||"");
- const reviewed=Date.parse(state.reviewedWatermark||"");
- if(expected&&reviewed&&expected<reviewed)warnings.push("This proposal is based on an older coaching watermark. Refresh before applying it.");
+ if(coachRequestIsStale(row))warnings.push(COACH_STALE_REASON);
  const effectiveDate=coachProgramEffectiveDate(row),dateIssue=coachEffectiveDateIssue(row);
  if(coachProgramEndDate(row))warnings.push("Temporary plan through "+dateLabel(coachProgramEndDate(row))+". The existing permanent program resumes automatically afterward.");
  if((row?.next_week_program||row?.nextWeekProgram)&&dateIssue)warnings.push(dateIssue);
- else if((row?.program_effective_date||row?.programEffectiveDate)&&(row?.next_week_program||row?.nextWeekProgram)&&!coachEffectiveDateIsMonday(effectiveDate))warnings.push("This update starts mid-week on "+dateLabel(effectiveDate)+". Only workouts on or after that local date use the proposed plan; earlier dates and saved workout snapshots stay unchanged.");
+ else if((row?.program_effective_date||row?.programEffectiveDate)&&(row?.next_week_program||row?.nextWeekProgram)&&!coachEffectiveDateIsMonday(effectiveDate))warnings.push("This plan starts mid-week on "+dateLabel(effectiveDate)+". Only workouts on or after that local date use the new plan; earlier dates and saved workout snapshots stay unchanged.");
  const minutesByDay=Object.values(row?.next_week_program||row?.nextWeekProgram||{}).map(plan=>(plan?.exercises||[]).reduce((minutes,ex)=>minutes+(Number(ex.sets)||0)*((Number(ex.rest)||0)/60+0.75),Number(plan?.generalWarmup?.durationMin)||0));
- if(Math.max(0,...minutesByDay)>60)warnings.push("A proposed session may run over 60 minutes. Review the session length before applying.");
+ if(Math.max(0,...minutesByDay)>60)warnings.push("A session in this plan may run over 60 minutes. Review the session length before applying.");
  Object.entries(row?.next_week_program||row?.nextWeekProgram||{}).forEach(([day,plan])=>{if(!["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].includes(day)||!plan?.exercises?.length)return;const date=programDayDate(day,effectiveDate);if(gamesOnDate(date).length)warnings.push(day+" has both a game and lifting scheduled. Review the conflict before approving.");const next=new Date(date+"T12:00:00");next.setDate(next.getDate()+1);if(gamesOnDate(localDateKey(next)).length)warnings.push(day+" is the day before a game. Check lower-body fatigue and session length.")});
  return warnings;
 }
@@ -1073,27 +1071,63 @@ function coachRequestWeightMarkup(row){
  if(!entries.length)return "";
  return '<div style="margin-top:10px"><b>Weigh-ins to add</b><div class="coach-update-weight-list">'+entries.map(entry=>'<div class="coach-update-weight-row"><span>'+escapeHtml(dateLabel(entry.date||""))+(entry.note?' · '+escapeHtml(entry.note):"")+'</span><strong>'+escapeHtml(String(entry.weightLb))+' lb</strong></div>').join("")+'</div><div class="small" style="margin-top:6px">These are weight-only check-ins. Existing same-date values are never overwritten.</div></div>';
 }
-function coachRequestCard(row){
- const warnings=coachRequestWarnings(row),status=String(row.status||"submitted"),program=row.next_week_program||row.nextWeekProgram||null,guidance=row.target_guidance||row.targetGuidance||null;
-  const effectiveDate=coachProgramEffectiveDate(row),explicitDate=!!(row.program_effective_date||row.programEffectiveDate);
- const hasProgram=!!program,canApprove=status==="submitted"&&(!hasProgram||!coachEffectiveDateIssue(row)),canApply=status==="approved"&&(!hasProgram||!coachEffectiveDateIssue(row));
- const action=canApprove?"reviewCoachRequest('"+escapeHtml(row.id)+"','approve')":canApply?"reviewCoachRequest('"+escapeHtml(row.id)+"','apply')":"";
- const effectiveLabel=explicitDate?"Effective date (local calendar): ":"Effective date (default, next Monday): ";
- return "<div class=card style=\"margin-top:10px\"><div class=ey>COACH UPDATE</div><h3>"+escapeHtml(row.coach_summary||row.coachSummary||"Proposed coaching update")+"</h3><div class=small>Status: <b>"+escapeHtml(status)+"</b> • "+effectiveLabel+escapeHtml(dateLabel(effectiveDate))+"</div>"+(row.expected_watermark||row.expectedWatermark?"<div class=muted style=\"margin-top:5px\">Based on data through "+escapeHtml(dateLabel(row.expected_watermark||row.expectedWatermark))+"</div>":"")+(program?"<div style=\"margin-top:10px\"><b>Training changes</b>"+coachRequestProgramMarkup(program)+"</div>":"")+(guidance?"<div style=\"margin-top:10px\"><b>Target guidance</b>"+coachTargetGuidanceMarkup(guidance)+"</div>":"")+coachRequestWeightMarkup(row)+(warnings.length?"<div class=\"card\" style=\"margin-top:8px;background:var(--amber2);color:var(--text)\"><b>Review warnings</b>"+warnings.map(x=>"<div class=small>"+escapeHtml(x)+"</div>").join("")+"</div>":"")+(canApprove||canApply?"<button class=primary style=\"width:100%;margin-top:10px\" onclick=\""+action+"\">"+(canApprove?"Approve & apply":"Finish applying update")+"</button>":"")+(status==="submitted"?"<button class=secondary style=\"width:100%;margin-top:8px\" onclick=\"reviewCoachRequest('"+escapeHtml(row.id)+"','reject')\">Reject / keep current plan</button>":"")+"</div>";
+const COACH_STALE_REASON="This plan is based on older data than a plan you already reviewed. Ask Coach for a new plan.";
+function coachRequestIsStale(row){const state=coachSyncState(),expected=Date.parse(row?.expected_watermark||""),reviewed=Date.parse(state.reviewedWatermark||"");return !!(expected&&reviewed&&expected<reviewed)}
+function coachRequestBlockedReason(row){if(row?.next_week_program||row?.nextWeekProgram){const issue=coachEffectiveDateIssue(row);if(issue)return issue}return coachRequestIsStale(row)?COACH_STALE_REASON:""}
+function coachProgramCarries(cloud,id){return !!cloud&&id!=null&&(String(cloud.lastCoachRequestId||"")===String(id)||String(cloud.temporaryProgram?.requestId||"")===String(id))}
+function describeCoachError(error,action){
+ const code=error?.code||"",text=String(error?.message||"");
+ if(code==="PROGRAM_CONFLICT")return{action,refresh:true,message:"Another device changed your plan. Refresh to load it, then review this plan again."};
+ if(/Coach update changed elsewhere/.test(text))return{action,refresh:true,message:"This Coach plan was changed on another device. Refresh to see where it stands."};
+ if(code==="AUTH_REQUIRED")return{action,message:"You've been signed out. Sign in again, then try again."};
+ if(code==="PROGRAM_REJECTED")return{action,message:"The cloud didn't accept your plan. Nothing was lost. Try again."};
+ if(code==="SYNC_UNAVAILABLE")return{action,message:"Your plan is saved on this phone but hasn't reached the cloud. Try again when you're online."};
+ if(code==="NOT_CONFIRMED")return{action,message:"The cloud hasn't confirmed your plan yet. Try again."};
+ if(error?.userFacing&&text)return{action,message:text};
+ return{action,message:"Something went wrong saving your plan. Try again."};
 }
-let coachInboxRows=[];
+function coachRequestCard(row){
+ const id=String(row.id),q="'"+escapeHtml(id)+"'",warnings=coachRequestWarnings(row),status=String(row.status||"submitted"),program=row.next_week_program||row.nextWeekProgram||null,guidance=row.target_guidance||row.targetGuidance||null;
+ const effectiveDate=coachProgramEffectiveDate(row),explicitDate=!!(row.program_effective_date||row.programEffectiveDate);
+ const blocked=coachRequestBlockedReason(row),error=coachCardErrors[id],busy=coachCardBusy===id,dis=busy?" disabled":"";
+ const approved=status==="approved",primaryAction=approved?"apply":"approve",primaryLabel=approved?"Finish applying plan":"Approve & apply";
+ const statusLabel=approved?"Approved, not finished applying":status==="submitted"?"Waiting for your review":status;
+ const effectiveLabel=explicitDate?"Effective date (local calendar): ":"Effective date (default, next Monday): ";
+ let actions="";
+ if(error)actions+="<div class=\"coach-card-error\" role=\"alert\" style=\"color:var(--red);margin-top:10px\">"+escapeHtml(error.message)+"</div>";
+ if(error?.refresh)actions+="<button class=primary style=\"width:100%;margin-top:10px\" onclick=\"location.reload()\""+dis+">Refresh</button>";
+ else if(blocked)actions+="<button class=primary style=\"width:100%;margin-top:10px\" disabled aria-disabled=\"true\" aria-describedby=\"coach-blocked-"+escapeHtml(id)+"\">"+primaryLabel+"</button><div id=\"coach-blocked-"+escapeHtml(id)+"\" class=\"small coach-blocked-reason\" style=\"margin-top:6px\">"+escapeHtml(blocked)+"</div>";
+ else{const retry=error&&error.action!=="reject";actions+="<button class=primary style=\"width:100%;margin-top:10px\" onclick=\"reviewCoachRequest("+q+",'"+(retry?error.action:primaryAction)+"')\""+dis+">"+(busy?"Saving…":retry?"Try again":primaryLabel)+"</button>"}
+ const retryReject=error&&!error.refresh&&error.action==="reject";
+ actions+="<button class=secondary style=\"width:100%;margin-top:8px\" onclick=\"reviewCoachRequest("+q+",'reject')\""+dis+">"+(retryReject?"Try again: keep current plan":approved?"Keep current plan":"Reject / keep current plan")+"</button>";
+ return "<div class=card data-coach-request=\""+escapeHtml(id)+"\" style=\"margin-top:10px\"><div class=ey>COACH PLAN</div><h3>"+escapeHtml(row.coach_summary||row.coachSummary||"New plan from Coach")+"</h3><div class=small>Status: <b>"+escapeHtml(statusLabel)+"</b> • "+effectiveLabel+escapeHtml(dateLabel(effectiveDate))+"</div>"+(row.expected_watermark||row.expectedWatermark?"<div class=muted style=\"margin-top:5px\">Based on data through "+escapeHtml(dateLabel(row.expected_watermark||row.expectedWatermark))+"</div>":"")+(program?"<div style=\"margin-top:10px\"><b>Training changes</b>"+coachRequestProgramMarkup(program)+"</div>":"")+(guidance?"<div style=\"margin-top:10px\"><b>Target guidance</b>"+coachTargetGuidanceMarkup(guidance)+"</div>":"")+coachRequestWeightMarkup(row)+(warnings.length?"<div class=\"card\" style=\"margin-top:8px;background:var(--amber2);color:var(--text)\"><b>Review warnings</b>"+warnings.map(x=>"<div class=small>"+escapeHtml(x)+"</div>").join("")+"</div>":"")+actions+"</div>";
+}
+let coachInboxRows=[],coachCardErrors={},coachCardBusy=null;
+function renderCoachInbox(){
+ const el=document.getElementById("coach-inbox-card");if(!el)return;
+ const dismissed=new Set((Array.isArray(coachSyncState().dismissedRequests)?coachSyncState().dismissedRequests:[]).map(String));
+ const actionable=coachInboxRows.filter(x=>["submitted","approved"].includes(x.status)&&!dismissed.has(String(x.id)));
+ el.innerHTML="<h3>Plans from Coach</h3>"+(actionable.length?"<p class=small>"+actionable.length+" plan"+(actionable.length===1?"":"s")+" from Coach to review.</p>"+actionable.map(coachRequestCard).join(""):"<p class=small>No new plans from Coach. Nothing changes until you review and approve a plan here.</p>");
+}
+async function recoverAppliedCoachRequests(){
+ // A plan the cloud already carries only missed its final "applied" mark. Finish that step without applying the plan again.
+ const stuck=coachInboxRows.filter(x=>x.status==="approved"&&(x.next_week_program||x.nextWeekProgram));
+ if(!stuck.length)return;
+ let cloud=null;try{cloud=await window.btSupabase.getCanonicalProgramState()}catch(_){return}
+ for(const row of stuck){
+  if(!coachProgramCarries(cloud,row.id))continue;
+  try{const applied=await markCoachRequestApplied(row,{recovered:true});coachInboxRows=coachInboxRows.map(x=>String(x.id)===String(row.id)?applied:x);delete coachCardErrors[String(row.id)]}
+  catch(error){coachCardErrors[String(row.id)]=describeCoachError(error,"apply")}
+ }
+}
 async function loadCoachInbox(){
  const el=document.getElementById("coach-inbox-card");if(!el)return;
- if(!window.btSupabase?.sessionActive?.()){el.innerHTML="<h3>Coach updates</h3><p class=small>Sign in to receive reviewed coaching proposals. ChatGPT can propose changes; you review and approve them here.</p>";return}
- el.innerHTML="<h3>Coach updates</h3><p class=small>Checking for reviewed proposals…</p>";
- try{
-  const rows=await window.btSupabase.listCoachUpdateRequests();
-  coachInboxRows=Array.isArray(rows)?rows:[];
-  const actionable=coachInboxRows.filter(x=>["submitted","approved"].includes(x.status));
-  el.innerHTML="<h3>Coach updates</h3>"+(actionable.length?"<p class=small>"+actionable.length+" proposal"+(actionable.length===1?"":"s")+" awaiting your review.</p>"+actionable.map(coachRequestCard).join(""):"<p class=small>No proposals right now. ChatGPT can propose updates; you review and approve before anything changes.</p>");
- }catch(error){
-  el.innerHTML="<h3>Coach updates</h3><p class=small style=\"color:var(--red)\">Could not check coach proposals. Your workouts remain safe.</p><button class=secondary style=\"width:100%\" onclick=\"loadCoachInbox()\">Retry</button>";
- }
+ if(!window.btSupabase?.sessionActive?.()){el.innerHTML="<h3>Plans from Coach</h3><p class=small>Sign in to get plans from Coach. You review and approve every plan here before anything changes.</p>";return}
+ el.innerHTML="<h3>Plans from Coach</h3><p class=small>Checking for new plans from Coach…</p>";
+ try{const rows=await window.btSupabase.listCoachUpdateRequests();coachInboxRows=Array.isArray(rows)?rows:[]}
+ catch(error){el.innerHTML="<h3>Plans from Coach</h3><p class=small style=\"color:var(--red)\">Couldn't check for plans from Coach. Your workouts are safe.</p><button class=secondary style=\"width:100%\" onclick=\"loadCoachInbox()\">Try again</button>";return}
+ await recoverAppliedCoachRequests();
+ renderCoachInbox();
 }
 function prepareCoachWeightEntries(row){
  const entries=validateCoachWeightEntries(coachRequestWeightEntries(row)),existing=Array.isArray(db.checkins)?db.checkins:[],conflicts=[],duplicates=[],missing=[];
@@ -1113,7 +1147,7 @@ function applyCoachWeightEntries(row){
  const prepared=prepareCoachWeightEntries(row);
  if(prepared.conflicts.length){
   const detail=prepared.conflicts.map(x=>x.date+" ("+x.existing+" lb already logged, "+x.proposed+" lb proposed)").join(", ");
-  throw new Error("Weight conflict: "+detail+". Nothing was applied; review the existing check-in before retrying.");
+  throw Object.assign(new Error("Weight conflict: "+detail+". Nothing was applied; review the existing check-in before retrying."),{userFacing:true});
  }
  db.checkins=Array.isArray(db.checkins)?db.checkins:[];
  const now=new Date().toISOString();
@@ -1122,7 +1156,7 @@ function applyCoachWeightEntries(row){
 }
 function applyCoachRequestLocally(row){
  const program=row.next_week_program||row.nextWeekProgram;
-  if(program){const dateIssue=coachEffectiveDateIssue(row);if(dateIssue)throw new Error(dateIssue);}
+  if(program){const dateIssue=coachEffectiveDateIssue(row);if(dateIssue)throw Object.assign(new Error(dateIssue),{userFacing:true});}
   const weightResult=applyCoachWeightEntries(row);
   if(program&&db.programState?.lastCoachRequestId!==row.id){const dateIssue=coachEffectiveDateIssue(row);if(dateIssue)throw new Error(dateIssue);if(program.__temporary){const {__temporary,...days}=program,entry={startDate:coachProgramEffectiveDate(row),endDate:__temporary.endDate,days:cloneValue(days),updatedAt:new Date().toISOString(),requestId:row.id};db.weeklyPrograms=[...weeklyPrograms().filter(x=>x.requestId!==row.id),entry].slice(-52);db.temporaryProgram=entry;db.programStateUpdatedAt=entry.updatedAt;}else{db.nextWeekProgram=completeCoachProgram(program);db.nextWeekProgramEffectiveDate=coachProgramEffectiveDate(row);db.nextWeekProgramUpdatedAt=new Date().toISOString();db.programStateUpdatedAt=db.nextWeekProgramUpdatedAt;}db.lastCoachRequestId=row.id;stageProgramState();}
  const guidance=row.target_guidance||row.targetGuidance;
@@ -1138,37 +1172,70 @@ function applyCoachRequestLocally(row){
  return save();
 }
 async function reviewCoachRequest(id,action){
- const row=coachInboxRows.find(x=>String(x.id)===String(id));if(!row)return;
- const warnings=coachRequestWarnings(row);
- if(action!=="reject"&&(row.next_week_program||row.nextWeekProgram)&&coachEffectiveDateIssue(row)){const el=document.getElementById("coach-inbox-card");if(el)el.insertAdjacentHTML("afterbegin","<div class=\"card\" style=\"color:var(--red)\">"+escapeHtml(coachEffectiveDateIssue(row))+"</div>");return;}
- if(warnings.some(x=>x.includes("older coaching watermark"))){const el=document.getElementById("coach-inbox-card");if(el)el.insertAdjacentHTML("afterbegin","<div class=\"card\" style=\"color:var(--red)\">This proposal is stale. Refresh the Coach updates section before applying it.</div>");return;}
+ const key=String(id),row=coachInboxRows.find(x=>String(x.id)===key);if(!row||coachCardBusy)return;
+ if(action!=="reject"&&coachRequestBlockedReason(row)){renderCoachInbox();return}
+ delete coachCardErrors[key];coachCardBusy=key;renderCoachInbox();
+ let current=row;
  try{
-  let current=row;
   if(action==="reject"){
-   const rejected=await window.btSupabase.reviewCoachUpdateRequest(row.id,{status:"rejected",reviewedAt:new Date().toISOString(),expectedVersion:Number(row.request_version)||1});
-   current=Array.isArray(rejected)?rejected[0]:rejected;
-   await window.btSupabase.appendCoachUpdateAudit({request_id:row.id,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:"rejected",actor_type:"app",details:{reason:"user_rejected"}});
+   if(row.status==="approved")await keepCurrentCoachPlan(row);
+   else{
+    const rejected=await window.btSupabase.reviewCoachUpdateRequest(row.id,{status:"rejected",reviewedAt:new Date().toISOString(),expectedVersion:Number(row.request_version)||1});
+    current=(Array.isArray(rejected)?rejected[0]:rejected)||{...row,status:"rejected"};
+    await recordCoachAudit(row.id,"rejected",{reason:"user_rejected"});
+   }
   }else{
    if(action==="approve"&&row.status==="submitted"){
     const approved=await window.btSupabase.reviewCoachUpdateRequest(row.id,{status:"approved",reviewedAt:new Date().toISOString(),expectedVersion:Number(row.request_version)||1});
-    current=Array.isArray(approved)?approved[0]:approved;
-    await window.btSupabase.appendCoachUpdateAudit({request_id:row.id,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:"approved",actor_type:"app",details:{effectiveDate:coachProgramEffectiveDate(current)}});
+    current=(Array.isArray(approved)?approved[0]:approved)||{...row,status:"approved",request_version:(Number(row.request_version)||1)+1};
+    coachInboxRows=coachInboxRows.map(x=>String(x.id)===key?current:x);
+    await recordCoachAudit(row.id,"approved",{effectiveDate:coachProgramEffectiveDate(current)});
    }
-   const synced=await applyCoachRequestLocally(current);
-   if(synced?.status!=="synced")throw new Error(synced?.errorCode==="PROGRAM_CONFLICT"?"The program changed on another device. Refresh Coach before applying this update.":"The update is saved on this phone but has not reached the cloud. Retry when sync is available.");
-   if(current.next_week_program||current.nextWeekProgram){const cloudProgram=await window.btSupabase.getCanonicalProgramState();if(cloudProgram?.lastCoachRequestId!==current.id)throw new Error("The cloud has not confirmed this Coach program. Refresh and retry before marking it applied.");}
-   const applied=await window.btSupabase.reviewCoachUpdateRequest(row.id,{status:"applied",appliedAt:new Date().toISOString(),expectedVersion:Number(current.request_version)||2});
-   await window.btSupabase.appendCoachUpdateAudit({request_id:row.id,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:"applied",actor_type:"app",details:{effectiveDate:coachProgramEffectiveDate(current)}});
-   const appliedState=coachSyncState();
-   if(current.expected_watermark)appliedState.reviewedWatermark=current.expected_watermark;
-   save();
-   current=Array.isArray(applied)?applied[0]:applied;
+   const program=current.next_week_program||current.nextWeekProgram;
+   if(program&&await cloudProgramCarriesRequest(current.id))current=await markCoachRequestApplied(current,{recovered:true});
+   else{
+    const synced=await applyCoachRequestLocally(current);
+    if(synced?.status!=="synced")throw Object.assign(new Error("Coach plan did not sync"),{code:synced?.errorCode||"SYNC_UNAVAILABLE"});
+    if(program){const cloudProgram=await window.btSupabase.getCanonicalProgramState();if(cloudProgram?.lastCoachRequestId!==current.id)throw Object.assign(new Error("Cloud has not confirmed the Coach plan"),{code:"NOT_CONFIRMED"});}
+    current=await markCoachRequestApplied(current);
+   }
   }
-  coachInboxRows=coachInboxRows.map(x=>String(x.id)===String(id)?current:x);
-  await loadCoachInbox();
+  coachInboxRows=coachInboxRows.map(x=>String(x.id)===key?current:x);
  }catch(error){
-  const el=document.getElementById("coach-inbox-card");if(el)el.insertAdjacentHTML("afterbegin","<div class=\"card\" style=\"color:var(--red)\">"+escapeHtml(error?.message||"The update could not be completed. Nothing was silently changed; retry after refreshing.")+"</div>");
+  coachCardErrors[key]=describeCoachError(error,action==="approve"&&current.status==="approved"?"apply":action);
+ }finally{coachCardBusy=null}
+ renderCoachInbox();
+}
+async function markCoachRequestApplied(current,details={}){
+ const applied=await window.btSupabase.reviewCoachUpdateRequest(current.id,{status:"applied",appliedAt:new Date().toISOString(),expectedVersion:Number(current.request_version)||2});
+ await recordCoachAudit(current.id,"applied",{effectiveDate:coachProgramEffectiveDate(current),...details});
+ const state=coachSyncState();
+ state.appliedRequests=Array.isArray(state.appliedRequests)?state.appliedRequests:[];
+ if(!state.appliedRequests.includes(current.id))state.appliedRequests.push(current.id);
+ if(current.expected_watermark)state.reviewedWatermark=current.expected_watermark;
+ save();
+ return (Array.isArray(applied)?applied[0]:applied)||{...current,status:"applied"};
+}
+async function recordCoachAudit(requestId,eventType,details){
+ // The audit trail is best-effort: the status change has already happened and must not be reported as a failure.
+ try{await window.btSupabase.appendCoachUpdateAudit({request_id:requestId,user_id:window.btSupabase.currentUser?.()?.id||null,event_type:eventType,actor_type:"app",details})}catch(_){}
+}
+async function cloudProgramCarriesRequest(id){return coachProgramCarries(await window.btSupabase.getCanonicalProgramState(),id)}
+async function keepCurrentCoachPlan(row){
+ // The database only lets an approved plan move to "applied", so backing out is recorded on this account's Coach state.
+ const id=String(row.id),program=row.next_week_program||row.nextWeekProgram;
+ const appliedHere=!!program&&(String(db.lastCoachRequestId||"")===id||String(db.programState?.lastCoachRequestId||"")===id||weeklyPrograms().some(x=>String(x?.requestId||"")===id));
+ if(appliedHere){
+  const cloud=await window.btSupabase.getCanonicalProgramState();
+  if(coachProgramCarries(cloud,id))throw Object.assign(new Error("This plan is already active, so it can't be undone here. Ask Coach for a new plan."),{userFacing:true});
+  if(!cloud)throw Object.assign(new Error("Couldn't load your current plan from the cloud. Try again."),{userFacing:true});
+  window.btSupabase.applyProgramStateToDb(db,{...cloneValue(cloud),cloudSyncedAt:new Date().toISOString()});
+  db.lastCoachRequestId=cloud.lastCoachRequestId||null;
  }
+ const state=coachSyncState();
+ state.appliedRequests=(Array.isArray(state.appliedRequests)?state.appliedRequests:[]).filter(x=>String(x)!==id);
+ state.dismissedRequests=[...new Set([...(Array.isArray(state.dismissedRequests)?state.dismissedRequests:[]).map(String),id])];
+ await save();
 }
 function progress(){
  nav("nProgress");

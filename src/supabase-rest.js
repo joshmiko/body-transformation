@@ -436,16 +436,20 @@ async function syncLocalDbInternal(localDb, { skipQueue = false, expectedAccount
     const authFailure = error?.code === "AUTH_REQUIRED" || /\b401\b|sign-in required/i.test(error?.message || "");
     const unsynced = rows.filter(row => meta.records[recordKey(row)]?.fingerprint !== row._fingerprint);
     if (!skipQueue) writeCanonicalQueue(unsynced.map(({ localRef, ...row }) => row));
-    const programConflict = /PROGRAM_REVISION_CONFLICT/.test(error?.message || "");
-    setSyncStatus(authFailure ? "sign-in-needed" : "pending", authFailure ? "Sign in to sync" : programConflict ? "Program changed elsewhere — refresh before editing" : "Saved offline — will retry");
+    // Only the guard's stale-revision error means another device changed the plan.
+    // Any other program rejection is not fixed by refreshing, so it gets its own code.
+    const programError = /PROGRAM_REVISION_CONFLICT/.test(error?.message || "");
+    const programConflict = programError && /refresh the current program before editing/i.test(error?.message || "");
+    const programRejected = programError && !programConflict;
+    setSyncStatus(authFailure ? "sign-in-needed" : "pending", authFailure ? "Sign in to sync" : programConflict ? "Program changed elsewhere — refresh before editing" : programRejected ? "Plan didn't sync — try again" : "Saved offline — will retry");
     return {
       skipped: false,
       sessions: 0,
       checkins: 0,
       records: unsynced.length,
-      offline: !programConflict,
+      offline: !programError,
       status: authFailure ? "sign-in-needed" : "pending",
-      errorCode: authFailure ? "AUTH_REQUIRED" : programConflict ? "PROGRAM_CONFLICT" : "SYNC_UNAVAILABLE",
+      errorCode: authFailure ? "AUTH_REQUIRED" : programConflict ? "PROGRAM_CONFLICT" : programRejected ? "PROGRAM_REJECTED" : "SYNC_UNAVAILABLE",
       error: error?.message || "Sync unavailable"
     };
   }
@@ -505,6 +509,23 @@ export function defaultProgramEffectiveDate() {
   return [value.getFullYear(), String(value.getMonth() + 1).padStart(2, "0"), String(value.getDate()).padStart(2, "0")].join("-");
 }
 
+export function applyProgramStateToDb(merged, value) {
+  merged.programState = value;
+  merged.temporaryProgram = value.temporaryProgram || null;
+  merged.weeklyPrograms = Array.isArray(value.weeklyPrograms) ? value.weeklyPrograms : (value.temporaryProgram ? [value.temporaryProgram] : []);
+  merged.plannedEvents = Array.isArray(value.plannedEvents) ? value.plannedEvents : [];
+  if (value.updatedAt) merged.programStateUpdatedAt = value.updatedAt;
+  const plan = value.currentProgram || value.nextWeekProgram;
+  if (plan) {
+    const existingProgram = merged.nextWeekProgram || {};
+    const sameProgram = JSON.stringify(existingProgram) === JSON.stringify(plan);
+    merged.nextWeekProgram = { ...existingProgram, ...plan };
+    merged.nextWeekProgramEffectiveDate = value.programEffectiveDate || (sameProgram ? merged.nextWeekProgramEffectiveDate : null) || defaultProgramEffectiveDate();
+    if (value.updatedAt) merged.nextWeekProgramUpdatedAt = value.updatedAt;
+  }
+  return merged;
+}
+
 export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
   const merged = ensureDbIdentities(localDb && typeof localDb === "object" ? localDb : {});
   const meta = readCanonicalMeta();
@@ -556,21 +577,7 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
       const i = merged.recoveryActivities.findIndex(item => String(item?.id || item?.sourceRecordId || "") === String(row.source_record_id));
       if (i >= 0) merged.recoveryActivities.splice(i, 1, value); else merged.recoveryActivities.push(value);
     } else if (row.record_type === "coaching_state") merged.coachSync = value;
-    else if (row.record_type === "program_state") {
-      merged.programState = value;
-      merged.temporaryProgram = value.temporaryProgram || null;
-      merged.weeklyPrograms = Array.isArray(value.weeklyPrograms) ? value.weeklyPrograms : (value.temporaryProgram ? [value.temporaryProgram] : []);
-      merged.plannedEvents = Array.isArray(value.plannedEvents) ? value.plannedEvents : [];
-      if (value.updatedAt) merged.programStateUpdatedAt = value.updatedAt;
-      const plan = value.currentProgram || value.nextWeekProgram;
-      if (plan) {
-        const existingProgram = merged.nextWeekProgram || {};
-        const sameProgram = JSON.stringify(existingProgram) === JSON.stringify(plan);
-        merged.nextWeekProgram = { ...existingProgram, ...plan };
-        merged.nextWeekProgramEffectiveDate = value.programEffectiveDate || (sameProgram ? merged.nextWeekProgramEffectiveDate : null) || defaultProgramEffectiveDate();
-        if (value.updatedAt) merged.nextWeekProgramUpdatedAt = value.updatedAt;
-      }
-    }
+    else if (row.record_type === "program_state") applyProgramStateToDb(merged, value);
     meta.records[key] = { fingerprint: fingerprint(value), updated_at: row.updated_at || new Date().toISOString(), deleted: false };
   });
   writeCanonicalMeta(meta);
