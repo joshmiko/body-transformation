@@ -6,6 +6,7 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ### App
 
+- Progress overview: the last tile spans the full row instead of sitting alone.
 - Removed nutrition from the app: four tabs (Today, Workout, Progress, Coach), no Fuel screen, food logging, presets, nutrition import or nutrition numbers. Existing nutrition records are kept unchanged on the phone and in the cloud.
 - Renamed the app to Shift (title, header, sign-in, home-screen name and the Coach connection screen). Coach copy no longer mentions ChatGPT and says "plan" and "approve" instead of "proposal" and "update".
 
