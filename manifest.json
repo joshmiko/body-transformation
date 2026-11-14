@@ -3,6 +3,6 @@
   "short_name": "Shift",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f6f7f9",
-  "theme_color": "#111318"
+  "background_color": "#0E0E0F",
+  "theme_color": "#0E0E0F"
 }
