@@ -83,8 +83,8 @@ test("alternate workouts are clearly labeled in weekly progress", () => {
 });
 
 test("alternate duration survives migration/export and missing duration stays null", () => {
-  assert.match(html, /function sessionDurationSec\(session\)\{const stored=numericOrNull\(session\?\.durationSec\);if\(\(session\?\.alternateWorkout\|\|session\?\.completionOnly\)&&stored!==null&&stored>0\)return stored;return derivedDurationSec\(session\)\}/);
-  assert.match(html, /s\.durationSec=\(s\.alternateWorkout\|\|s\.completionOnly\)\?\(numericOrNull\(s\.durationSec\)>0\?numericOrNull\(s\.durationSec\):null\):derivedDurationSec\(s\)/);
+  assert.match(html, /function sessionDurationSec\(session\)\{const stored=numericOrNull\(session\?\.durationSec\);if\(stored!==null&&stored>0\)return stored;return derivedDurationSec\(session\)\}/);
+  assert.match(html, /s\.durationSec=numericOrNull\(s\.durationSec\)>0\?numericOrNull\(s\.durationSec\):\(s\.alternateWorkout\|\|s\.completionOnly\)\?null:derivedDurationSec\(s\)/);
   const validTimestamp = value => {
     const t = Date.parse(value || "");
     return Number.isFinite(t) ? t : null;
