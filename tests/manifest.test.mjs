@@ -7,7 +7,8 @@ test("manifest describes a standalone app", async () => {
     await readFile(new URL("../manifest.json", import.meta.url), "utf8")
   );
 
-  assert.equal(manifest.name, "Body Transformation");
+  assert.equal(manifest.name, "Shift");
+  assert.equal(manifest.short_name, "Shift");
   assert.equal(manifest.display, "standalone");
   assert.ok(manifest.start_url);
 });

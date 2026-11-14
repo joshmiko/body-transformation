@@ -1,6 +1,8 @@
-# Body Transformation
+# Shift
 
-A mobile-first personal fitness tracker for workouts, recovery, nutrition, progress, and review-gated coaching updates.
+A mobile-first personal fitness tracker for workouts, recovery, progress, and Coach plans that you approve before anything changes.
+
+The app was renamed from Body Transformation to Shift. The repository, the app URL, browser storage keys, Supabase table names and OAuth client names keep their original `body-transformation` names, because changing them would break sign-in and saved data.
 
 ## Production
 
@@ -36,9 +38,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [release and rollback](docs/release-and-
 
 When signed in, the app keeps the browser cache available for offline use, then synchronizes each workout, check-in, nutrition record/summary/target, recovery activity, and coaching-state record to Supabase's private `user_data_records` table. The app rehydrates from that canonical store on sign-in and load; stable record IDs make retries idempotent and unsynced local edits are protected during merges.
 
-**App local/offline cache ↔ Supabase canonical store → coaching/export adapter → reviewed coach update → app**
+**App local/offline cache ↔ Supabase canonical store → Coach (read + send plans) → plan you approve in Shift → app**
 
-The manual coaching package remains an advanced export/import fallback for offline recovery and debugging. Direct ChatGPT access is not available from the static web app, so normal coaching still requires the reviewed handoff step.
+### How Coach connects
+
+Coach is Claude, connected through a custom connector to the `coaching-mcp` Supabase Edge Function. Coach can read your training data and send plans; nothing changes in Shift until you approve a plan. Setup steps are in [docs/coaching-mcp.md](docs/coaching-mcp.md).
+
+The manual coaching package remains an advanced export/import fallback for offline recovery and debugging.
 
 ### One-time migration
 
