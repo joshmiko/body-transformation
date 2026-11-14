@@ -518,7 +518,12 @@ export function mergeCanonicalRecords(localDb, rows = [], options = {}) {
     const cloudStamp = Date.parse(row.updated_at || "") || 0;
     const pendingStamp = Date.parse(pendingRow?.updated_at || "") || 0;
     const local = localRowFor(merged, row);
-    const cloudAdvancesProgram = row.record_type === "program_state" && Number(row.payload?.revision || 0) > Number(local?.revision || 0);
+    // The cloud guard accepts a program write only at exactly cloud revision + 1.
+    // Any other local revision (equal, skipped ahead, or behind) can never sync,
+    // so the cloud copy must win or the device stays in conflict forever.
+    const cloudRevision = Number(row.payload?.revision || 0);
+    const localRevision = Number(local?.revision || 0);
+    const cloudAdvancesProgram = row.record_type === "program_state" && (cloudRevision > localRevision || (Boolean(local) && localRevision !== cloudRevision + 1));
     const localFp = local ? fingerprint(local) : null;
     const known = meta.records[key];
     if (known?.deleted && cloudStamp <= (Date.parse(known.updated_at || "") || 0)) return;
