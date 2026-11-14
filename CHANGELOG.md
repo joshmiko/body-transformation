@@ -6,6 +6,7 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ### App
 
+- Line icons replace emoji and text symbols (tab bar, profile, set checks, add/restore, menu, chevrons); sync status moved from a floating pill to a quiet line under the header; Coach guidance shows plain labels such as "Daily steps" and "Zone 2 length".
 - Restyled the app and the Coach connection screen with the Shift design tokens: one dark theme, cream text, red primary buttons, beak highlights, Big Shoulders Display for the wordmark, titles, exercise names and key numbers, flat cards and larger tap targets. Visual only.
 - Progress overview: the last tile spans the full row instead of sitting alone.
 - Removed nutrition from the app: four tabs (Today, Workout, Progress, Coach), no Fuel screen, food logging, presets, nutrition import or nutrition numbers. Existing nutrition records are kept unchanged on the phone and in the cloud.
