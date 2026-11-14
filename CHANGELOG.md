@@ -4,6 +4,10 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ## Unreleased
 
+### App
+
+- Renamed the app to Shift (title, header, sign-in, home-screen name and the Coach connection screen). Coach copy no longer mentions ChatGPT and says "plan" and "approve" instead of "proposal" and "update".
+
 ### Coach and sync
 
 - Coach plans: errors now show on the plan they belong to with the real cause, a plan the cloud already has is finished automatically, a plan stuck between approved and applied can always be retried or backed out of, and blocked plans show why instead of hiding the button.

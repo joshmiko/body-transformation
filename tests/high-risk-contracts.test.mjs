@@ -40,7 +40,7 @@ test("coach sync keeps historical and current program context", () => {
     "includedThrough",
     "sourcePackageId",
     "Keep current plan",
-    "Apply next week",
+    "Approve and apply plan",
   ]) assert.ok(html.includes(marker), `Missing Coach Sync contract: ${marker}`);
 });
 

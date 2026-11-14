@@ -101,7 +101,8 @@ test("import storage and mobile handoff hooks are present", () => {
   assert.match(html, /sourcePackageId/);
   assert.match(html, /sourceEntryId/);
   assert.match(html, /out\.nutrition\.imports/);
-  assert.match(html, /Import from ChatGPT/);
+  assert.match(html, /Import from Coach/);
+  assert.doesNotMatch(html, /ChatGPT/);
   assert.match(html, /Import nutrition/);
 });
 
