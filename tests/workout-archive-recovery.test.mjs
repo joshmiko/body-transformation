@@ -22,7 +22,7 @@ test("a rejected local save leaves a reviewed workout open and offers export rec
   const calls = { failure: 0, rendered: 0 };
   const handler = new Function(
     "getSession", "cloneValue", "db", "clearActiveSessionPointer", "save", "document",
-    "derivedDurationSec", "completeStats", "showWorkoutSaveFailure", "renderSavedWorkout",
+    "applyFinishedDuration", "completeStats", "showWorkoutSaveFailure", "renderSavedWorkout",
     `return (${source})`
   )(
     () => session,
@@ -31,7 +31,7 @@ test("a rejected local save leaves a reviewed workout open and offers export rec
     () => { delete db.activeSessionId; delete db.activeProgramDay; delete db.currentExerciseIndex; delete db.currentSetIndex; },
     () => persist.persistLocalDb(),
     { getElementById: id => elements[id] || null },
-    () => 60,
+    s => { s.durationSec = 60; return 60; },
     () => {},
     () => { calls.failure++; },
     () => { calls.rendered++; }

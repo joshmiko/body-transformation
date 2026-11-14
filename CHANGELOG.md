@@ -11,6 +11,7 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ### Workouts
 
+- Fixed workout durations that counted pauses and abandoned time: saved duration now subtracts pauses, resuming after more than 2 hours idle excludes the gap, and a duration over 4 hours falls back to set times and is marked estimated. Already-saved workouts keep their stored duration.
 - Preserved direct taps on set controls while retaining horizontal set-row swipe actions.
 - Added a compact workout archive with per-workout sync status, retry, and JSON backup export. Reviewed workouts remain complete on this device when cloud sync is unavailable.
 
