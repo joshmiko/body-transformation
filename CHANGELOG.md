@@ -6,6 +6,7 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ### Coach and sync
 
+- Coach plans: errors now show on the plan they belong to with the real cause, a plan the cloud already has is finished automatically, a plan stuck between approved and applied can always be retried or backed out of, and blocked plans show why instead of hiding the button.
 - Fixed a device getting stuck on "Program changed elsewhere — refresh before editing": refreshing now replaces a program edit the cloud can never accept with the current cloud plan, and repeated offline program edits no longer skip revision numbers.
 - Protected approved programs with revision checks so an older device cannot replace a newer Coach plan.
 - Kept workout uploads independent of program conflicts, confirmed Coach updates in the cloud before marking them applied, and preserved the workout screen during background refresh.
