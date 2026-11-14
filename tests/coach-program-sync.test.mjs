@@ -11,7 +11,7 @@ const cloudApply = html.match(/^window\.btApplySupabaseDb=.*$/m)?.[0];
 test("ordinary saves do not advance the program revision", () => {
   assert.ok(programBuilder);
   assert.ok(programStage);
-  const previous = { revision: 1, updatedAt: "2026-11-03T18:00:00Z", weeklyPrograms: [] };
+  const previous = { revision: 1, updatedAt: "2026-11-03T18:00:00Z", weeklyPrograms: [], cloudSyncedAt: "2026-11-03T18:00:01Z" };
   const context = {
     db: { programState: previous, programStateUpdatedAt: previous.updatedAt, weeklyPrograms: [], nextWeekProgram: { Friday: { title: "Old Friday" } } },
     completeCoachProgram: () => ({ Friday: { title: "Old Friday" } }),
