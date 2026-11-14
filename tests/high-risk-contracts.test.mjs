@@ -54,16 +54,10 @@ test("unilateral lateral raise and substitution remain prescribed", () => {
   assert.ok(html.includes("performedExercise"));
 });
 
-test("nutrition keeps primary logging and history contracts", () => {
-  for (const marker of [
-    "nutritionStore",
-    "nutritionTotals",
-    "nutritionWeekSummary",
-    "Quick add",
-    "Add food",
-    "Today’s entries",
-    "Weekly adherence",
-  ]) assert.ok(html.includes(marker), `Missing nutrition contract: ${marker}`);
+test("nutrition is no longer part of the app UI", () => {
+  for (const marker of ['id="nNutrition"', "function nutrition()", "Daily fuel", "Fuel today", "Quick add", "Add food"]) {
+    assert.ok(!html.includes(marker), `Nutrition UI should be removed: ${marker}`);
+  }
 });
 
 test("missing RIR is not collected as an empty string", () => {
