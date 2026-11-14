@@ -14,8 +14,11 @@ When the user is signed in, Supabase remains the canonical store. The app cache 
 
 - `list_recent_workouts`: completed workouts, bounded to 1–100 rows, optional `since` date.
 - `get_workout`: one normalized workout with program snapshot, exercises, warm-ups, working sets, rest, effort/RIR, notes, and timestamps.
-- `get_coaching_context`: bounded date window (maximum 366 days) containing workouts, check-ins, nutrition, recovery, current program, and safe coaching watermark.
-- `get_changes_since`: bounded timestamp-based incremental reads with a page cursor.
+- `get_coaching_context`: bounded date window (maximum 366 days) containing completed workouts, check-ins (weigh-ins), recovery activities, the current program, approved weekly schedules, upcoming games (`plannedEvents`), and the safe coaching watermark.
+- `get_changes_since`: bounded timestamp-based incremental reads with a page cursor, covering workouts, check-ins, recovery activities, program state and coaching state.
+- `create_coach_update_draft` / `submit_coach_update`: Coach drafts a plan and submits it for approval in Shift. `targetGuidance` is optional non-nutrition context (for example steps or zone 2 work); Shift does not apply calorie or protein targets from plans.
+
+**No nutrition.** Nutrition is tracked in the coaching chat, not in Shift. `nutrition_entry`, `nutrition_summary` and `nutrition_target` records are not on the bridge's allow-list (`COACHING_RECORD_TYPES` in `bridge.mjs`), so no read tool returns them even if they are still stored, and check-ins no longer include the old protein-day and calorie-day counts.
 
 Read tools are annotated read-only. Write tools are explicitly non-destructive and idempotent, require confirmation, validate known optional fields, and write only `coaching_update_requests` plus an audit event. Responses are normalized and capped: progress photos, auth material, sync queues, tombstones, raw pending packages, and unrelated tables are not returned. Unknown fields in canonical payloads are ignored.
 
@@ -44,13 +47,14 @@ Dynamic client registration is **off** in Supabase Auth, so Claude cannot regist
    - Client type: **public** (no client secret).
    - Redirect URI: `https://claude.ai/api/mcp/auth_callback`.
    - Keep the generated client ID out of this repository. It is configuration for your Claude account, not source code.
+   - If the client is ever inserted directly instead of through the dashboard, `client_secret_hash` must be an empty string, not NULL, or Supabase Auth fails with "error validating client".
 3. **Add the connector in Claude** as a custom connector:
    - URL: `https://ncvtnlrogpngaelqgvvt.supabase.co/functions/v1/coaching-mcp`
    - In the connector's advanced OAuth settings, enter the client ID from step 2 and leave the client secret empty.
-4. **Connect.** Claude opens the Shift consent page. Sign in, confirm the account, and approve the connection.
+4. **Connect.** Claude opens the Shift consent page. Sign in, confirm the account, and approve the connection. The page lists what Coach can see (workouts, sets and how they felt; weigh-ins, recovery days and game days; the current plan), what it can do (send a plan that only takes effect once approved in Shift), and what it can't (edit or delete saved workouts or history; see progress photos or login details).
 5. **Revoke** by removing the connector in Claude or revoking the grant in Supabase Auth.
 
-The function is deployed from a reviewed checkout with `supabase functions deploy coaching-mcp --no-verify-jwt`; the middleware performs OAuth discovery and user authentication.
+The function is deployed from a reviewed checkout with `supabase functions deploy coaching-mcp --no-verify-jwt --project-ref ncvtnlrogpngaelqgvvt`; the middleware performs OAuth discovery and user authentication. The consent page is a static file and ships with the normal GitHub Pages deploy.
 
 The browser app needs only the publishable key. No AI provider API key, database password, personal access token, or service-role secret is required for this bridge.
 
@@ -59,4 +63,5 @@ The browser app needs only the publishable key. No AI provider API key, database
 Run `npm run ci`. When the bridge or its policies change, also check with the MCP Inspector or the Claude connector against a test user:
 - a second user cannot see the first user's records;
 - Coach cannot write canonical tables;
-- approving in the app is the only way a plan takes effect.
+- approving in the app is the only way a plan takes effect;
+- `get_coaching_context` returns no nutrition fields.

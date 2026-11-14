@@ -1,12 +1,11 @@
 // Pure, dependency-free normalization shared by the read-only coaching MCP server and tests.
 // This module deliberately exposes only bounded, user-safe coaching data.
 
+// Nutrition is tracked in the coaching chat, not in Shift, so nutrition_entry,
+// nutrition_summary and nutrition_target rows are never returned to Coach.
 export const COACHING_RECORD_TYPES = Object.freeze([
   "workout_session",
   "checkin",
-  "nutrition_entry",
-  "nutrition_summary",
-  "nutrition_target",
   "recovery_activity",
   "program_state",
   "coaching_state"
@@ -318,41 +317,12 @@ export function normalizeWorkout(raw) {
 
 function normalizeCheckin(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const output = pick(raw, ["id", "date", "createdAt", "weight", "waist", "proteinTargetDays", "calorieTargetDays", "averageSteps", "hockeySessions", "yogaCompleted", "averageSleep", "sorenessRecovery", "notes"]);
+  const output = pick(raw, ["id", "date", "createdAt", "weight", "waist", "averageSteps", "hockeySessions", "yogaCompleted", "averageSleep", "sorenessRecovery", "notes"]);
   ["id", "sorenessRecovery", "notes"].forEach(key => { if (output[key] !== undefined) output[key] = text(output[key], 1000); });
   ["date"].forEach(key => { if (output[key] !== undefined) output[key] = dateOrNull(output[key]); });
   if (output.createdAt !== undefined) output.createdAt = timestampOrNull(output.createdAt);
-  ["weight", "waist", "proteinTargetDays", "calorieTargetDays", "averageSteps", "hockeySessions", "averageSleep"].forEach(key => { if (output[key] !== undefined) output[key] = number(output[key]); });
+  ["weight", "waist", "averageSteps", "hockeySessions", "averageSleep"].forEach(key => { if (output[key] !== undefined) output[key] = number(output[key]); });
   if (output.yogaCompleted !== undefined) output.yogaCompleted = Boolean(output.yogaCompleted);
-  return output;
-}
-
-function normalizeNutritionEntry(raw) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const output = pick(raw, ["id", "date", "name", "calories", "protein", "carbs", "fat", "servings", "notes", "createdAt", "updatedAt"]);
-  ["id", "name", "notes"].forEach(key => { if (output[key] !== undefined) output[key] = text(output[key], 1000); });
-  if (output.date !== undefined) output.date = dateOrNull(output.date);
-  ["createdAt", "updatedAt"].forEach(key => { if (output[key] !== undefined) output[key] = timestampOrNull(output[key]); });
-  ["calories", "protein", "carbs", "fat", "servings"].forEach(key => { if (output[key] !== undefined) output[key] = number(output[key]); });
-  return output;
-}
-
-function normalizeNutritionSummary(raw) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const output = pick(raw, ["id", "date", "calories", "protein", "carbs", "fat", "water", "steps", "notes", "createdAt", "updatedAt"]);
-  ["id", "notes"].forEach(key => { if (output[key] !== undefined) output[key] = text(output[key], 1000); });
-  if (output.date !== undefined) output.date = dateOrNull(output.date);
-  ["createdAt", "updatedAt"].forEach(key => { if (output[key] !== undefined) output[key] = timestampOrNull(output[key]); });
-  ["calories", "protein", "carbs", "fat", "water", "steps"].forEach(key => { if (output[key] !== undefined) output[key] = number(output[key]); });
-  return output;
-}
-
-function normalizeNutritionTarget(raw) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const output = pick(raw, ["calories", "protein", "stepsAverageTarget", "zone2SessionsPerWeek", "zone2DurationMin", "zone2DurationMax", "preferredZone2Day", "updatedAt"]);
-  ["calories", "protein", "stepsAverageTarget", "zone2SessionsPerWeek", "zone2DurationMin", "zone2DurationMax"].forEach(key => { if (output[key] !== undefined) output[key] = number(output[key]); });
-  if (output.preferredZone2Day !== undefined) output.preferredZone2Day = text(output.preferredZone2Day, 40);
-  if (output.updatedAt !== undefined) output.updatedAt = timestampOrNull(output.updatedAt);
   return output;
 }
 
@@ -418,9 +388,6 @@ export function sanitizeCanonicalRow(row) {
   let data;
   if (recordType === "workout_session") data = normalizeWorkout(payload);
   else if (recordType === "checkin") data = normalizeCheckin(payload);
-  else if (recordType === "nutrition_entry") data = normalizeNutritionEntry(payload);
-  else if (recordType === "nutrition_summary") data = normalizeNutritionSummary(payload);
-  else if (recordType === "nutrition_target") data = normalizeNutritionTarget(payload);
   else if (recordType === "recovery_activity") data = normalizeRecoveryActivity(payload);
   else if (recordType === "program_state") data = normalizeProgramState(payload);
   else data = normalizeCoachingState(payload);

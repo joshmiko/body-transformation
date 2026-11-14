@@ -250,7 +250,7 @@ function registerTools(server, supabase, jwtClaims) {
   server.registerTool(
     "get_coaching_context",
     {
-      description: "Read a bounded coaching context for the signed-in user: workouts, check-ins, nutrition, recovery, current program, approved weekly schedules, and upcoming hockey games. Use plannedEvents to place weekly workouts around games; propose changes for in-app approval rather than applying them.",
+      description: "Read a bounded coaching context for the signed-in user: completed workouts (sets and how they felt), check-ins (weigh-ins), recovery activities, the current program, approved weekly schedules, and upcoming hockey games (plannedEvents). Nutrition is not included; it is tracked in the coaching chat, not in Shift. Use plannedEvents to place weekly workouts around games; send plans for in-app approval rather than applying them.",
       inputSchema: z.object({
         since: z.string(),
         until: z.string().optional(),
@@ -262,32 +262,26 @@ function registerTools(server, supabase, jwtClaims) {
       const period = parseMaxContextDays(since, until);
       const limit = parseLimit(maxRecords, 50);
       const datedRows = await rowsFor(supabase, {
-        types: ["workout_session", "checkin", "nutrition_entry", "nutrition_summary", "recovery_activity"],
+        types: ["workout_session", "checkin", "recovery_activity"],
         limit,
         since: period.since,
         until: period.until
       });
-      // Targets, program state, and reviewed coaching watermark are current-state records
+      // Program state and the reviewed coaching watermark are current-state records
       // without an occurred_on date, so read them separately without the date predicate.
       const currentRows = await rowsFor(supabase, {
-        types: ["nutrition_target", "program_state", "coaching_state"],
+        types: ["program_state", "coaching_state"],
         limit
       });
       const records = visible([...datedRows, ...currentRows]);
       const workouts = records.filter(item => item.recordType === "workout_session" && isCompletedWorkout(item)).map(item => item.data);
       const checkins = records.filter(item => item.recordType === "checkin").map(item => item.data);
-      const nutritionEntries = records.filter(item => item.recordType === "nutrition_entry").map(item => item.data);
-      const nutritionSummaries = records.filter(item => item.recordType === "nutrition_summary").map(item => item.data);
-      const targetRows = records.filter(item => item.recordType === "nutrition_target");
       const recoveryActivities = records.filter(item => item.recordType === "recovery_activity").map(item => item.data);
       const state = records.filter(item => item.recordType === "coaching_state").map(item => item.data).at(-1) || null;
       return result({
         period,
         workouts,
         checkins,
-        nutritionEntries,
-        nutritionSummaries,
-        nutritionTarget: targetRows.at(-1)?.data || null,
         recoveryActivities,
         currentProgram: currentProgramFrom(records),
         currentProgramEffectiveDate: currentProgramEffectiveDateFrom(records),
@@ -302,7 +296,7 @@ function registerTools(server, supabase, jwtClaims) {
   server.registerTool(
     "get_changes_since",
     {
-      description: "Read bounded, user-scoped canonical changes after an ISO timestamp. Use the returned cursor for the next page.",
+      description: "Read bounded, user-scoped changes after an ISO timestamp: workouts, check-ins, recovery activities, program state and coaching state. Nutrition records are never returned. Use the returned cursor for the next page.",
       inputSchema: z.object({
         since: z.string(),
         limit: z.number().int().min(1).max(TOOL_LIMITS.maxLimit).default(50),
@@ -333,13 +327,13 @@ function registerTools(server, supabase, jwtClaims) {
   server.registerTool(
     "create_coach_update_draft",
     {
-      description: "Create an idempotent draft of a reviewed coach update. For a hockey-aware weekly schedule, use programEffectiveDate and nextWeekProgram.__temporary.endDate within the same Monday–Sunday week; include every day in that window as a lifting plan, game activity, or recovery activity. Read plannedEvents from get_coaching_context and avoid hard leg work near games. The temporary schedule expires after endDate and preserves the permanent program. This never changes workouts, history, canonical program state, nutrition history, or photos. The Body Transformation app must review and apply it.",
+      description: "Create an idempotent draft of a reviewed coach update. For a hockey-aware weekly schedule, use programEffectiveDate and nextWeekProgram.__temporary.endDate within the same Monday–Sunday week; include every day in that window as a lifting plan, game activity, or recovery activity. Read plannedEvents from get_coaching_context and avoid hard leg work near games. The temporary schedule expires after endDate and preserves the permanent program. targetGuidance is optional context such as steps or zone 2 work; it is not used for nutrition, because Shift no longer applies calorie or protein targets from plans. This never changes workouts, history, canonical program state, or photos. Nothing changes until the user approves the plan in Shift.",
       inputSchema: z.object({
         idempotencyKey: z.string().min(8).max(120),
         sourcePackageId: z.string().min(1).max(160),
         coachSummary: z.string().min(1).max(4000),
         nextWeekProgram: z.unknown().optional(),
-        targetGuidance: z.unknown().optional(),
+        targetGuidance: z.unknown().optional().describe("Optional non-nutrition guidance such as stepsAverageTarget or zone 2 sessions. Not used for nutrition: Shift does not apply calorie or protein targets from plans."),
         weightEntries: z.unknown().optional(),
         programEffectiveDate: z.string().optional(),
         expectedWatermark: z.string().nullable().optional(),

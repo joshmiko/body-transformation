@@ -12,6 +12,7 @@ All notable user-visible changes are recorded here. Versions follow semantic ver
 
 ### Coach and sync
 
+- Coach no longer receives nutrition: the coaching bridge drops nutrition records and the old protein/calorie day counts (takes effect when the edge function is redeployed). The connection screen now lists what Coach can see, can do and can't do.
 - Fixed a startup error that stopped signed-in devices from refreshing from the cloud when the app opened.
 - Coach plans: errors now show on the plan they belong to with the real cause, a plan the cloud already has is finished automatically, a plan stuck between approved and applied can always be retried or backed out of, and blocked plans show why instead of hiding the button.
 - Fixed a device getting stuck on "Program changed elsewhere — refresh before editing": refreshing now replaces a program edit the cloud can never accept with the current cloud plan, and repeated offline program edits no longer skip revision numbers.
