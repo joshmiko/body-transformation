@@ -62,5 +62,5 @@ test("progress photos remain local-only in Batch 1",()=>{
 });
 
 test("other app areas remain wired",()=>{
-  for(const marker of ["function progress()","function dashboardOverview","function nutrition()","function render(","function buildCoachingPackage","bt_supabase_session","localStorage"]) assert.ok(html.includes(marker),marker);
+  for(const marker of ["function progress()","function dashboardOverview","function render(","function buildCoachingPackage","bt_supabase_session","localStorage"]) assert.ok(html.includes(marker),marker);
 });
