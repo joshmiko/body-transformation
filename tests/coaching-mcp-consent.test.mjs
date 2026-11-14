@@ -24,7 +24,7 @@ test("consent summary is bounded and contains no credential material", () => {
 
 test("static consent route accurately describes read and plan-sending access without exposing tokens", async () => {
   const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
-  for (const marker of ["authorization_id", "getAuthorizationDetails", "approveAuthorization", "denyAuthorization", "Keep", "send you plans from Coach to review and approve in Shift", "your Shift training data", "cannot apply a program change"]) {
+  for (const marker of ["authorization_id", "getAuthorizationDetails", "approveAuthorization", "denyAuthorization", "Keep", "your Shift training data"]) {
     assert.ok(html.includes(marker), "missing " + marker);
   }
   assert.equal(/read-only access|write actions are not included|ChatGPT|proposed coach updates|Body Transformation/i.test(html), false);
@@ -164,4 +164,23 @@ test("session mismatch returns to account choice without performing a lookup", a
   assert.match(html, /confirmAccountButton\.textContent = "Continue as " \+ identity/);
   assert.match(html, /confirmAccountButton\.textContent = "Account selected"/);
   assert.match(html, /confirmAccountButton\.textContent = "Account confirmed"/);
+});
+
+test("consent lists exactly what Coach can see, can do and can't do", async () => {
+  const html = await readFile(new URL("../oauth/consent.html", import.meta.url), "utf8");
+  const list = id => {
+    const match = html.match(new RegExp(`<h2 id="${id}">([^<]+)</h2>\\s*<ul aria-labelledby="${id}">([\\s\\S]*?)</ul>`));
+    assert.ok(match, "missing list " + id);
+    return { heading: match[1], items: [...match[2].matchAll(/<li>([^<]+)<\/li>/g)].map(m => m[1]) };
+  };
+  assert.deepEqual(list("coach-can-see"), { heading: "Coach can see", items: ["Your workouts, sets and how they felt", "Weigh-ins, recovery days and game days", "Your current plan"] });
+  assert.deepEqual(list("coach-can-do"), { heading: "Coach can do", items: ["Send you a plan. Nothing changes until you approve it in Shift."] });
+  assert.deepEqual(list("coach-cannot"), { heading: "Coach can't", items: ["Edit or delete saved workouts or history", "See progress photos or your login details"] });
+  const consentBlock = html.slice(html.indexOf('<div id="consent"'), html.indexOf('<div id="result"'));
+  assert.doesNotMatch(consentBlock, /<p>/, "the old paragraphs are gone");
+  assert.doesNotMatch(html, /nutrition/i);
+  // The request origin and the account confirmation step stay.
+  assert.match(html, /"<small>Request from " \+ summary\.origin/);
+  assert.match(html, /<button id="confirm-account" class="primary" type="button">Continue as account<\/button>/);
+  assert.match(html, /<button id="approve" class="primary" type="button">Approve coaching connection<\/button>/);
 });
