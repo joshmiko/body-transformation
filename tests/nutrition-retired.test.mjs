@@ -111,17 +111,18 @@ test("approving a Coach plan with calorie and protein guidance does not touch nu
 test("Coach plan cards hide calorie and protein guidance but keep the rest", () => {
   const context = { escapeHtml: v => String(v ?? "") };
   vm.createContext(context);
-  vm.runInContext([line("coachGuidanceValue"), line("coachTargetGuidanceMarkup")].join("\n"), context);
+  const start = html.indexOf("const COACH_GUIDANCE_LABELS");
+  vm.runInContext(html.slice(start, html.indexOf("\n", html.indexOf("function coachTargetGuidanceMarkup(value)"))), context);
   assert.equal(context.coachTargetGuidanceMarkup({ calories: 2400, protein: 200 }), "");
   const markup = context.coachTargetGuidanceMarkup({ calories: 2400, stepsAverageTarget: 9000 });
-  assert.match(markup, /stepsAverageTarget/);
-  assert.doesNotMatch(markup, /calories/);
+  assert.match(markup, /Daily steps/);
+  assert.doesNotMatch(markup, /calories|Calories/);
 });
 
 test("the app has four tabs and no nutrition screens or numbers", () => {
   const nav = html.match(/<div class="nav">([\s\S]*?)<\/div>/)?.[1] || "";
   assert.deepEqual([...nav.matchAll(/<button id="(\w+)"/g)].map(m => m[1]), ["nToday", "nWorkout", "nProgress", "nCoach"]);
-  assert.deepEqual([...nav.matchAll(/<\/span>([^<]+)<\/button>/g)].map(m => m[1]), ["Today", "Workout", "Progress", "Coach"]);
+  assert.deepEqual([...nav.matchAll(/<span class="nav-label">([^<]+)<\/span><\/button>/g)].map(m => m[1]), ["Today", "Workout", "Progress", "Coach"]);
   assert.match(html, /<div class="sub">Train • Recover • Progress<\/div>/);
   for (const removed of ["function nutrition()", "Daily fuel", "Fuel today", "Import from Coach", "pc-protein", "pc-calories", "exportNutrition", "nutritionStore", "defaultNutritionPresets"]) {
     assert.ok(!html.includes(removed), removed);

@@ -226,9 +226,7 @@ test("a change made during sync gets a follow-up attempt", async () => {
   assert.equal(JSON.parse(posts[1].options.body)[0].payload.sessionNote, "second");
 });
 
-test("successful sync notice auto-dismisses while pending states remain visible", () => {
-  assert.match(indexHtml, /let btSyncHideTimer/);
-  assert.match(indexHtml, /el\.dataset\.syncState === "synced"/);
-  assert.match(indexHtml, /setTimeout\(\(\) => \{[\s\S]*?el\.style\.opacity = "0"/);
-  assert.match(indexHtml, /nextState === "idle" \? "0" : "0\.9"/);
+test("sync status hides when synced while pending states remain visible", () => {
+  assert.match(indexHtml, /el\.hidden = nextState === "idle" \|\| nextState === "synced" \|\| !message;/);
+  assert.match(indexHtml, /id="bt-sync-status" class="sync-line" role="status" aria-live="polite"/);
 });
