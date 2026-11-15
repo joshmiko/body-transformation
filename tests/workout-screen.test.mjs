@@ -43,10 +43,12 @@ function renderScreen({ ei = 2, actual, warmups = [], paused = false, prev = [] 
     elapsedSeconds: () => 400,
     generalWarmupMarkup: () => '<section class="general-warmup">General warm-up</section>',
     restStatusMarkup: () => "",
-    bindSwipeRows() {}
+    bindSwipeRows() {},
+    marked: [],
+    mark(d, i, j) { context.marked.push([d, i, j, actual[j].feel]); actual[j].done = true; actual[j].status = "completed"; }
   };
   vm.createContext(context);
-  vm.runInContext([line("escapeHtml"), iconSource, line("swipeRowShell"), renderSource].join("\n"), context);
+  vm.runInContext([line("escapeHtml"), line("normalizeFeel"), iconSource, line("swipeRowShell"), renderSource].join("\n"), context);
   context.render("Monday", ei);
   return { markup: app.innerHTML, context };
 }
@@ -76,7 +78,11 @@ test("middle set: comp layout around per-set logging", () => {
   assert.match(card, /<h2 class="ws-set-title">Set 2<\/h2><div class="ws-last">Last time, Nov 9: 120 × 10, Good<\/div>/);
   assert.match(card, /<label>Weight, lb<input  value="120" inputmode="decimal" onchange="edit\('Monday',2,1,'weight',this\.value\)"><\/label>/);
   assert.match(card, /<label>Reps<input  value="8" inputmode="numeric" onchange="edit\('Monday',2,1,'reps',this\.value\)"><\/label>/);
-  assert.match(card, /<button class="primary ws-log" type="button"  onclick="mark\('Monday',2,1\)">Log set, start 1:30 rest<\/button>/);
+  // Effort is asked in the card before logging; Log set waits for it.
+  for (const feel of ["Easy", "Good", "Hard", "Failed"]) assert.match(card, new RegExp(`aria-pressed="false"  onclick="chooseWorkoutEffort\\('Monday',2,1,'${feel}'\\)">${feel}</button>`));
+  assert.match(card, /<div class="ws-effort" role="group" aria-label="How did it feel">/);
+  assert.match(card, /<button class="primary ws-log" type="button" disabled aria-describedby="ws-effort-hint" onclick="logWorkoutSet\('Monday',2,1\)">Log set, start 1:30 rest<\/button><p id="ws-effort-hint" class="ws-hint">Pick how it felt to log this set\.<\/p>/);
+  assert.ok(card.indexOf("ws-inputs") < card.indexOf("ws-effort") && card.indexOf("ws-effort") < card.indexOf("ws-log"), "inputs, then effort, then Log set");
   assert.match(card, /onclick="rowAction\('Monday',2,1,'working'\)">Skip set<\/button>/);
   assert.equal(count(markup, 'class="primary'), 1, "one red primary button");
 
@@ -106,7 +112,8 @@ test("paused: logging is disabled and Pause reads Resume", () => {
   const { markup } = renderScreen({ actual: [planned(), planned(), planned()], paused: true });
   assert.match(markup, /aria-pressed="true" onclick="togglePause\('Monday',2\)">Resume<\/button>/);
   assert.match(markup, /<span class="paused-state" aria-live="polite">Paused<\/span>/);
-  assert.match(markup, /<button class="primary ws-log" type="button" disabled onclick="mark\('Monday',2,0\)">/);
+  assert.match(markup, /<button class="primary ws-log" type="button" disabled aria-describedby="ws-effort-hint" onclick="logWorkoutSet\('Monday',2,0\)">/);
+  assert.match(markup, /aria-pressed="false" disabled onclick="chooseWorkoutEffort\('Monday',2,0,'Easy'\)"/);
   assert.match(markup, /<label>Weight, lb<input disabled value="120"/);
 });
 
@@ -142,4 +149,28 @@ test("plan and last-time helpers format like the comp", () => {
   assert.equal(context.workoutRepRange({ min: 20, max: 45, unit: "sec" }), "20 to 45 sec");
   assert.equal(context.workoutLastTime({ date: "2026-10-17", w: 517, r: 12, feel: "Good" }, false), "Last time, Oct 17: 517 × 12, Good");
   assert.equal(context.workoutLastTime({ date: "2026-10-17", seconds: 30, feel: "" }, true), "Last time, Oct 17: 30 sec");
+});
+
+test("effort is required before a set is logged, and is saved with the set", () => {
+  const actual = [planned(), planned(), planned()];
+  const { context } = renderScreen({ actual });
+  const app = () => context.document.getElementById("app").innerHTML;
+  context.logWorkoutSet("Monday", 2, 0);
+  assert.deepEqual(context.marked, [], "no effort picked: nothing is logged and no rest starts");
+
+  context.chooseWorkoutEffort("Monday", 2, 0, "Hard");
+  assert.match(app(), /class="sel" aria-pressed="true"  onclick="chooseWorkoutEffort\('Monday',2,0,'Hard'\)">Hard<\/button>/);
+  assert.match(app(), /<button class="primary ws-log" type="button"   onclick="logWorkoutSet\('Monday',2,0\)">Log set, start 1:30 rest<\/button>/);
+  assert.doesNotMatch(app(), /ws-effort-hint/);
+  assert.equal(actual[0].feel, undefined, "the choice is not written to the set until it is logged");
+
+  context.logWorkoutSet("Monday", 2, 0);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.marked)), [["Monday", 2, 0, "Hard"]], "logged once, with the effort already on the set");
+  context.logWorkoutSet("Monday", 2, 0);
+  assert.equal(context.marked.length, 1, "a logged set is not logged again");
+
+  context.chooseWorkoutEffort("Monday", 2, 1, "Tired");
+  context.render("Monday", 2);
+  assert.match(app(), /<h2 class="ws-set-title">Set 2<\/h2>/);
+  assert.match(app(), /disabled aria-describedby="ws-effort-hint" onclick="logWorkoutSet\('Monday',2,1\)"/, "unknown efforts are ignored");
 });
