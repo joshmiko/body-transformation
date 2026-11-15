@@ -52,7 +52,7 @@ test("no emoji or text-symbol icons remain in the app UI", () => {
     assert.ok(svg.includes(ICON_ATTRS), name);
     assert.match(svg, /<(path|circle) /, name + " has a shape");
   }
-  assert.match(html, /aria-label="\$\{skipped\?"Set "\+\(j\+1\)\+" skipped":x\.done\?"Set "\+\(j\+1\)\+" done":"Mark set "\+\(j\+1\)\+" done"\}"/);
+  assert.match(html, /aria-label="\$\{off\?"Warm-up "\+\(j\+1\)\+" skipped":z\.done\?"Warm-up "\+\(j\+1\)\+" done":"Mark warm-up "\+\(j\+1\)\+" done"\}"/);
   assert.match(html, /aria-label="Workout menu"/);
   // The exercise tile already owns the .icon class; line icons must not inherit its box.
   assert.doesNotMatch(html, /<svg class="icon"/);
