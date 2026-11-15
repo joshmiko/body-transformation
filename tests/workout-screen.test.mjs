@@ -89,7 +89,7 @@ test("middle set: comp layout around per-set logging", () => {
   // Completed row above the card keeps inputs, check, swipe, feel and undo
   const completed = markup.slice(markup.indexOf('aria-label="Completed sets"'), markup.indexOf('<section class="ws-current"'));
   assert.match(completed, /data-swipe-row/);
-  assert.match(completed, /onclick="mark\('Monday',2,0\)"/);
+  assert.match(completed, /aria-label="Set 1 done"  onclick="checkWorkoutSet\('Monday',2,0\)"/);
   assert.match(completed, /rowAction\('Monday',2,0,'working'\)/);
   for (const feel of ["Easy", "Good", "Hard", "Failed"]) assert.match(completed, new RegExp(`onclick="feel\\('Monday',2,0,'${feel}'\\)">${feel}</button>`));
   assert.match(completed, /class="sel" aria-pressed="true" onclick="feel\('Monday',2,0,'Good'\)"/);
@@ -98,7 +98,7 @@ test("middle set: comp layout around per-set logging", () => {
   // Upcoming row below the card can still be edited and logged out of order
   const upcoming = markup.slice(markup.indexOf('aria-label="Upcoming sets"'));
   assert.match(upcoming, /<span class="ws-row-label">Set 3<\/span><input aria-label="Set 3 weight"  value="120"/);
-  assert.match(upcoming, /onclick="mark\('Monday',2,2\)"/);
+  assert.match(upcoming, /aria-label="Mark set 3 done" aria-expanded="false" onclick="checkWorkoutSet\('Monday',2,2\)"/);
   assert.match(upcoming, /rowAction\('Monday',2,2,'working'\)/);
 
   // Tools, up next and step buttons
@@ -173,4 +173,31 @@ test("effort is required before a set is logged, and is saved with the set", () 
   context.render("Monday", 2);
   assert.match(app(), /<h2 class="ws-set-title">Set 2<\/h2>/);
   assert.match(app(), /disabled aria-describedby="ws-effort-hint" onclick="logWorkoutSet\('Monday',2,1\)"/, "unknown efforts are ignored");
+});
+
+test("a row check asks for effort first, then logs the set with it", () => {
+  const actual = [planned(), planned(), planned()];
+  const { context } = renderScreen({ actual });
+  const app = () => context.document.getElementById("app").innerHTML;
+
+  context.checkWorkoutSet("Monday", 2, 2);
+  assert.deepEqual(context.marked, [], "tapping the check does not log yet");
+  assert.match(app(), /aria-label="Mark set 3 done" aria-expanded="true" onclick="checkWorkoutSet\('Monday',2,2\)"/);
+  const prompt = app().slice(app().indexOf('<div class="ws-row-prompt">'));
+  assert.match(prompt, /<div class="ws-row-prompt-label" id="ws-prompt-2">How did set 3 feel\?<\/div><div class="ws-effort" role="group" aria-labelledby="ws-prompt-2">/);
+  for (const feel of ["Easy", "Good", "Hard", "Failed"]) assert.match(prompt, new RegExp(`onclick="logWorkoutSetWithEffort\\('Monday',2,2,'${feel}'\\)">${feel}</button>`));
+  assert.match(prompt, /onclick="cancelWorkoutEffortPrompt\('Monday',2\)">Cancel<\/button>/);
+
+  context.cancelWorkoutEffortPrompt("Monday", 2);
+  assert.doesNotMatch(app(), /ws-row-prompt/);
+  assert.deepEqual(context.marked, []);
+
+  context.checkWorkoutSet("Monday", 2, 2);
+  context.logWorkoutSetWithEffort("Monday", 2, 2, "Failed");
+  assert.deepEqual(JSON.parse(JSON.stringify(context.marked)), [["Monday", 2, 2, "Failed"]], "logged once, with the effort already on the set");
+
+  // A logged row's check still unlogs it directly.
+  context.checkWorkoutSet("Monday", 2, 2);
+  assert.equal(context.marked.length, 2);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.marked[1])).slice(0, 3), ["Monday", 2, 2]);
 });
