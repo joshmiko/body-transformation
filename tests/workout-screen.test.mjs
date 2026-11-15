@@ -19,15 +19,15 @@ const exercises = [
   { name: "DB Hammer Curl", sets: 2, min: 10, max: 15, rest: 60, cue: "Neutral grip." }
 ];
 
-function renderScreen({ ei = 2, actual, warmups = [], paused = false, prev = [] }) {
+function renderScreen({ ei = 2, actual, warmups = [], paused = false, prev = [], sessions = {} }) {
   const app = { innerHTML: "" };
   const session = {
     id: "s1", performedDate: "2026-11-16", date: "2026-11-16", pausedAt: paused ? "2026-11-16T17:10:00Z" : null,
     exercises: { [String(ei)]: { name: exercises[ei].name, actual, warmups } }
   };
   const context = {
-    db: { notes: {} }, workoutMenuOpen: false, warmupsExpanded: {},
-    document: { body: { classList: { add() {} } }, getElementById: id => (id === "app" ? app : null) },
+    db: { notes: {}, sessions }, workoutMenuOpen: false, warmupsExpanded: {}, workoutRowEdit: null,
+    document: { body: { classList: { add() {}, remove() {} } }, getElementById: id => (id === "app" ? app : null) },
     getSession: () => session,
     sessionProgram: () => ({ exercises }),
     exerciseRecord: () => session.exercises[String(ei)],
@@ -57,9 +57,8 @@ const done = (weight, reps, feel) => ({ done: true, status: "completed", weight,
 const planned = () => ({ done: false, status: "planned" });
 const count = (markup, needle) => markup.split(needle).length - 1;
 
-test("middle set: comp layout around per-set logging", () => {
-  const prev = [{ date: "2026-11-09", w: 120, r: 10, feel: "Good" }, { date: "2026-11-16", w: 125, r: 9, feel: "Hard" }];
-  const { markup } = renderScreen({ actual: [done(120, 10, "Good"), planned(), planned()], prev });
+test("middle set: comp layout with compact rows, preselected feel, one-tap Log", () => {
+  const { markup } = renderScreen({ actual: [done(120, 10, "Good"), planned(), planned()], prev: [{ date: "2026-11-09", w: 120, r: 10, feel: "Good" }] });
 
   // Top bar, progress segments and exercise header
   assert.match(markup, /<button class="ws-round" type="button" aria-label="Workout menu" aria-expanded="false" onclick="toggleWorkoutMenu\('Monday',2\)">/);
@@ -71,34 +70,33 @@ test("middle set: comp layout around per-set logging", () => {
   assert.match(markup, /<div class="ws-count">Exercise 3 of 6<\/div><div class="ename ws-name">Lat Pulldown<\/div>/);
   assert.match(markup, /<p class="ws-plan">3 sets of 8 to 12, rest 1:30\. <span class="form-cue-callout">Pull elbows down\.<\/span><\/p>/);
 
-  // Main card: stripe band once, on the current set, with the "Last time" line from a previous workout
+  // Main card: stripe band once, Last time line, and no "Reference load" Coach note
   assert.equal(count(markup, 'class="stripe-band"'), 1);
   const card = markup.slice(markup.indexOf('<section class="ws-current"'), markup.indexOf("</section>", markup.indexOf('<section class="ws-current"')));
-  assert.match(card, /^<section class="ws-current" aria-label="Current set"><div class="stripe-band" aria-hidden="true">/);
   assert.match(card, /<h2 class="ws-set-title">Set 2<\/h2><div class="ws-last">Last time, Nov 9: 120 × 10, Good<\/div>/);
+  assert.doesNotMatch(card, /ws-why|Reference load/);
   assert.match(card, /<label>Weight, lb<input  value="120" inputmode="decimal" onchange="edit\('Monday',2,1,'weight',this\.value\)"><\/label>/);
   assert.match(card, /<label>Reps<input  value="8" inputmode="numeric" onchange="edit\('Monday',2,1,'reps',this\.value\)"><\/label>/);
-  // Effort is asked in the card before logging; Log set waits for it.
-  for (const feel of ["Easy", "Good", "Hard", "Failed"]) assert.match(card, new RegExp(`aria-pressed="false"  onclick="chooseWorkoutEffort\\('Monday',2,1,'${feel}'\\)">${feel}</button>`));
-  assert.match(card, /<div class="ws-effort" role="group" aria-label="How did it feel">/);
-  assert.match(card, /<button class="primary ws-log" type="button" disabled aria-describedby="ws-effort-hint" onclick="logWorkoutSet\('Monday',2,1\)">Log set, start 1:30 rest<\/button><p id="ws-effort-hint" class="ws-hint">Pick how it felt to log this set\.<\/p>/);
-  assert.ok(card.indexOf("ws-inputs") < card.indexOf("ws-effort") && card.indexOf("ws-effort") < card.indexOf("ws-log"), "inputs, then effort, then Log set");
+  // Feel is preselected (Good, no history) and Log is red, enabled, logs in one tap
+  for (const feel of ["Easy", "Good", "Hard", "Failed"]) assert.match(card, new RegExp(`onclick="chooseWorkoutEffort\\('Monday',2,1,'${feel}'\\)">${feel}</button>`));
+  assert.match(card, /class="sel" aria-pressed="true"  onclick="chooseWorkoutEffort\('Monday',2,1,'Good'\)">Good<\/button>/);
+  assert.match(card, /<button class="primary ws-log" type="button"  onclick="logWorkoutSetWithEffort\('Monday',2,1,'Good'\)">Log set, start 1:30 rest<\/button>/);
+  assert.doesNotMatch(card, /disabled|ws-effort-hint/);
   assert.match(card, /onclick="rowAction\('Monday',2,1,'working'\)">Skip set<\/button>/);
   assert.equal(count(markup, 'class="primary'), 1, "one red primary button");
 
-  // Completed row above the card keeps inputs, check, swipe, feel and undo
+  // Completed row above the card is compact, with a cream check, and opens an editor on tap
   const completed = markup.slice(markup.indexOf('aria-label="Completed sets"'), markup.indexOf('<section class="ws-current"'));
   assert.match(completed, /data-swipe-row/);
-  assert.match(completed, /aria-label="Set 1 done"  onclick="checkWorkoutSet\('Monday',2,0\)"/);
+  assert.match(completed, /<button type="button" class="ws-crow-main" aria-expanded="false" aria-label="Set 1: 120 by 10, Good\. Edit set\." onclick="toggleWorkoutRow\('Monday',2,0,'working'\)"><span class="ws-crow-label">Set 1<\/span><span class="ws-crow-value">120 × 10<\/span><span class="ws-crow-feel">Good<\/span><\/button>/);
+  assert.match(completed, /<span class="check done" aria-hidden="true">/);
   assert.match(completed, /rowAction\('Monday',2,0,'working'\)/);
-  for (const feel of ["Easy", "Good", "Hard", "Failed"]) assert.match(completed, new RegExp(`onclick="feel\\('Monday',2,0,'${feel}'\\)">${feel}</button>`));
-  assert.match(completed, /class="sel" aria-pressed="true" onclick="feel\('Monday',2,0,'Good'\)"/);
-  assert.match(completed, /data-set="0" onclick="undoSetFromButton\(this\)">Undo<\/button>/);
+  assert.doesNotMatch(completed, /aria-label="Set 1 weight"/, "no visible inputs until opened");
 
-  // Upcoming row below the card can still be edited and logged out of order
+  // Upcoming row below the card is plain, with the rep range and target weight
   const upcoming = markup.slice(markup.indexOf('aria-label="Upcoming sets"'));
-  assert.match(upcoming, /<span class="ws-row-label">Set 3<\/span><input aria-label="Set 3 weight"  value="120"/);
-  assert.match(upcoming, /aria-label="Mark set 3 done" aria-expanded="false" onclick="checkWorkoutSet\('Monday',2,2\)"/);
+  assert.match(upcoming, /<button type="button" class="ws-crow ws-crow-up" aria-expanded="false" aria-label="Set 3, 8 to 12 reps\. Open to log\." onclick="toggleWorkoutRow\('Monday',2,2,'working'\)"><span class="ws-crow-label">Set 3<\/span><span class="ws-crow-sub">8 to 12 reps<\/span><span class="ws-crow-target">120 lb<\/span><\/button>/);
+  assert.doesNotMatch(upcoming, /aria-label="Set 3 weight"/);
   assert.match(upcoming, /rowAction\('Monday',2,2,'working'\)/);
 
   // Tools, up next and step buttons
@@ -108,11 +106,12 @@ test("middle set: comp layout around per-set logging", () => {
   for (const marker of ["workout-header", "session-duration", "form-cue-callout", "data-swipe-row"]) assert.ok(markup.includes(marker), marker);
 });
 
-test("paused: logging is disabled and Pause reads Resume", () => {
+test("paused: logging and inputs are disabled, Pause reads Resume", () => {
   const { markup } = renderScreen({ actual: [planned(), planned(), planned()], paused: true });
   assert.match(markup, /aria-pressed="true" onclick="togglePause\('Monday',2\)">Resume<\/button>/);
   assert.match(markup, /<span class="paused-state" aria-live="polite">Paused<\/span>/);
-  assert.match(markup, /<button class="primary ws-log" type="button" disabled aria-describedby="ws-effort-hint" onclick="logWorkoutSet\('Monday',2,0\)">/);
+  assert.match(markup, /<button class="primary ws-log" type="button" disabled onclick="logWorkoutSetWithEffort\('Monday',2,0,'Good'\)">/);
+  assert.doesNotMatch(markup, /ws-effort-hint/);
   assert.match(markup, /aria-pressed="false" disabled onclick="chooseWorkoutEffort\('Monday',2,0,'Easy'\)"/);
   assert.match(markup, /<label>Weight, lb<input disabled value="120"/);
 });
@@ -127,18 +126,38 @@ test("last exercise with every set logged: Finish workout, no stripe band", () =
   assert.equal(count(markup, 'class="primary'), 1);
 });
 
-test("warm-ups keep their rows, swipe actions and add button; general warm-up stays on exercise 1", () => {
+test("warm-ups are compact rows that collapse when done; general warm-up stays on exercise 1", () => {
   const warmups = [{ weight: 45, reps: 9, done: true, status: "completed" }, { weight: 135, reps: 5, status: "planned" }];
   const { markup } = renderScreen({ ei: 0, actual: [planned(), planned(), planned()], warmups });
   assert.ok(markup.indexOf("general-warmup") < markup.indexOf('aria-label="Warm-up sets"'));
+  assert.ok(markup.indexOf('aria-label="Warm-up sets"') < markup.indexOf('<section class="ws-current"'), "warm-ups come before the current set");
   assert.match(markup, /<span class="ws-section-title">Warm-up sets<\/span><span class="ws-section-note">Not counted toward progression<\/span>/);
-  assert.match(markup, /aria-label="Warm-up 1 weight" value="45" inputmode="decimal"  onchange="wuEdit\('Monday',0,0,'w',this\.value\)"/);
+  // Compact rows: W1 label + "45 × 9" value + check button; no always-visible inputs
+  assert.match(markup, /<button type="button" class="ws-crow-main" aria-expanded="false" aria-label="Warm-up 1: 45 × 9\. Edit warm-up\." onclick="toggleWorkoutRow\('Monday',0,0,'warmup'\)"><span class="ws-crow-label">W1<\/span><span class="ws-crow-value">45 × 9<\/span><\/button>/);
   assert.match(markup, /aria-label="Warm-up 1 done" onclick="wuDone\('Monday',0,0\)"/);
   assert.match(markup, /aria-label="Mark warm-up 2 done" onclick="wuDone\('Monday',0,1\)"/);
+  assert.match(markup, /<span class="ws-crow-value">135 × 5<\/span>/);
+  assert.doesNotMatch(markup, /aria-label="Warm-up 1 weight"/, "no warm-up inputs until a row is opened");
   assert.match(markup, /rowAction\('Monday',0,1,'warmup'\)/);
   assert.match(markup, /onclick="addWarmup\('Monday',0\)">.*Add warm-up set<\/button>/);
-  assert.ok(markup.indexOf('aria-label="Warm-up sets"') < markup.indexOf('<section class="ws-current"'), "warm-ups come before the current set");
   assert.match(markup, /disabled>Previous<\/button>/);
+
+  // All done/skipped -> collapsed one-liner, reopenable
+  const allDone = renderScreen({ ei: 0, actual: [planned(), planned(), planned()], warmups: [{ weight: 45, reps: 9, done: true, status: "completed" }, { weight: 135, reps: 5, status: "skipped" }] }).markup;
+  assert.match(allDone, /<button type="button" class="ws-warm-collapsed" aria-expanded="false" onclick="toggleWarmups\('Monday',0\)"><span>Warm-ups done · 2 of 2<\/span><span class="ws-collapse-cue">Show<\/span><\/button>/);
+  assert.doesNotMatch(allDone, /ws-section-title/);
+});
+
+test("tapping a warm-up row opens an inline weight/reps editor", () => {
+  const warmups = [{ weight: 45, reps: 9, status: "planned" }];
+  const { context } = renderScreen({ ei: 0, actual: [planned(), planned(), planned()], warmups, warmupRows: warmups });
+  const app = () => context.document.getElementById("app").innerHTML;
+  assert.doesNotMatch(app(), /aria-label="Warm-up 1 weight"/);
+  context.toggleWorkoutRow("Monday", 0, 0, "warmup");
+  const a = app();
+  assert.match(a, /aria-label="Warm-up 1 weight" value="45" inputmode="decimal"  onchange="wuEdit\('Monday',0,0,'w',this\.value\)"/);
+  assert.match(a, /aria-label="Warm-up 1 reps" value="9" inputmode="numeric"  onchange="wuEdit\('Monday',0,0,'r',this\.value\)"/);
+  assert.match(a, /onclick="toggleWorkoutRow\('Monday',0,0,'warmup'\)">Done<\/button>/);
 });
 
 test("plan and last-time helpers format like the comp", () => {
@@ -151,53 +170,54 @@ test("plan and last-time helpers format like the comp", () => {
   assert.equal(context.workoutLastTime({ date: "2026-10-17", seconds: 30, feel: "" }, true), "Last time, Oct 17: 30 sec");
 });
 
-test("effort is required before a set is logged, and is saved with the set", () => {
+test("feel is preselected from history, and a set logs in one tap with that feel", () => {
   const actual = [planned(), planned(), planned()];
-  const { context } = renderScreen({ actual });
+  const sessions = { s1: { status: "saved", performedDate: "2026-11-01", exercises: { a: { name: "Lat Pulldown", actual: [done(100, 10, "Hard"), done(100, 10, "Failed")] } } } };
+  const { context } = renderScreen({ actual, sessions });
   const app = () => context.document.getElementById("app").innerHTML;
-  context.logWorkoutSet("Monday", 2, 0);
-  assert.deepEqual(context.marked, [], "no effort picked: nothing is logged and no rest starts");
-
-  context.chooseWorkoutEffort("Monday", 2, 0, "Hard");
+  assert.equal(context.defaultWorkoutFeel("Lat Pulldown", 0), "Hard");
+  assert.equal(context.defaultWorkoutFeel("Lat Pulldown", 1), "Failed");
+  assert.equal(context.defaultWorkoutFeel("Lat Pulldown", 2), "Good", "no history for set 3 -> Good");
+  // card for set 1 preselects Hard and the Log button carries it
   assert.match(app(), /class="sel" aria-pressed="true"  onclick="chooseWorkoutEffort\('Monday',2,0,'Hard'\)">Hard<\/button>/);
-  assert.match(app(), /<button class="primary ws-log" type="button"   onclick="logWorkoutSet\('Monday',2,0\)">Log set, start 1:30 rest<\/button>/);
-  assert.doesNotMatch(app(), /ws-effort-hint/);
-  assert.equal(actual[0].feel, undefined, "the choice is not written to the set until it is logged");
-
-  context.logWorkoutSet("Monday", 2, 0);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.marked)), [["Monday", 2, 0, "Hard"]], "logged once, with the effort already on the set");
-  context.logWorkoutSet("Monday", 2, 0);
-  assert.equal(context.marked.length, 1, "a logged set is not logged again");
-
-  context.chooseWorkoutEffort("Monday", 2, 1, "Tired");
-  context.render("Monday", 2);
-  assert.match(app(), /<h2 class="ws-set-title">Set 2<\/h2>/);
-  assert.match(app(), /disabled aria-describedby="ws-effort-hint" onclick="logWorkoutSet\('Monday',2,1\)"/, "unknown efforts are ignored");
+  assert.match(app(), /<button class="primary ws-log" type="button"  onclick="logWorkoutSetWithEffort\('Monday',2,0,'Hard'\)">/);
+  // change feel then log -> logs once with the chosen feel
+  context.chooseWorkoutEffort("Monday", 2, 0, "Easy");
+  context.logWorkoutSetWithEffort("Monday", 2, 0, "Easy");
+  assert.deepEqual(JSON.parse(JSON.stringify(context.marked)), [["Monday", 2, 0, "Easy"]]);
+  assert.equal(actual[0].feel, "Easy");
+  // logging the next set without tapping uses its preselected default (Failed)
+  context.logWorkoutSet("Monday", 2, 1);
+  assert.equal(actual[1].feel, "Failed");
+  assert.equal(context.marked.length, 2);
 });
 
-test("a row check asks for effort first, then logs the set with it", () => {
-  const actual = [planned(), planned(), planned()];
+test("tapping a set row opens an inline editor; upcoming logs, completed changes feel and unlogs", () => {
+  const actual = [done(120, 10, "Good"), planned(), planned()];
   const { context } = renderScreen({ actual });
   const app = () => context.document.getElementById("app").innerHTML;
 
-  context.checkWorkoutSet("Monday", 2, 2);
-  assert.deepEqual(context.marked, [], "tapping the check does not log yet");
-  assert.match(app(), /aria-label="Mark set 3 done" aria-expanded="true" onclick="checkWorkoutSet\('Monday',2,2\)"/);
-  const prompt = app().slice(app().indexOf('<div class="ws-row-prompt">'));
-  assert.match(prompt, /<div class="ws-row-prompt-label" id="ws-prompt-2">How did set 3 feel\?<\/div><div class="ws-effort" role="group" aria-labelledby="ws-prompt-2">/);
-  for (const feel of ["Easy", "Good", "Hard", "Failed"]) assert.match(prompt, new RegExp(`onclick="logWorkoutSetWithEffort\\('Monday',2,2,'${feel}'\\)">${feel}</button>`));
-  assert.match(prompt, /onclick="cancelWorkoutEffortPrompt\('Monday',2\)">Cancel<\/button>/);
+  // Completed row: tap opens an editor with feel() and Unlog set
+  assert.doesNotMatch(app(), /aria-label="Set 1 weight"/);
+  context.toggleWorkoutRow("Monday", 2, 0, "working");
+  let a = app();
+  assert.match(a, /aria-label="Set 1 weight" value="120" inputmode="decimal"  onchange="edit\('Monday',2,0,'weight',this\.value\)"/);
+  assert.match(a, /class="sel" aria-pressed="true"  onclick="feel\('Monday',2,0,'Good'\)">Good<\/button>/);
+  assert.match(a, /onclick="mark\('Monday',2,0\)">Unlog set<\/button>/);
+  assert.match(a, /onclick="toggleWorkoutRow\('Monday',2,0,'working'\)">Done<\/button>/);
+  context.toggleWorkoutRow("Monday", 2, 0, "working");
+  assert.doesNotMatch(app(), /Unlog set/);
 
-  context.cancelWorkoutEffortPrompt("Monday", 2);
-  assert.doesNotMatch(app(), /ws-row-prompt/);
-  assert.deepEqual(context.marked, []);
+  // Upcoming row: tap opens an editor with preselected feel and a red Log
+  context.toggleWorkoutRow("Monday", 2, 2, "working");
+  a = app();
+  assert.match(a, /aria-label="Set 3 weight" value="120" inputmode="decimal"  onchange="edit\('Monday',2,2,'weight',this\.value\)"/);
+  assert.match(a, /onclick="chooseWorkoutEffort\('Monday',2,2,'Good'\)">Good<\/button>/);
+  assert.match(a, /<button class="primary ws-log" type="button"  onclick="logWorkoutSetWithEffort\('Monday',2,2,'Good'\)">Log set, start 1:30 rest<\/button>/);
+  assert.match(a, /onclick="toggleWorkoutRow\('Monday',2,2,'working'\)">Cancel<\/button>/);
 
-  context.checkWorkoutSet("Monday", 2, 2);
-  context.logWorkoutSetWithEffort("Monday", 2, 2, "Failed");
-  assert.deepEqual(JSON.parse(JSON.stringify(context.marked)), [["Monday", 2, 2, "Failed"]], "logged once, with the effort already on the set");
-
-  // A logged row's check still unlogs it directly.
-  context.checkWorkoutSet("Monday", 2, 2);
-  assert.equal(context.marked.length, 2);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.marked[1])).slice(0, 3), ["Monday", 2, 2]);
+  // Skipped row shows no editor
+  actual[1] = { status: "skipped", done: false };
+  context.render("Monday", 2);
+  assert.match(app(), /<div class="ws-crow set-skipped"><span class="ws-crow-label">Set 2<\/span><span class="ws-crow-value">Skipped<\/span><\/div>/);
 });

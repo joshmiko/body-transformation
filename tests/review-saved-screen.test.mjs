@@ -170,3 +170,18 @@ function loadWithSync(options) {
   vm.runInContext(syncLabelSource, loaded.context);
   return loaded;
 }
+
+test("Review and Saved hide the app header and tab bar; leaving restores them", () => {
+  // CSS hides header/nav when body has bt-fullscreen
+  assert.match(html, /body\.bt-fullscreen header,body\.bt-fullscreen \.nav,body\.bt-fullscreen #bt-profile-link\{display:none!important\}/);
+  // Review and Saved set the class
+  const review = html.slice(html.indexOf("function reviewWorkout(d){"), html.indexOf("function renderSavedWorkout("));
+  assert.match(review, /document\.body\.classList\.add\("bt-fullscreen"\)/);
+  const saved = html.slice(html.indexOf("function renderSavedWorkout("), html.indexOf("function saveReviewedWorkout("));
+  assert.match(saved, /document\.body\.classList\.add\("bt-fullscreen"\)/);
+  // Leaving to any other tab (nav) or back to the workout (render) clears it
+  assert.match(html, /function nav\(id\)\{document\.body\.classList\.remove\("workout-mode"\);document\.body\.classList\.remove\("bt-fullscreen"\);/);
+  assert.match(html, /function render\(d,ei\)\{document\.body\.classList\.remove\("bt-fullscreen"\);/);
+  // Saved "Done" goes home; Review keeps "Back to workout"
+  assert.match(saved, /onclick="home\(\)">Done<\/button>/);
+});
